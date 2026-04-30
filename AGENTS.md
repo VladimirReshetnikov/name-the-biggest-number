@@ -95,21 +95,26 @@ be prepended manually.
 ### Languages and runtimes
 
 - `pwsh` — machine-wide PowerShell 7 at
-  `C:\Program Files\PowerShell\7\pwsh.exe`.
-  Refresh the 7.6 line with
-  `pwsh -File .\src\Scripts\Install-PowerShell\Install-PowerShell.ps1 -VersionSpec 7.6 -RelaunchElevated`,
-  or use `-VersionSpec latest` for the newest stable release.
-- `python` — `pyenv-win`-managed; the global default is `3.13.13` at
-  `C:\Users\vresh\.pyenv\pyenv-win\versions\3.13.13\python.exe`.
-  Refresh the 3.13 line (or install another) with
-  `pwsh -File .\src\Scripts\Install-PythonWithPyenv\Install-PythonWithPyenv.ps1 -VersionSpec 3.13`.
+  `C:\Program Files\PowerShell\7\pwsh.exe`. Use `winget upgrade
+  Microsoft.PowerShell` (or `winget install Microsoft.PowerShell`) to
+  refresh.
+- `python` — `pyenv-win` is installed at `C:\Users\vresh\.pyenv\` and
+  has versions `3.9.0`, `3.9.9`, `3.12.0`, `3.13.13` available; its
+  shim lives at `C:\Users\vresh\.pyenv\pyenv-win\shims\python.bat`.
+  However, the bare `python` command currently resolves to
+  `C:\Users\vresh\AppData\Local\Microsoft\WindowsApps\python.exe`
+  (Microsoft `pythoncore` `3.14.4`), which appears earlier on `PATH`
+  than the pyenv shim. To use a pyenv-managed Python, either invoke
+  the shim explicitly (`& "$env:USERPROFILE\.pyenv\pyenv-win\shims\python.bat"`),
+  set `PYENV_VERSION`, or reorder `PATH` so the pyenv `shims` directory
+  precedes `WindowsApps`.
 - `fnm` (Fast Node Manager) at
   `C:\Users\vresh\AppData\Local\Microsoft\WinGet\Links\fnm.exe`.
   Default Node is `v25.9.0` (Current) with npm `11.12.1` under
   `C:\Users\vresh\AppData\Roaming\fnm\node-versions\v25.9.0\installation`.
 - `uv` (Astral) at `C:\Users\vresh\.local\bin\uv.exe`, with
-  `uvx.exe` and `uvw.exe` siblings. Refresh with
-  `pwsh -File .\src\Scripts\Install-Uv\Install-Uv.ps1`.
+  `uvx.exe` and `uvw.exe` siblings. `uv self update` upgrades it in
+  place.
 
 ### Document tooling
 
