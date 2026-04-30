@@ -237,6 +237,17 @@ the brainstorming thread does not get lost between sessions.
   Imports `FunctionalExtensionality` for the `cast_same` reduction
   lemma; `Print Assumptions` reports
   `functional_extensionality_dep` only.
+- `sandbox/ReflectRTower.v` — second-order reflection (Approach D.2):
+  defines `L_RT = STLC+NatRec+tRTower` where
+  `tRTower : Nat -> Nat -> Nat` is interpreted as
+  `sandbox.ReflectTower.ReflectTower.R_tower`. Rebuilds the depth-bounded
+  maximum in `L_RT` and proves
+  `Contender.contender_5 < contender_reflect_rtower_8` (with a witness
+  `S (tRTower 100 342)` at `term_depth = 345`). Uses `Opaque` on
+  `eval` / `maxBy` / the enumerator before applying the maxBy lower-bound
+  lemma, to keep the kernel from running the depth-bounded search during
+  conversion. Compile with `coqc -Q . "" sandbox\ReflectRTower.v` after
+  `sandbox\ReflectTower.v` has been built.
 
 When extending these or adding new ones, drop them in `sandbox/` so
 they are visually distinguished from the contender chain. They do not

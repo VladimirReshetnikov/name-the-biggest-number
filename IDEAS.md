@@ -194,6 +194,57 @@ contender path. Two consequences:
 See the new "Approach D.2" section below for the natural follow-up: lifting
 `R_tower` itself into a primitive of yet another reflective language.
 
+### 2026-04-30 sandbox update — RTower as a primitive (Approach D.2)
+
+New experiment: `sandbox/ReflectRTower.v`.
+
+It defines a new object language `L_RT`:
+
+* STLC + NatRec
+* plus a primitive
+
+```coq
+tRTower : Nat -> Nat -> Nat
+```
+
+interpreted as the already-constructed reflection tower from
+`sandbox/ReflectTower.v`:
+
+```coq
+sandbox.ReflectTower.ReflectTower.R_tower : nat -> nat -> nat.
+```
+
+Then it rebuilds the same depth-bounded max machinery in `L_RT`:
+
+```coq
+Definition largest_RT_nat_of_depth (d : nat) : nat := ...
+```
+
+and proves a one-shot bound beyond `contender_5` by exhibiting the internal
+witness term
+
+```coq
+S (tRTower 100 342)
+```
+
+at (computed) `term_depth = 345`:
+
+```coq
+Definition contender_reflect_rtower_8 : nat := largest_RT_nat_of_depth 345.
+
+Theorem contender_5_lt_reflect_rtower_8 :
+  Contender.contender_5 < contender_reflect_rtower_8.
+```
+
+Engineering note: the file marks `eval` / `maxBy` (and the enumerator) `Opaque`
+*before* applying the maxBy lower-bound lemma at the concrete depth 345,
+otherwise Coq's conversion check tries to run the depth-bounded search.
+
+This is still the “unary literal” version of D.2; see the D.2 section below
+for why the interesting next refinement is to *compute* large `K`/`D` values
+at small `term_depth`, and the caveat about de Bruijn levels / shifting when
+reusing arithmetic combinators.
+
 ## The general framework
 
 Pick a new total object language `L6` with:
@@ -560,9 +611,15 @@ S (tRTower (natlit K) (natlit D))   (* eval = S (R_tower K D) *)
 ```
 
 has term_depth `max(K + 3, D + 2) + 1 = max(K + 4, D + 3)`. Choosing the
-internal depth budget `D'` for `L_RT` to be e.g. `D' = 350`, we can pick
-`K = D' - 4 = 346` and `D = D' - 3 = 347`, so the level-`D'` enumeration
-in `L_RT` already exceeds `R_tower 346 347`.
+internal depth budget `D'` for `L_RT` to be large enough to contain the
+witness term, the simplest safe instantiation (with unary `natlit`) is to
+reuse the already-proved pair `(K, D) = (100, 342)` from D.1. This gives a
+witness depth of `345`, and the `L_RT` max at depth 345 is therefore at least
+`S (R_tower 100 342)`, hence strictly beyond `contender_5`.
+
+This is now fully materialized in `sandbox/ReflectRTower.v`, which proves
+`Contender.contender_5 < largest_RT_nat_of_depth 345` via exactly that
+witness.
 
 Why this is interesting:
 
@@ -571,7 +628,7 @@ Why this is interesting:
   to hard-code a level number in the contender definition.
 * The same Opaque-protection trick from D.1 applies: `R_tower` should be
   marked `Opaque` (or its body kept hidden behind a thin abstraction) so
-  the kernel does not try to fully evaluate `R_tower 346 347` while
+  the kernel does not try to fully evaluate `R_tower K D` while
   type-checking the contender bound.
 * This iterates: Approach D.3 would primitivize `largest_RT_nat_of_depth`,
   Approach D.k would have a length-`k` chain of meta-reflective layers.
@@ -664,10 +721,14 @@ State of play after the 2026-04-30 follow-up:
   mechanism, and the cleanest path is well-founded recursion on a
   CNF-ordering relation. The L6 syntax/maxBy machinery is plumbing-only;
   the ordinal descent is the real work.
-* **Approach D.2** (second-order reflection on `R_tower`) is the obvious
-  next sandbox if we want to push the mechanical line another step.
-  Estimated cost: ~1 sandbox session, mechanically similar to
-  ReflectTower.v.
+* **Approach D.2 is now also done in sandbox.** `sandbox/ReflectRTower.v`
+  defines `L_RT = STLC+NatRec+tRTower` with `tRTower` interpreted as
+  `R_tower`, rebuilds the depth-bounded max, and proves
+  `Contender.contender_5 < largest_RT_nat_of_depth 345` (called
+  `contender_reflect_rtower_8` in-file). It also records the same kernel
+  conversion trap as D.1: `eval`/`maxBy`/the enumerator must be made `Opaque`
+  before applying the maxBy lower-bound lemma at a concrete depth, or Coq will
+  try to run the depth-bounded search during conversion.
 
 Three credible next concrete steps, ordered by ambition:
 
@@ -710,10 +771,17 @@ Pick whichever seems most tractable for the contributor. The existing
 `sandbox/L6.v` and `sandbox/FGH.v` are already aligned with the first or
 second of these.
 
-### Track 3 — push reflection further (Approach D.2, low risk, marginal gain)
+### Track 3 — push reflection further (post-D.2, low risk, marginal gain)
 
-If Track 1 ships and the staged-reflection style is accepted, Approach
-D.2 is mostly free. See its dedicated section above.
+Approach D.2 is now mechanically demonstrated in `sandbox/ReflectRTower.v`.
+If Track 1 ships and staged reflection is accepted, the next incremental
+pushes are:
+
+* the “computed K/D” refinement (pick huge oracle arguments at small
+  `term_depth`, with a careful term-shifting story because the syntax uses
+  de Bruijn levels), and/or
+* D.3: primitivize `largest_RT_nat_of_depth` itself as the next reflective
+  oracle and iterate again.
 
 ### Approach B as a long-term differentiator
 
