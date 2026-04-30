@@ -1,103 +1,377 @@
 # Ideas for Beating the Current Contender
 
-The current contender is not merely another named fast-growing function. It is
-already a small "largest definable number" construction:
+## Where we are
+
+The current contender is
 
 ```coq
 Definition contender_5 : nat := largest_STLCNatRec_nat_of_depth 42.
 ```
 
-That is, it enumerates all shallow terms in the STLC+NatRec object language,
-evaluates the closed terms that return `nat`, and takes the largest result.
-This is a constructive, total-language analogue of the Busy Beaver or Rayo
-"maximize over descriptions" move.
+which is the largest natural number produced by any closed STLC+NatRec term
+of `term_depth` at most 42. STLC+NatRec is essentially Gödel's System T:
+its `Nat -> Nat` definables are exactly the provably total recursive
+functions of Peano Arithmetic, bounded uniformly by `f_alpha` for some
+`alpha < epsilon_0` in the fast-growing hierarchy.
 
-So the next serious contender should beat the method, not just the value. A
-good plan is:
+Beating just the *value* (e.g. by using a slightly larger Ackermann) is no
+longer interesting. What we want is to beat the *method*: produce a new
+contender that subsumes STLC+NatRec by structural embedding and then
+applies a strictly stronger total construct.
 
-1. Define a new total object language `L6`.
-2. Prove every current STLC+NatRec term embeds into `L6`.
-3. Add one genuinely stronger compact construct to `L6`.
-4. Define the new contender as the largest natural produced by any shallow
-   `L6` term.
-5. Prove the old winner embeds into `L6`, then apply the new construct to it
-   inside `L6`.
+Empirically (from `Sandbox_baseline.v`):
 
-The definition should have the shape:
+| `d`  | `length (termsUpTo d)` | `largest_STLCNatRec_nat_of_depth d` |
+|------|-----------------------:|------------------------------------:|
+| 1    | 2                      | 0                                   |
+| 2    | 10                     | 1                                   |
+| 3    | 146                    | 2                                   |
+| 4    | 24 976                 | 3                                   |
+| ...  | ...                    | (explodes)                          |
+| 42   | infeasible to enumerate | `contender_5`                      |
 
-```coq
-Definition contender_6 : nat :=
-  largest_L6_nat_of_depth 44.
-```
+Reified depths of the existing witnesses:
 
-The old contender should not appear in this definition. It should only appear
-in the proof, where the witness term is morally:
+* `term_depth ack_reified = 26`
+* `term_depth contender_4''_reified = 30`
 
-```coq
-Grow (embed old_best)
-```
+So at depth 42 there is roughly 12 levels of slack on top of `ack 5 42 10002`.
+Plenty of room for the enumeration to produce something far past `ack`,
+but everything in the budget is still bounded by some `f_alpha` with
+`alpha < epsilon_0`.
 
-The proof then has the shape:
+## The general framework
 
-```coq
-eval_L6 (Grow (embed old_best)) = Grow contender_5
-Grow contender_5 > contender_5
-eval_L6 (Grow (embed old_best)) <= contender_6
-```
+Pick a new total object language `L6` with:
 
-Therefore:
+1. A type system at least as rich as STLC+NatRec.
+2. Term enumeration up to a depth `d`.
+3. A computable evaluator into `nat`.
 
-```coq
-Theorem contender_5_lt_contender_6 :
-  contender_5 < contender_6.
-```
-
-The easiest useful `Grow` is a primitive total fast-growing function, for
-example an Ackermann-style iterator:
+Then define
 
 ```coq
-Grow x := ack 5 42 (S x)
+Definition contender_6 : nat := largest_L6_nat_of_depth d.
 ```
 
-or a repeated variant:
+and prove `contender_5 < contender_6` by:
+
+* defining `embed_type` and `embed_term` from STLC+NatRec to `L6`,
+* showing that `embed_term` preserves both `term_depth` (or shifts it by a
+  fixed constant) and the evaluation result,
+* exhibiting an `L6`-specific witness term `Grow (embed t*)` where `t*` is
+  the unknown depth-≤42 STLC+NatRec witness for `contender_5`,
+* proving `eval_L6 (Grow (embed t*)) > contender_5` and that the witness
+  fits within the new depth budget.
+
+The witness `t*` does not need to be named in the definition of
+`contender_6`; it is conjured existentially via the maxBy lemmas (the
+`maxBy_In` / `lowerbound_maxBy` combo already in `Contender.v`).
+
+## Approach A — ordinal-indexed fast-growing hierarchy as a primitive
+
+This is the approach already sketched in the previous version of
+`IDEAS.md`. We elaborate it here with the data structures and tradeoffs
+made concrete by `Sandbox_FGH.v` and `Sandbox_L6.v`.
+
+### A.1 Cantor Normal Form ordinals
+
+Use the inductive type
 
 ```coq
-Grow x := Nat.iter (S x) (fun y => ack 5 42 (S y)) (S x)
+Inductive ord : Set :=
+| oz    : ord
+| ocons : ord -> ord -> ord.   (* ocons a b stands for omega^a + b *)
 ```
 
-That already gives a large formal margin over `contender_5`, and the proof
-obligation `x < Grow x` should be straightforward.
+with the (non-enforced) CNF invariant `a >= leading_exponent(b)`. From
+`Sandbox_FGH.v` the canonical fundamental sequence and FGH compute as
+expected at small inputs:
 
-The more satisfying version is to make `Grow` a principled ordinal-indexed
-fast-growing hierarchy primitive:
+* `ord_fund_seq omega 5    = 5`
+* `ord_fund_seq (omega*2) 3 = omega + 3`
+* `ord_fund_seq (omega^2) 4 = omega * 4`
+* `ord_fund_seq (omega^omega) 3 = omega^3`
+* `f_2(4) = 64`, `f_2(6) = 384`, `f_3(2) = 2048`, `f_omega(2) = 8`
+
+The CNF representation is compact:
+
+* `ord_size omega = 5`,  `ord_height omega = 3`
+* `ord_size (omega^omega) = 7`, `ord_height (omega^omega) = 4`
+* `ord_size (omega↑↑5) = 13`,   `ord_height (omega↑↑5) = 7`
+* `ord_size (omega↑↑10) = 23`,  `ord_height (omega↑↑10) = 12`
+
+Since `epsilon_0 = sup_n omega↑↑n` and is *not* expressible in CNF, the
+strongest `Grow` we can name in this representation is `f_{omega↑↑h}` for
+a finite `h`. The total ordinal complexity grows linearly in `h`, so a
+serious headroom (e.g. `h = 5` or `h = 10`) costs only a few extra
+levels of `term_depth`.
+
+### A.2 The L6 language
+
+`Sandbox_L6.v` shows the data types compile and evaluate. The
+extension over STLC+NatRec is:
 
 ```coq
-tFGH : ordinal_notation -> term
+Inductive type :=
+| tpNat : type
+| tpOrd : type
+| tpArr : type -> type -> type.
+
+Inductive term :=
+| tVar (x : nat)
+| tLam (A B : type) (body : term)
+| tApp (t1 t2 : term)
+| tO | tS
+| tNatRec (R : type)
+| tOZ | tOCons | tFGH.
 ```
 
-The ordinal notation could start with Cantor normal forms below `epsilon_0`,
-or use a stronger but still finitary notation if the formalization remains
-manageable. Then `Grow x = FGH(big_ordinal, x)` is not merely a hand-picked
-wrapper around the old result; it is a compact, total recursion principle that
-strictly extends the previous object language.
+with the obvious typing:
 
-A cheap move would be:
+```
+tOZ    : tpOrd
+tOCons : tpOrd -> tpOrd -> tpOrd
+tFGH   : tpOrd -> tpNat -> tpNat
+```
+
+Sanity check from the L6 sandbox:
+
+* `eval (tApp (tApp tFGH (encode 1)) (encode 3)) = 6` at term_depth 5.
+* `eval (tApp (tApp tFGH omega) (encode 2)) = 8`   at term_depth 7.
+
+So depth 7 in L6 already exceeds depth 4 in plain STLC+NatRec.
+
+### A.3 Picking the budget
+
+To reuse the existing maxBy witness machinery we need the depth budget
+`d6` to satisfy
+
+```
+d6 >= max(term_depth_L6 (encode big_ord), term_depth_L6 (embed t*)) + 1
+    = max(term_depth_L6 (encode big_ord), 42) + 1.
+```
+
+`omega↑↑5` encodes at term_depth ≈ 17 in L6, well below 42. Using
+`d6 = 44` (the value the original IDEAS.md proposed) leaves comfortable
+headroom and lets us pick a beefier ordinal.
+
+The Grow witness is then morally
 
 ```coq
-largest_STLCNatRec_nat_of_depth 43
+tApp (tApp tFGH (encode (omega_tower 5))) (embed t*)
 ```
 
-The existing monotonicity proof almost gives this immediately, but it feels
-like a parameter bump. It is probably legal, but not glorious.
+and we get the strict domination
 
-The best next contender is therefore:
-
-```text
-largest value produced by a shallow term in STLC+NatRec plus a principled
-stronger total recursor.
+```coq
+contender_6 >= f_{omega↑↑5}(contender_5) > contender_5.
 ```
 
-This keeps the constructive/no-axioms discipline, avoids Busy Beaver halting
-problems, avoids mentioning `contender_5` in the definition of `contender_6`,
-and wins by a structural embedding proof rather than by a small arithmetic
-one-up.
+### A.4 Proof obligations
+
+In rough order:
+
+1. Soundness of the L6 evaluator (mirror of `interp_term` in
+   `Contender.v`, plus the new ord/FGH cases).
+2. Termination of `FGH_total`. The simplest path is well-founded
+   recursion on the lexicographic pair `(ord, nat)` or
+   `(ord_size, nat)`. `Sandbox_FGH.v` uses fuel; the cleanup for
+   `Contender.v` should switch to `Fix` so no axioms are needed.
+3. `term_depth (embed t) = term_depth t` and
+   `eval_L6 (embed t) = eval_STLC t`, by routine structural induction
+   replicating `interp_tApp`/`interp_tLam`/etc.
+4. `maxBy`-style lemmas for L6 — these mirror those for STLC+NatRec
+   line by line, with one extra constructor case each.
+5. `forall n, n < FGH big_ord (S n)` — the only "hard" arithmetic fact;
+   needs the basic FGH inequality `n < f_alpha(n+1)` for nonzero alpha,
+   provable by induction on alpha along the fundamental sequence.
+
+### A.5 Why pick this
+
+* Cleanly subsumes STLC+NatRec via embedding.
+* Compact CNF ordinals — Grow is "just one term constructor".
+* Computable; no axioms; small Coq footprint (`Sandbox_FGH.v` is ~120
+  lines and `Sandbox_L6.v` adds ~100 more).
+* Genuinely structurally stronger: STLC+NatRec at fixed depth `d`
+  cannot uniformly express `f_alpha` for `alpha` close to its own
+  proof-theoretic limit; L6 at the same depth can name those `alpha`
+  cheaply because each `ocons`/`oz` costs constant depth.
+
+### A.6 Risks / unknowns
+
+* The fuel-vs-Fix question is the main engineering issue. Switching to
+  well-founded recursion is mechanical but adds dependent pattern
+  matching plus an `Acc` argument. The proof strategy in
+  `eval_triple` from `System_F.v` is a useful reference.
+* The Coq ord representation must remain reduction-friendly under
+  `vm_compute`. The current shape (no proof obligations baked in) is
+  fine.
+* CNF is bounded by `epsilon_0`. To go higher you'd add a Veblen
+  hierarchy or Bachmann–Howard notation; both blow up the ordinal data
+  type and the fundamental-sequence definition. Probably overkill for
+  a single contender bump.
+
+---
+
+## Approach B — System F (impredicative polymorphism)
+
+Adding `Forall a. ...` types and type abstraction/application makes the
+language System F. The functions `Nat -> Nat` definable in System F are
+exactly those provably total in second-order Heyting arithmetic (HA²),
+which is strictly stronger than what System T (= STLC+NatRec) can do.
+
+The repo already has `System_F.v`, which contains:
+
+* a normalization proof for closed System F terms via Girard's
+  computability predicates,
+* a Bove–Capretta–style well-founded evaluator (`eval_f`).
+
+So the pieces are partly in place. Open work:
+
+1. `term_depth` and `termsUpTo` for System F (must enumerate up to a
+   depth, including type-abstraction structure).
+2. A computable evaluator extracting a `nat` for closed terms of `Nat`
+   type. `eval_f` is close but uses a value type; we'd want to read
+   off Church numerals or a primitive `Nat`.
+3. An embedding from STLC+NatRec into System F. This is standard:
+   `Nat` becomes `forall X. X -> (X -> X) -> X` (Church), `0` becomes
+   `Lam X. lam x:X. lam s:X->X. x`, etc. Fitting this into the
+   `term_depth` budget requires care because Church numerals are
+   slightly deeper than primitive numerals.
+4. A separate `Grow`. System F itself does not give us a free
+   primitive faster than what System T can already do — the strength
+   gain is in *what's definable in finite depth*, not a specific
+   built-in. We'd need to commit to either:
+   * a non-trivial polymorphic witness (e.g. a Church-encoded
+     transfinite iterator), or
+   * a hybrid: System F + a small extra primitive.
+
+Pros: principled, leverages existing infrastructure, gives a
+qualitative jump in proof-theoretic strength.
+
+Cons: heavy lift. The depth-bounded enumeration is fiddlier than for
+STLC+NatRec because of two binders (term-level and type-level) and
+two `tApp` analogues. The current `System_F.v` evaluator depends on
+`FunctionalExtensionality`; the existing axioms list for the project
+is empty, and that has to be preserved.
+
+## Approach C — System T + bar recursion (Spector)
+
+Bar recursion is the canonical "strictly above System T but still
+constructive" extension. Adding the bar recursor at type `nat` gives a
+system whose totality matches HA² (this is Spector's interpretation of
+analysis). In practice:
+
+```
+BR : (forall (s : list nat) (n : nat -> nat),
+        (... termination predicate ...) ->
+        A) -> ...
+```
+
+The simplest variant is "Spector's bar recursion at type `nat`": a
+recursor over finite sequences with an extension condition.
+
+Pros: principled and proof-theoretically correct; exactly the right
+"one step beyond System T".
+
+Cons: the formal definition is significantly heavier than CNF
+ordinals; termination requires a proof about extensions, not just an
+ordinal descent. Probably more work than Approach A for less concrete
+gain at the given depth budget.
+
+## Approach D — A reflection primitive
+
+Add a primitive
+
+```
+tEval : tpNat -> tpNat
+```
+
+evaluating to `largest_STLCNatRec_nat_of_depth n` on input `n`.
+
+This sounds appealing because the new contender literally has access
+to "the answer at smaller depths". But:
+
+* It does *not* increase expressive power — the function
+  `n |-> largest_STLCNatRec_nat_of_depth n` is itself System T-definable
+  (it's a primitive recursive function in `n`), so adding it as a
+  primitive only saves depth.
+* The depth saving might still be enough to win against
+  `largest_STLCNatRec_nat_of_depth 42`, but the win feels
+  parameter-bumpy: `tEval (tApp tS (encode 42))` evaluates to
+  `largest_STLCNatRec_nat_of_depth 43` at L6 depth ≈ 5.
+
+Probably not gloriously different from `largest_STLCNatRec_nat_of_depth
+43`. We'd still need to bolt FGH or similar on top to get a real
+structural win.
+
+## Approach E — Higher-order primitive recursion at one specific
+type
+
+A weaker, more surgical version of Approach A: pick one specific big
+ordinal `alpha < epsilon_0`, hard-code `f_alpha : nat -> nat` as a
+single primitive `tBigGrow : tpNat -> tpNat`, and stop. This is
+essentially the "`Grow x = ack 5 42 (S x)`" suggestion from the
+earlier IDEAS.md, but with a much bigger seed.
+
+Pros: minimal Coq footprint; the FGH definition lives only at proof
+time, not in the term grammar; depth budget for using it is just
+`tApp tBigGrow (embed t*)` ≈ 1 + 42 = 43. Easy `term_depth`
+arithmetic.
+
+Cons: the choice of `alpha` is a magic constant in the language
+definition. Not as principled as making the ordinal itself a runtime
+input via `tpOrd`. Also less reusable — once we want to push further
+later we have to carve another notch in the language rather than
+varying the ordinal.
+
+Verdict: useful as a fallback if Approach A's runtime ord
+representation proves too painful to formalize cleanly.
+
+## Approach F — A hydra / Goodstein primitive
+
+Add `tHydra : tpNat -> tpNat` where `tHydra n` is the number of steps
+until the Kirby–Paris hydra of size `n` dies, or equivalently the
+number of steps in the Goodstein sequence starting at `n`. These
+functions grow at exactly `f_{epsilon_0}` rate, which is the natural
+target.
+
+Pros: very principled — Goodstein and Kirby–Paris are *the* canonical
+`epsilon_0`-strength examples; a single primitive carries genuine
+weight.
+
+Cons: defining the hydra game (or hereditary base-`n` representations
+for Goodstein) and proving it terminates totally inside Coq is a
+substantial project on its own. There's a known Coq formalization of
+Goodstein by Castéran et al. (`Cantor` / `hydras`) which could be
+adapted but adds a large dependency.
+
+## Recommendation / next concrete step
+
+Approach A is the best balance of structural strength, Coq
+implementation cost, and clean proof obligations. Concretely:
+
+1. Promote `Sandbox_FGH.v` to `FGH.v`: keep the CNF ord and FGH
+   definition, but replace the fuel-based `FGH` with a `Fix`-based
+   total version. Prove the few growth lemmas needed
+   (`n < FGH alpha (S n)` for `alpha > 0`, monotonicity).
+2. Promote `Sandbox_L6.v` to a clean `L6.v` (or extend `Contender.v`)
+   adding `tpOrd`, `tOZ`, `tOCons`, `tFGH` and carrying through the
+   existing proof structure (`termsUpTo`, `maxBy`, `largest_of_depth`,
+   the strict-monotonicity lemma).
+3. Define `embed_type`/`embed_term`, prove preservation of
+   `term_depth` and of evaluation.
+4. Build the witness `tApp (tApp tFGH (encode big_ord)) (embed t*)`
+   and close `contender_5 < contender_6` using the existing `maxBy_In`
+   pattern from `Contender.v`.
+5. Verify the 15 s / 60 s budgets from `README.md` still hold, and
+   that `Print Assumptions` is empty.
+
+If step 2 turns out painful (likely culprit: `term_depth` interactions
+with the new `tpOrd` and the cast machinery), fall back to Approach E
+to ship a working contender, and keep Approach A as the next bump.
+
+Approach B (System F) is the natural target *after* one of these,
+since it provides a different axis of strength (impredicative
+polymorphism rather than higher ordinal indexing).
