@@ -55,6 +55,12 @@ checkout to materialize as a real symlink on Windows.)
   contenders.
 - Keep substantial design sketches, proof strategies, and tradeoff notes there
   so the thread of thought survives across future agent sessions.
+- The usual work mode in this repository is an ongoing relay among
+  different AI agents, often from different vendors and model families,
+  taking turns to explore ideas, brainstorm, experiment, test approaches,
+  and record observations. Treat each session as part of that shared
+  research notebook, with the overall goal of producing the best next
+  contender for "the biggest number ever named".
 - Brainstorming sessions are the default mode for next-contender work. When
   asked to "elaborate on the currently proposed approach and/or propose a
   better one (or several)", treat it as exploratory. Multiple alternatives are
