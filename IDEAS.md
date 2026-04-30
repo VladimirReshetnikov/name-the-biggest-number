@@ -330,13 +330,32 @@ Theorem contender_5_lt_reflect_rtower_small :
 
 This is the simplest "Phase 1" of the computed-K/D refinement noted in
 the original D.2 sandbox: no new infrastructure, just the realization
-that the chain lemma's smallest case already suffices.  *Phase 2* —
-making `K` and/or `D` themselves *computed* via NatRec, e.g. as powers
-of two or tetration — is a separate refinement that needs a depth-
-monotonicity lemma `largest_RT_nat_of_depth d <= largest_RT_nat_of_depth
-d'` for `d <= d'`, plus inline arithmetic combinators.  The natural
-ceiling for Phase 2 is a depth-budget around 20 (witness involving an
-inline `pow2 5 = 32` for one of the two arguments to `tRTower`).
+that the chain lemma's smallest case already suffices.
+
+Phase 1 also adds the two depth-monotonicity lemmas needed by Phase 2,
+in `sandbox/ReflectTowerNoAx.v`:
+
+```coq
+Lemma largest_reflect_d_mono : forall prev d1 d2,
+    d1 <= d2 ->
+    largest_reflect_nat_of_depth prev d1
+    <= largest_reflect_nat_of_depth prev d2.
+
+Lemma R_tower_S_d_mono : forall k d1 d2,
+    d1 <= d2 -> R_tower (S k) d1 <= R_tower (S k) d2.
+```
+
+(The level-0 case is deliberately skipped to keep
+`Contender.largest_STLCNatRec_nat_of_depth` Opaque; only positive
+levels are needed for Phase 2 and beyond.)
+
+*Phase 2* — making `K` and/or `D` themselves *computed* via NatRec,
+e.g. as powers of two or tetration — is now blocked only on writing
+the inline arithmetic combinators and the witness reduction proof.
+The natural ceiling for Phase 2 is a depth-budget around 20 (witness
+involving an inline `pow2 6 = 64` for the `D` argument to `tRTower`,
+keeping `K = 1` so the chain proof reduces to `R_tower_step 0 42`
+combined with `R_tower_S_d_mono 0 45 64`).
 
 ## The general framework
 

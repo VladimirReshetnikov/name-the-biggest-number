@@ -256,7 +256,9 @@ the brainstorming thread does not get lost between sessions.
   context.  Achieved by restricting `interp_tApp` to `tpNat`-typed
   arguments (where `cast tpNat = id` is definitional) and dropping
   `interp_tLam` / `cast_impl_same`, both of which are unused for the
-  witness chain.  Compile with
+  witness chain.  Also exposes [d]-monotonicity of
+  `largest_reflect_nat_of_depth` and `R_tower (S k)` (Phase 2
+  prerequisite for IDEAS.md Approach D.2).  Compile with
   `coqc -Q . "" sandbox\ReflectTowerNoAx.v` after `Contender.vo`.
 - `sandbox/ReflectRTowerSmall.v` — small-witness, axiom-free variant of
   `ReflectRTower.v` (Approach D.2, "Phase 1" of the computed-K/D

@@ -401,6 +401,46 @@ Proof.
       * apply Nat.ltb_ge in E. eauto.
 Qed.
 
+(* The result of [maxBy] is either the initial best or an element of the
+   list -- a small accessory lemma needed to factor out the [maxBy]
+   monotonicity argument. *)
+
+Lemma maxBy_eq_or_in {T : Type} :
+  forall (f : T -> nat) l m b,
+    maxBy f m b l = b \/ List.In (maxBy f m b l) l.
+Proof.
+  intros f l. induction l as [|a l' IH]; intros m b; simpl.
+  - left. reflexivity.
+  - destruct (m <? f a) eqn:E.
+    + specialize (IH (f a) a). destruct IH as [-> | IH].
+      * right. left. reflexivity.
+      * right. right. exact IH.
+    + specialize (IH m b). destruct IH as [-> | IH].
+      * left. reflexivity.
+      * right. right. exact IH.
+Qed.
+
+(* List monotonicity for [maxBy]: enlarging the list (sublist condition)
+   only increases [f (maxBy f m b _)].  The proof side-cases on whether
+   the [l1]-max is the initial best or an element of [l1]; the first
+   case uses [maxBy_at_least_currentMax], the second [lowerbound_maxBy]
+   together with the sublist hypothesis. *)
+
+Lemma maxBy_subset {T : Type} :
+  forall (f : T -> nat) l1 l2 m b,
+    (forall x, List.In x l1 -> List.In x l2) ->
+    f b = m ->
+    f (maxBy f m b l1) <= f (maxBy f m b l2).
+Proof.
+  intros f l1 l2 m b Hsub Hb.
+  destruct (maxBy_eq_or_in f l1 m b) as [E1 | In1].
+  - rewrite E1. rewrite Hb.
+    apply (maxBy_at_least_currentMax f l2 m b Hb).
+  - eapply lowerbound_maxBy.
+    + apply Hsub. exact In1.
+    + exact Hb.
+Qed.
+
 Definition largest_of_depth (prevMax : nat -> nat) (n : nat) : term :=
   maxBy (eval prevMax) 0 tO (termsUpTo n).
 
@@ -489,6 +529,42 @@ Proof.
     + apply termsUpTo_correct.
       rewrite term_depth_witness_for. lia.
     + reflexivity.
+Qed.
+
+(* Depth-monotonicity for the reflective max.  At a fixed [prevMax] /
+   level (k+1), [largest_reflect_nat_of_depth prev d] is monotone in [d]
+   because [termsUpTo d] is monotone in [d] (sublist by [termsUpTo_correct])
+   and [maxBy] is sublist-monotone (lemma [maxBy_subset] above).
+
+   This is foundational for "Phase 2" of the computed-K/D refinement
+   (IDEAS.md Approach D.2): once we have a witness for some specific
+   [d_step], we can pad the chosen [D] in [tRTower K D] to any
+   [D' >= d_step] without redoing the chain proof. *)
+
+Lemma largest_reflect_d_mono : forall prev d1 d2,
+    d1 <= d2 ->
+    largest_reflect_nat_of_depth prev d1
+    <= largest_reflect_nat_of_depth prev d2.
+Proof.
+  intros prev d1 d2 Hd.
+  unfold largest_reflect_nat_of_depth, largest_of_depth.
+  apply maxBy_subset.
+  - intros t Ht.
+    apply termsUpTo_correct in Ht.
+    apply termsUpTo_correct. lia.
+  - reflexivity.
+Qed.
+
+(* Depth-monotonicity for [R_tower] at any *positive* level. The level-0
+   case would require unfolding [Contender.largest_STLCNatRec_nat_of_depth],
+   which is kept Opaque at the top of this file; deliberately not done
+   here so the kernel never tries to unfold the depth-42 enumeration. *)
+
+Lemma R_tower_S_d_mono : forall k d1 d2,
+    d1 <= d2 -> R_tower (S k) d1 <= R_tower (S k) d2.
+Proof.
+  intros k d1 d2 Hd. simpl.
+  apply largest_reflect_d_mono. exact Hd.
 Qed.
 
 Opaque largest_reflect_nat_of_depth.
