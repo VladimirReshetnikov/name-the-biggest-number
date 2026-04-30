@@ -350,12 +350,76 @@ Lemma R_tower_S_d_mono : forall k d1 d2,
 levels are needed for Phase 2 and beyond.)
 
 *Phase 2* — making `K` and/or `D` themselves *computed* via NatRec,
-e.g. as powers of two or tetration — is now blocked only on writing
-the inline arithmetic combinators and the witness reduction proof.
-The natural ceiling for Phase 2 is a depth-budget around 20 (witness
-involving an inline `pow2 6 = 64` for the `D` argument to `tRTower`,
-keeping `K = 1` so the chain proof reduces to `R_tower_step 0 42`
-combined with `R_tower_S_d_mono 0 45 64`).
+e.g. as powers of two or tetration — is now demonstrated in
+`sandbox/ReflectRTowerComputed.v`: inline `pow2 6 = 64` for the `D`
+argument, and inline `pow2 1 = 2` for the `K` argument.  The final
+proof uses `R_tower_step 1 45` plus `R_tower_S_d_mono 1 48 64`.
+
+### 2026-04-30 sandbox update — computed-K/D D.2 (depth 20)
+
+New experiment: `sandbox/ReflectRTowerComputed.v`.
+
+This is the promised Phase 2 refinement of the small-witness D.2 file.
+First, instead of using the unary literal `45`, it computes a larger
+depth argument internally:
+
+```coq
+Definition witness_rtower_pow2_6 : term :=
+  tApp tS (tApp (tApp tRTower (natlit 1)) pow2_6_term).
+
+Lemma eval_pow2_6_term :
+  eval RTower pow2_6_term = 64.
+
+Lemma eval_witness_rtower_pow2_6 :
+  eval RTower witness_rtower_pow2_6 = S (RTower 1 64).
+```
+
+That D-only witness lands at depth 19.  The file then computes `K` as
+well:
+
+```coq
+Lemma eval_pow2_1_term :
+  eval RTower pow2_1_term = 2.
+
+Definition witness_rtower_pow2_1_6 : term :=
+  tApp tS (tApp (tApp tRTower pow2_1_term) pow2_6_term).
+
+Lemma eval_witness_rtower_pow2_1_6 :
+  eval RTower witness_rtower_pow2_1_6 = S (RTower 2 64).
+
+Definition contender_reflect_rtower_computed : nat :=
+  largest_RT_nat_of_depth RTower (term_depth witness_rtower_pow2_1_6).
+
+Theorem contender_5_lt_reflect_rtower_computed :
+  Contender.contender_5 < contender_reflect_rtower_computed.
+```
+
+The key engineering lesson is about the existing reversed de Bruijn
+*level* convention.  A reusable lambda combinator is not intrinsically
+closed under surrounding binders: if a template is evaluated with `c`
+ambient variables, the next binder is variable `c`, and the next one is
+`S c`.  The new file therefore defines arithmetic templates as
+`step_succ_at c`, `double_at c`, `step_double_at c`, and `pow2_at c`.
+That prevents the "closed" `double` / `pow2` templates from accidentally
+capturing the caller's surrounding variables.
+
+Concrete result:
+
+```text
+eval RTower pow2_6_term = 64
+eval RTower pow2_1_term = 2
+term_depth pow2_6_term = 17
+term_depth witness_rtower_pow2_6 = 19
+term_depth witness_rtower_pow2_1_6 = 20
+Print Assumptions contender_5_lt_reflect_rtower_computed.
+  Closed under the global context.
+```
+
+The proof compiles in under a second when its imported sandbox modules
+are already built, and `coqchk -Q . "" sandbox.ReflectRTowerComputed`
+accepts the module.  This closes the specific Phase 2 item, while also
+leaving a useful reusable pattern for future computed arguments:
+parameterize object-level combinator templates by ambient level count.
 
 ## The general framework
 
@@ -833,14 +897,19 @@ State of play after the 2026-04-30 follow-up:
   `tpNat`-typed arguments (where `cast tpNat a = a` is definitional) and
   dropping `interp_tLam` / `cast_impl_same` (which are unused for the
   witness chain).
-* **Approach D.2 has both the unary-literal version and a small-witness
-  axiom-free version.**  `sandbox/ReflectRTower.v` proves
+* **Approach D.2 now has unary-literal, small-witness, and computed-K/D
+  axiom-free versions.**  `sandbox/ReflectRTower.v` proves
   `Contender.contender_5 < largest_RT_nat_of_depth 345` (witness =
   `S (tRTower 100 342)`, depth 345).  `sandbox/ReflectRTowerSmall.v`
   proves `Contender.contender_5 < largest_RT_nat_of_depth 48` (witness
   = `S (tRTower 1 45)`, depth 48) with no axioms, by importing the
   axiom-free `ReflectTowerNoAx` and using only the smallest case of the
-  step lemma.  Both record the same kernel conversion trap:
+  step lemma.  `sandbox/ReflectRTowerComputed.v` proves the same kind
+  of bound with a computed witness `S (tRTower (pow2 1) (pow2 6))`,
+  where `pow2 1 = 2` and `pow2 6 = 64`, at depth 20 and with a closed
+  global context.  It also records the D-only intermediate witness
+  `S (tRTower 1 (pow2 6))` at depth 19.  These files record the same
+  kernel conversion trap:
   `eval`/`maxBy`/the enumerator must be made `Opaque` *before* applying
   the maxBy lower-bound lemma at a concrete depth, or Coq will try to
   run the depth-bounded search during conversion.
@@ -898,19 +967,19 @@ second of these.
 ### Track 3 — push reflection further (post-D.2, low risk, marginal gain)
 
 Approach D.2 is now mechanically demonstrated in `sandbox/ReflectRTower.v`
-(unary literals, depth 345) and `sandbox/ReflectRTowerSmall.v` (smallest
-witness, depth 48, no axioms).  If Track 1 ships and staged reflection
-is accepted, the next incremental pushes are:
+(unary literals, depth 345), `sandbox/ReflectRTowerSmall.v` (smallest
+witness, depth 48, no axioms), and `sandbox/ReflectRTowerComputed.v`
+(computed `pow2 1` / `pow2 6` K/D arguments, depth 20, no axioms).
+If Track 1 ships and staged reflection is accepted, the next incremental
+pushes are:
 
-* **Phase 2 of computed-K/D**: making `K` and/or `D` themselves
-  *computed* via NatRec inside the object language.  The first step is
-  to prove a depth-monotonicity lemma `largest_RT_nat_of_depth d <=
-  largest_RT_nat_of_depth d'` for `d <= d'`, plus inline arithmetic
-  combinators (`pow2_inline` etc., applied only at the top level so the
-  de Bruijn-level numbering of variables stays consistent).  Estimated
-  payoff: depth budget around 20 with a witness like
-  `S (tRTower (S O) (pow2_inline (S^6 O)))`, exhibiting
-  `S (R_tower 1 64)`.
+* **Computed-K/D generalization**: turn the one-off `pow2_at 0 (natlit n)`
+  artifact into a small library of level-indexed object-language
+  arithmetic combinators.  The immediate upgrades are trying
+  `pow2 (pow2 3)` or tetration-shaped arguments, and proving generic
+  evaluation lemmas instead of one-off `vm_compute` facts.  The caution
+  is now concrete: every reusable lambda template must be parameterized
+  by its ambient de Bruijn level count.
 * **D.3**: primitivize `largest_RT_nat_of_depth` itself as the next
   reflective oracle and iterate again.
 

@@ -269,6 +269,19 @@ the brainstorming thread does not get lost between sessions.
   closed global context.  Compile with
   `coqc -Q . "" sandbox\ReflectRTowerSmall.v` after
   `sandbox\ReflectTowerNoAx.vo` has been built.
+- `sandbox/ReflectRTowerComputed.v` — computed-argument D.2 refinement
+  ("Phase 2").  Imports `sandbox.ReflectRTowerSmall` and defines
+  offset-aware NatRec arithmetic combinators (`double_at`, `pow2_at`)
+  for the reversed de Bruijn-level convention.  Proves
+  `eval RTower (pow2_at 0 (natlit 6)) = 64` and
+  `eval RTower (pow2_at 0 (natlit 1)) = 2`.  Records the D-only witness
+  `S (tRTower 1 (pow2 6))` at `term_depth = 19`, then proves the
+  stronger computed-K/D theorem with
+  `S (tRTower (pow2 1) (pow2 6))` at `term_depth = 20`, using
+  `R_tower_step 1 45` and `R_tower_S_d_mono 1 48 64`.
+  `Print Assumptions` reports a closed global context; compile with
+  `coqc -Q . "" sandbox\ReflectRTowerComputed.v` after
+  `sandbox\ReflectRTowerSmall.vo`.
 
 When extending these or adding new ones, drop them in `sandbox/` so
 they are visually distinguished from the contender chain. They do not
