@@ -1,0 +1,4 @@
+{ Verdi }:
+{
+  coqBuildInputs = [ Verdi ];
+}

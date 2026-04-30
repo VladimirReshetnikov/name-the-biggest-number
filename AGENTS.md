@@ -166,6 +166,11 @@ session should be able to discover the tool from this file alone.
 
 ## Local Coq/Rocq Toolchain
 
+- `rocq/` in this repository is a source snapshot of the upstream
+  Rocq/Coq prover repository at <https://github.com/rocq-prover/rocq>.
+  Treat it as local reference material for prover implementation
+  details; it is separate from the installed Rocq Platform toolchain
+  described below.
 - Coq is installed through the Rocq Platform winget package:
   - Package ID: `Coq.CoqPlatform`
   - Platform version: `2025.08.2`

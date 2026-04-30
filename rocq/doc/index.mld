@@ -1,0 +1,3 @@
+{0 rocq-doc }
+
+The rocq-doc package only contains user documentation on the Coq proof assistant and no OCaml library.
