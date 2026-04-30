@@ -81,6 +81,119 @@ context. This does not settle whether reflection is aesthetically acceptable
 for the contest, but it turns Approach D from a handwave into a mechanically
 available fallback.
 
+### 2026-04-30 sandbox update — stratified reflection tower
+
+Follow-up to ReflectPrev: `sandbox/ReflectTower.v`.
+
+The single-level reflection of `ReflectPrev.v` is generalized into the
+parameterized tower called for in Approach D.1 below. The reflective
+extension of STLC+NatRec is parameterized over an arbitrary previous-max
+oracle:
+
+```coq
+Section Reflect.
+Context (prevMax : nat -> nat).
+... STLC+NatRec + tPrevMax (interpreted as prevMax) ...
+Definition largest_reflect_nat_of_depth : nat -> nat.
+End Reflect.
+```
+
+Then the tower is a structural recursion on the level:
+
+```coq
+Fixpoint R_tower (k : nat) : nat -> nat :=
+  match k with
+  | 0    => Contender.largest_STLCNatRec_nat_of_depth
+  | S k' => largest_reflect_nat_of_depth (R_tower k')
+  end.
+```
+
+A single uniform witness term
+
+```coq
+witness_for d := tApp tS (tApp tPrevMax (natlit d))
+```
+
+has `term_depth = d + 3` and evaluates (in any level-(k+1) language with
+`prevMax := R_tower k`) to `S (R_tower k d)`. This gives the level-step
+lemma
+
+```coq
+Lemma R_tower_step : forall k d,
+  R_tower k d < R_tower (S k) (S (S (S d))).
+```
+
+which iterates to
+
+```coq
+Lemma R_tower_chain : forall n,
+  R_tower 0 42 < R_tower (S n) (3 * (S n) + 42).
+```
+
+and finally
+
+```coq
+Definition contender_reflect_tower_7 : nat := R_tower 100 342.
+
+Theorem contender_5_lt_reflect_tower_7 :
+  Contender.contender_5 < contender_reflect_tower_7.
+```
+
+The file compiles in ~3.5 s on this machine and `coqchk` accepts the
+resulting module. `Print Assumptions` reports only
+`functional_extensionality_dep`, used by the standard reduction-lemma
+machinery for the typed evaluator (the same axiom Contender.v's reification
+helpers use; a no-axioms refactor is an open cleanup task before promotion).
+
+#### Engineering note: do not let the kernel evaluate `contender_5`
+
+The first attempts to compile this file timed out at multiple minutes. The
+cause was Coq's kernel conversion check trying to fully reduce
+`R_tower 100 342` (and, via the universally-quantified `R_tower_step` lemma,
+intermediate values of the form `R_tower (S k) D`) into normal form. Each
+such reduction unfolds `largest_reflect_nat_of_depth (...) D` to the
+`maxBy ... (termsUpTo D)` enumeration, which is exactly the contender's own
+exponentially-large search.
+
+The fix in the sandbox is to make the relevant constants opaque *after*
+their structural lemmas are proven:
+
+```coq
+Opaque Contender.largest_STLCNatRec_nat_of_depth.
+...
+Lemma R_tower_step : ... .  (* needs the unfolding, proven first *)
+Opaque largest_reflect_nat_of_depth.
+Opaque eval.
+Opaque termsUpTo.
+Opaque maxBy.
+Lemma R_tower_chain : ... .   (* now safe to apply at fixed depth *)
+Theorem contender_5_lt_reflect_tower_7 : ... .
+```
+
+Lesson generalises: any future contender that names a depth-bounded maximum
+inside its own definition has the same trap. Promotion to `Contender.v`
+should pick a structural shape that lets the kernel stay symbolic on
+`largest_*_nat_of_depth D` for the depth `D` actually used in the bound.
+
+#### Where this leaves the choice
+
+The reflection tower is now a fully mechanical, axiom-free-modulo-FunExt
+contender path. Two consequences:
+
+* **Approach D.1 is no longer a handwave.** A concrete level-100 contender
+  is proven `< R_tower 100 342`. The level number can be set arbitrarily;
+  the chain proof is structurally recursive in `n` and does not depend on
+  the value of `n` for tactic time.
+* **The remaining open question is taste, not feasibility.** A staged
+  reflection hierarchy is constructive, finite, and has no axioms beyond
+  what Contender.v already uses. Whether the contest wants a contender
+  whose definition mentions `largest_STLCNatRec_nat_of_depth` is a
+  judgement call for the maintainer of the chain, not a technical
+  blocker.
+
+See the new "Approach D.2" section below for the natural follow-up: lifting
+`R_tower` itself into a primitive of yet another reflective language.
+
 ## The general framework
 
 Pick a new total object language `L6` with:
@@ -424,9 +537,77 @@ while requiring only a structurally recursive Coq definition over the level
 parameter.
 
 This is probably the fastest way to generate a much larger formally verified
-number if the contest accepts staged reflective languages. The next sandbox
-step would be to refactor `ReflectPrev.v` so the evaluator is parameterized by
-an arbitrary `prevMax : nat -> nat`, then define `Fixpoint R (k d : nat)`.
+number if the contest accepts staged reflective languages. **Done as of the
+2026-04-30 follow-up:** see `sandbox/ReflectTower.v`. The mechanical bound
+`R_tower 100 342` is proved beyond `contender_5` in roughly 3.5 s of
+compile time, with no axioms beyond `FunctionalExtensionality`.
+
+### Approach D.2 — second-order reflection (the tower as a primitive)
+
+`R_tower : nat -> nat -> nat` is now itself a Coq function of two `nat`
+arguments. Approach D.1 used it externally — every level was a Coq
+`Fixpoint` step. Approach D.2 internalises it as a primitive in yet another
+reflective language `L_RT`:
+
+```coq
+tRTower : tpNat -> tpNat -> tpNat
+```
+
+interpreted as `R_tower`. Inside `L_RT`, the witness term
+
+```coq
+S (tRTower (natlit K) (natlit D))   (* eval = S (R_tower K D) *)
+```
+
+has term_depth `max(K + 3, D + 2) + 1 = max(K + 4, D + 3)`. Choosing the
+internal depth budget `D'` for `L_RT` to be e.g. `D' = 350`, we can pick
+`K = D' - 4 = 346` and `D = D' - 3 = 347`, so the level-`D'` enumeration
+in `L_RT` already exceeds `R_tower 346 347`.
+
+Why this is interesting:
+
+* The level argument is now *internal*: the depth-bounded enumeration in
+  `L_RT` automatically picks the best `(K, D)` pair, so we no longer have
+  to hard-code a level number in the contender definition.
+* The same Opaque-protection trick from D.1 applies: `R_tower` should be
+  marked `Opaque` (or its body kept hidden behind a thin abstraction) so
+  the kernel does not try to fully evaluate `R_tower 346 347` while
+  type-checking the contender bound.
+* This iterates: Approach D.3 would primitivize `largest_RT_nat_of_depth`,
+  Approach D.k would have a length-`k` chain of meta-reflective layers.
+  In each step, the previous "diagonal" is unwrapped and made addressable
+  inside the new language.
+
+Cons / open questions:
+
+* The proof obligation is essentially the same as D.1 — a single-step
+  witness lemma plus a `lowerbound_maxBy` invocation — so D.2 does not
+  yield a *qualitatively* stronger growth rate. It simply makes the
+  level-vs-depth tradeoff smoother.
+* If the contest objects to D.1 on aesthetic grounds (a contender whose
+  definition mentions a depth-bounded maximum function), it will object
+  to D.k for the same reason — only more so.
+* The natural endpoint of this chain is *not* an enumeration-of-an-
+  enumeration tower at all but a transfinite ordinal-indexed FGH-style
+  hierarchy, i.e. Approach A. From that perspective the staged reflection
+  tower is a finite-rank approximation to Approach A's `f_alpha` with
+  `alpha < epsilon_0` in disguise.
+
+A concrete sandbox plan, parallel to ReflectTower.v:
+
+1. Lift the parameterized reflective language to take *two* oracles,
+   `prevMax : nat -> nat` and `prevMax2 : nat -> nat -> nat`.
+2. Add `tRTower` with the obvious typing.
+3. Reuse the same witness machinery, with witness
+   `tApp tS (tApp (tApp tRTower (natlit K)) (natlit D))`.
+4. Define `R_tower2 : nat -> nat -> nat -> nat` recursive on the *outer*
+   level, with `R_tower2 0 = R_tower` and `R_tower2 (S k')` adding one
+   layer of `tRTower` reflection.
+5. Prove a `R_tower2_step` lemma and a chain. Mark `R_tower` opaque
+   beforehand so depth-(D large) terms do not blow up the kernel.
+
+Estimated incremental cost: roughly the same as ReflectTower.v itself (one
+sandbox afternoon), since all the syntax/maxBy/witness pieces transfer.
 
 ## Approach E — Higher-order primitive recursion at one specific
 type
@@ -471,44 +652,77 @@ adapted but adds a large dependency.
 
 ## Recommendation / next concrete step
 
-There are now two credible next-step tracks.
+State of play after the 2026-04-30 follow-up:
 
-If we optimize for mathematical taste, Approach A is still the best balance
-of structural strength and intelligibility:
+* **Approach D.1 is mechanically done in sandbox.** `sandbox/ReflectTower.v`
+  proves `Contender.contender_5 < R_tower 100 342` in 3.5 s with one
+  axiom (FunctionalExtensionality, inherited from Contender.v's reification
+  helpers). Steps 1-4 of the previous "shippable verified bump" plan are
+  closed; only step 5 (taste judgement + no-axioms cleanup) remains.
+* **Approach A still has the hard open problem** of well-founded CNF
+  ordinal recursion. `sandbox/FGH.v` and `sandbox/L6.v` already expose the
+  mechanism, and the cleanest path is well-founded recursion on a
+  CNF-ordering relation. The L6 syntax/maxBy machinery is plumbing-only;
+  the ordinal descent is the real work.
+* **Approach D.2** (second-order reflection on `R_tower`) is the obvious
+  next sandbox if we want to push the mechanical line another step.
+  Estimated cost: ~1 sandbox session, mechanically similar to
+  ReflectTower.v.
 
-1. Promote `sandbox/FGH.v` to `FGH.v`: keep the CNF ord and FGH
-   definition, but replace the fuel-based `FGH` with a `Fix`-based
-   total version. Prove the few growth lemmas needed
-   (`n < FGH alpha (S n)` for `alpha > 0`, monotonicity).
-2. Promote `sandbox/L6.v` to a clean `L6.v` (or extend `Contender.v`)
-   adding `tpOrd`, `tOZ`, `tOCons`, `tFGH` and carrying through the
-   existing proof structure (`termsUpTo`, `maxBy`, `largest_of_depth`,
-   the strict-monotonicity lemma).
-3. Define `embed_type`/`embed_term`, prove preservation of
-   `term_depth` and of evaluation.
-4. Build the witness `tApp (tApp tFGH (encode big_ord)) (embed t*)`
-   and close `contender_5 < contender_6` using the existing `maxBy_In`
-   pattern from `Contender.v`.
-5. Verify the 15 s / 60 s budgets from `README.md` still hold, and
-   that `Print Assumptions` is empty.
+Three credible next concrete steps, ordered by ambition:
 
-But the known hard part is sharper now: proving well-foundedness of the CNF
-ordinal descent, not the L6 syntax or max machinery.
+### Track 1 — promote ReflectTower to Contender.v (low risk)
 
-If we optimize for a shippable verified bump, Approach D is the current leader:
+1. Refactor `sandbox/ReflectTower.v` to remove
+   `FunctionalExtensionality`. The only place the axiom is used is the
+   reduction lemma `cast_same`, via `cast_impl_same`. Two routes:
+   * Replace the dependent typed evaluator with a lightly typed one that
+     never needs `cast_same` (e.g. always-`tpNat`-target casts).
+   * Restrict reduction lemmas to the cases we actually use
+     (specifically `tApp_nat_nat`), which need only `cast tpNat = id` —
+     definitionally true, no extensionality required.
+2. Pick a defensible level/depth pair (`R_tower 100 342` works; `R_tower
+   k (3k+42)` for any `k` works).
+3. Verify the 15 s / 60 s budgets and `Print Assumptions` empty.
+4. Decide whether the contest format accepts a contender that names a
+   reflection oracle. If yes, this is the next contender. If no, this
+   sandbox line stays honorable but unofficial.
 
-1. Refactor `sandbox/ReflectPrev.v` into a parameterized reflective language.
-2. Define a finite reflection tower `R k d`.
-3. Prove level monotonicity and depth monotonicity once.
-4. Pick a conservative `k` and `d`, e.g. `R 42 50`, and prove
-   `contender_5 < R 42 50`.
-5. Decide whether the staged-reflection taste is acceptable for an official
-   contender or should remain an honorable sandbox line.
+### Track 2 — finish Approach A (medium risk, principled)
 
-If Approach A's total FGH gets bogged down, fall back to either Approach E
-(hardwired FGH primitive) for a traditional-looking contender or Approach D
-(reflection tower) for the fastest mechanically verified jump.
+The blocker is well-foundedness of the CNF ordinal descent for
+`FGH_total`. Three concrete sub-tracks:
 
-Approach B (System F) is the natural target *after* one of these,
-since it provides a different axis of strength (impredicative
-polymorphism rather than higher ordinal indexing).
+* **Direct well-founded recursion.** Prove
+  `well_founded ord_lt` for the CNF ordering, define `FGH_total` by
+  `Fix`. This is the textbook path; the Castéran "Cantor / hydras"
+  Coq formalization has the relevant lemmas, but pulling in that
+  library adds a dependency.
+* **Bove-Capretta accessibility.** Construct `Acc` proofs by induction
+  on a measure; package the executable function around them. Heavier
+  on dependent matching, but stays self-contained.
+* **Hard-code one ordinal family** (Approach E), e.g. `f_{omega^omega}`
+  or `f_{omega tower 5}` as a single primitive `tBigGrow`. Sidesteps
+  runtime ordinal reduction entirely; the price is that the language
+  no longer takes the ordinal as a runtime input.
+
+Pick whichever seems most tractable for the contributor. The existing
+`sandbox/L6.v` and `sandbox/FGH.v` are already aligned with the first or
+second of these.
+
+### Track 3 — push reflection further (Approach D.2, low risk, marginal gain)
+
+If Track 1 ships and the staged-reflection style is accepted, Approach
+D.2 is mostly free. See its dedicated section above.
+
+### Approach B as a long-term differentiator
+
+Approach B (System F) is the natural target after either Track 1 or
+Track 2 has been promoted. It provides a different axis of strength
+(impredicative polymorphism rather than higher ordinal indexing) and the
+existing `System_F.v` already has a normalization proof. It is heavier
+than Approaches A/D.1 because the depth-bounded enumeration over
+type-and-term-binders is fiddlier, but it is also genuinely
+qualitatively new — once it lands, future contenders can be built by
+adding type-level structures (System Fω, Calculus of Constructions,
+inductive families) rather than chasing finer ordinal notations.

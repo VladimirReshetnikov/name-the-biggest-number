@@ -225,6 +225,18 @@ the brainstorming thread does not get lost between sessions.
   enumeration for the extended language and proves
   `contender_5_lt_reflect_6`; compile from repo root with
   `coqc -Q . "" sandbox\ReflectPrev.v` after `Contender.vo` exists.
+- `sandbox/ReflectTower.v` — generalisation of `ReflectPrev.v` to a
+  parameterized previous-max oracle plus a structural reflection tower
+  `R_tower : nat -> nat -> nat`. Proves
+  `Contender.contender_5 < R_tower 100 342` (called
+  `contender_reflect_tower_7` in-file). Uses `Opaque` pragmas on
+  `Contender.largest_STLCNatRec_nat_of_depth`, `largest_reflect_nat_of_depth`,
+  `eval`, `termsUpTo`, and `maxBy` to keep the kernel from
+  unfolding the depth-bounded enumeration during conversion. Compile
+  with `coqc -Q . "" sandbox\ReflectTower.v` after `Contender.vo`.
+  Imports `FunctionalExtensionality` for the `cast_same` reduction
+  lemma; `Print Assumptions` reports
+  `functional_extensionality_dep` only.
 
 When extending these or adding new ones, drop them in `sandbox/` so
 they are visually distinguished from the contender chain. They do not
