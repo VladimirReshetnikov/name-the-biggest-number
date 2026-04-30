@@ -1,5 +1,12 @@
 # Agent Notes
 
+## Next-Contender Ideas
+
+- Use `IDEAS.md` for brainstorming and subsequent discussion of possible next
+  contenders.
+- Keep substantial design sketches, proof strategies, and tradeoff notes there
+  so the thread of thought survives across future agent sessions.
+
 ## Local Coq/Rocq Toolchain
 
 - Coq is installed through the Rocq Platform winget package:
