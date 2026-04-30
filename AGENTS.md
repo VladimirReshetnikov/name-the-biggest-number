@@ -64,6 +64,91 @@ checkout to materialize as a real symlink on Windows.)
   cleanup pass to make it axiom-free and within the 15s/60s budgets stated in
   `README.md` before merging into `Contender.v`.
 
+## Local Windows Environment
+
+This is a Windows 11 box. Beyond the Coq/Rocq toolchain (next section),
+the following CLI tools are available in fresh shells. Most are on
+`PATH` after a shell restart; if not, the indicated install path can
+be prepended manually.
+
+### Search and indexing
+
+- `rg` (ripgrep) — fast repository text search; `rg --files` for fast
+  file listing.
+- `ugrep` / `ug` — ripgrep-compatible search with extra regex,
+  archive, and compressed-file support; v7.7.0 via `winget`.
+- `es.exe` — voidtools Everything CLI; near-instant filename / path
+  lookup across the entire local Windows footprint.
+- `fd` — ergonomic filename / path traversal inside a tree.
+
+### Data inspection
+
+- `jq` — JSON inspection and filtering.
+- `sqlite3` — ad-hoc SQLite inspection and queries.
+
+### Source / repo
+
+- `gh` — GitHub CLI for repos, PRs, and Actions workflows. Note that
+  the project's "no PRs" rule (above) still applies; `gh` is for
+  reading and for running workflows.
+
+### Languages and runtimes
+
+- `pwsh` — machine-wide PowerShell 7 at
+  `C:\Program Files\PowerShell\7\pwsh.exe`.
+  Refresh the 7.6 line with
+  `pwsh -File .\src\Scripts\Install-PowerShell\Install-PowerShell.ps1 -VersionSpec 7.6 -RelaunchElevated`,
+  or use `-VersionSpec latest` for the newest stable release.
+- `python` — `pyenv-win`-managed; the global default is `3.13.13` at
+  `C:\Users\vresh\.pyenv\pyenv-win\versions\3.13.13\python.exe`.
+  Refresh the 3.13 line (or install another) with
+  `pwsh -File .\src\Scripts\Install-PythonWithPyenv\Install-PythonWithPyenv.ps1 -VersionSpec 3.13`.
+- `fnm` (Fast Node Manager) at
+  `C:\Users\vresh\AppData\Local\Microsoft\WinGet\Links\fnm.exe`.
+  Default Node is `v25.9.0` (Current) with npm `11.12.1` under
+  `C:\Users\vresh\AppData\Roaming\fnm\node-versions\v25.9.0\installation`.
+- `uv` (Astral) at `C:\Users\vresh\.local\bin\uv.exe`, with
+  `uvx.exe` and `uvw.exe` siblings. Refresh with
+  `pwsh -File .\src\Scripts\Install-Uv\Install-Uv.ps1`.
+
+### Document tooling
+
+- `pandoc` 3.9.0.2 (`winget` package `JohnMacFarlane.Pandoc`) at
+  `C:\Users\vresh\AppData\Local\Pandoc\pandoc.exe`. If a fresh shell
+  cannot find it, prepend `C:\Users\vresh\AppData\Local\Pandoc` to
+  `PATH`.
+- `lualatex` via MiKTeX 26.2 (`winget` package `MiKTeX.MiKTeX`) at
+  `C:\Users\vresh\AppData\Local\Programs\MiKTeX\miktex\bin\x64`.
+  Package auto-install is enabled; current shells may need that bin
+  directory prepended to `PATH`.
+
+### Agent / AI
+
+- `claude` (Anthropic Claude Code) at
+  `C:\Users\vresh\.local\bin\claude.exe`. Git Bash is pinned via
+  `CLAUDE_CODE_GIT_BASH_PATH`. API-key auth is bridged from the
+  `ANTHROPIC_KEY` user env var through
+  `C:\Users\vresh\.claude\settings.json` (`apiKeyHelper`).
+
+### Package management
+
+- `winget`, `choco`, and `refreshenv` for local Windows package
+  management and shell environment refresh.
+
+### Installing additional tools
+
+You are authorized to install tools via `winget`, `choco`, or any
+other reasonable installer when a tool is necessary or materially
+helpful for the assigned task. If an installation fails, requires
+unusual manual intervention, or leaves the tool unusable, **stop and
+ask the user** rather than silently giving up or working around it.
+
+When you install something generally useful (not a one-off), add a
+bullet to the relevant subsection above (or to `Local Coq/Rocq
+Toolchain` if it's prover-related), with the install method, the
+canonical path, and any environment-refresh quirks. The next agent
+session should be able to discover the tool from this file alone.
+
 ## Local Coq/Rocq Toolchain
 
 - Coq is installed through the Rocq Platform winget package:
