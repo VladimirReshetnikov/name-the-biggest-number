@@ -282,6 +282,18 @@ the brainstorming thread does not get lost between sessions.
   `Print Assumptions` reports a closed global context; compile with
   `coqc -Q . "" sandbox\ReflectRTowerComputed.v` after
   `sandbox\ReflectRTowerSmall.vo`.
+- `sandbox/ReflectRTower3.v` — Approach D.3 ("meta-reflection"):
+  takes the D.2 depth-bounded maximum itself as the oracle
+  `prevMax2 d := largest_RT_nat_of_depth RTower d`, then applies the
+  one-step `ReflectTowerNoAx` witness trick to get a strict improvement
+  `contender_reflect_rtower_computed < contender_reflect_rtower3`, where
+  `contender_reflect_rtower3 = largest_reflect_nat_of_depth prevMax2 23`.
+  Also proves `Contender.contender_5 < contender_reflect_rtower3` by
+  transitivity.  Repeats the `Opaque` barrier on the D.2 max/search
+  machinery so a definitional `change` does not trigger kernel
+  conversion to run the depth-bounded enumeration.  Compile with
+  `coqc -Q . "" sandbox\ReflectRTower3.v` after
+  `sandbox\ReflectRTowerComputed.vo`.
 
 When extending these or adding new ones, drop them in `sandbox/` so
 they are visually distinguished from the contender chain. They do not

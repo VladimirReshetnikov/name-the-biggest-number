@@ -421,6 +421,39 @@ accepts the module.  This closes the specific Phase 2 item, while also
 leaving a useful reusable pattern for future computed arguments:
 parameterize object-level combinator templates by ambient level count.
 
+### 2026-04-30 sandbox update — meta-reflection over `largest_RT_nat_of_depth` (Approach D.3)
+
+New experiment: `sandbox/ReflectRTower3.v`.
+
+This takes the D.2 language's depth-bounded maximum function itself as the
+oracle for the one-step reflection language from `sandbox/ReflectTowerNoAx`:
+
+```coq
+Definition prevMax2 (d : nat) : nat :=
+  sandbox.ReflectRTowerSmall.largest_RT_nat_of_depth sandbox.ReflectRTowerSmall.RTower d.
+
+Definition depth_reflect_d0 : nat :=
+  S (S (S sandbox.ReflectRTowerComputed.depth_rtower_pow2_1_6)).
+
+Definition contender_reflect_rtower3 : nat :=
+  sandbox.ReflectTowerNoAx.ReflectTowerNoAx.largest_reflect_nat_of_depth prevMax2 depth_reflect_d0.
+
+Theorem contender_reflect_rtower_computed_lt_reflect_rtower3 :
+  sandbox.ReflectRTowerComputed.contender_reflect_rtower_computed < contender_reflect_rtower3.
+```
+
+Because `depth_rtower_pow2_1_6` is definitionally 20, `depth_reflect_d0` is 23,
+so this is a strict improvement over the computed-K/D D.2 max at a tiny
+additional depth cost.
+
+Engineering note: even the definitional rewrite that identifies
+`contender_reflect_rtower_computed` with `prevMax2 depth_rtower_pow2_1_6`
+can trigger kernel conversion to run the D.2 depth-bounded search unless the
+search machinery is made `Opaque` in the D.3 file too. `ReflectRTower3.v`
+therefore repeats the `Opaque` barrier for `largest_RT_nat_of_depth` and its
+`eval` / `maxBy` / `termsUpTo` helpers before the `change ... with (prevMax2 ...)`
+step.
+
 ## The general framework
 
 Pick a new total object language `L6` with:
@@ -806,7 +839,8 @@ Why this is interesting:
   marked `Opaque` (or its body kept hidden behind a thin abstraction) so
   the kernel does not try to fully evaluate `R_tower K D` while
   type-checking the contender bound.
-* This iterates: Approach D.3 would primitivize `largest_RT_nat_of_depth`,
+* This iterates: Approach D.3 primitivizes `largest_RT_nat_of_depth` (now
+  demonstrated in `sandbox/ReflectRTower3.v`),
   Approach D.k would have a length-`k` chain of meta-reflective layers.
   In each step, the previous "diagonal" is unwrapped and made addressable
   inside the new language.
@@ -913,6 +947,13 @@ State of play after the 2026-04-30 follow-up:
   `eval`/`maxBy`/the enumerator must be made `Opaque` *before* applying
   the maxBy lower-bound lemma at a concrete depth, or Coq will try to
   run the depth-bounded search during conversion.
+* **Approach D.3 (meta-reflection over the D.2 max) is now demonstrated at depth 23.**
+  `sandbox/ReflectRTower3.v` defines `prevMax2 d := largest_RT_nat_of_depth RTower d`
+  and applies the one-step `ReflectTowerNoAx` witness trick to get a strict
+  inequality `contender_reflect_rtower_computed < contender_reflect_rtower3`,
+  hence also `Contender.contender_5 < contender_reflect_rtower3`, with a closed
+  global context.  The same `Opaque` barrier is needed here too to keep the kernel
+  from running the D.2 search during the definitional `change` step.
 * **Approach A still has the hard open problem** of well-founded CNF
   ordinal recursion. `sandbox/FGH.v` and `sandbox/L6.v` already expose the
   mechanism, and the cleanest path is well-founded recursion on a
