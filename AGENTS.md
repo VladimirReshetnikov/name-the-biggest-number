@@ -248,6 +248,25 @@ the brainstorming thread does not get lost between sessions.
   lemma, to keep the kernel from running the depth-bounded search during
   conversion. Compile with `coqc -Q . "" sandbox\ReflectRTower.v` after
   `sandbox\ReflectTower.v` has been built.
+- `sandbox/ReflectTowerNoAx.v` — axiom-free variant of `ReflectTower.v`
+  (Track 1 prep for promotion).  Same end-state theorem
+  `Contender.contender_5 < R_tower 100 342`, but
+  `FunctionalExtensionality` is no longer imported and `Print
+  Assumptions contender_5_lt_reflect_tower_7` reports a closed global
+  context.  Achieved by restricting `interp_tApp` to `tpNat`-typed
+  arguments (where `cast tpNat = id` is definitional) and dropping
+  `interp_tLam` / `cast_impl_same`, both of which are unused for the
+  witness chain.  Compile with
+  `coqc -Q . "" sandbox\ReflectTowerNoAx.v` after `Contender.vo`.
+- `sandbox/ReflectRTowerSmall.v` — small-witness, axiom-free variant of
+  `ReflectRTower.v` (Approach D.2, "Phase 1" of the computed-K/D
+  refinement).  Imports `sandbox.ReflectTowerNoAx` and uses the
+  smallest pair `(K, D) = (1, 45)` from `R_tower_step 0 42`, giving a
+  witness term `S (tRTower 1 45)` at `term_depth = 48` instead of 345.
+  `Print Assumptions contender_5_lt_reflect_rtower_small` reports a
+  closed global context.  Compile with
+  `coqc -Q . "" sandbox\ReflectRTowerSmall.v` after
+  `sandbox\ReflectTowerNoAx.vo` has been built.
 
 When extending these or adding new ones, drop them in `sandbox/` so
 they are visually distinguished from the contender chain. They do not

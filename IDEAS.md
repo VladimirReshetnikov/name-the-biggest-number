@@ -245,6 +245,99 @@ for why the interesting next refinement is to *compute* large `K`/`D` values
 at small `term_depth`, and the caveat about de Bruijn levels / shifting when
 reusing arithmetic combinators.
 
+### 2026-04-30 sandbox update — Track 1 prep: axiom-free reflection tower
+
+New experiment: `sandbox/ReflectTowerNoAx.v`.
+
+This is a structural cleanup of `sandbox/ReflectTower.v` that removes the
+dependency on `FunctionalExtensionality`.  In `ReflectTower.v` the axiom
+flowed in through `cast_impl_same -> cast_same -> interp_tApp -> ...`,
+contaminating both `R_tower_step` and the main theorem.  But the witness
+chain we actually use only ever applies functions to `tpNat`-typed
+arguments, and for those `cast tpNat a = a` is *definitional*: no
+extensionality detour.
+
+So `ReflectTowerNoAx.v` keeps the same syntax, the same evaluator, the
+same Fixpoint definition of `R_tower`, and the same chain proof, but:
+
+* removes the import of `FunctionalExtensionality`,
+* drops the `cast_impl_same` / `cast_same` lemmas (they would still need
+  FunExt and are unused),
+* drops `interp_tLam` (also FunExt-bound, unused for the witness),
+* replaces `interp_tApp` with a `tpNat`-restricted variant
+  `interp_tApp_nat`, whose proof is a one-line `simpl; rewrite; reflexivity`.
+
+End-state theorem is identical:
+
+```coq
+Theorem contender_5_lt_reflect_tower_7 :
+  Contender.contender_5 < contender_reflect_tower_7.
+```
+
+with `contender_reflect_tower_7 := R_tower 100 342`, but now
+
+```text
+Print Assumptions contender_5_lt_reflect_tower_7.
+  Closed under the global context.
+```
+
+`coqchk` accepts the module without complaint.  Compile time is
+comparable to `ReflectTower.v` (~3 s on this machine) and the no-axioms
+status is independent of how big the level/depth pair is — `R_tower 100
+342` and `R_tower 1 45` both close under the global context.
+
+This closes Track 1's "no-axioms cleanup" sub-step from the recommendations
+section of this file.  Promotion of the reflection tower to `Contender.v`
+is now mechanically blocked only by the contest-aesthetics judgement, not
+by any technical / axiom debt.
+
+### 2026-04-30 sandbox update — small-witness D.2 (depth 48)
+
+New experiment: `sandbox/ReflectRTowerSmall.v`.
+
+This is a sibling of `sandbox/ReflectRTower.v` (Approach D.2), with two
+combined changes:
+
+* It imports the axiom-free `sandbox.ReflectTowerNoAx` instead of
+  `sandbox.ReflectTower`.  Combined with using only `tpNat`-typed casts
+  in this file's own evaluator, the resulting D.2 contender is *fully
+  axiom-free*: `Print Assumptions contender_5_lt_reflect_rtower_small`
+  reports a closed global context.
+
+* It uses the smallest `(K, D)` pair the `R_tower_step` lemma directly
+  produces: `K = 1, D = 45`, so the witness term is
+
+  ```coq
+  Definition witness_rtower_small : term :=
+    tApp tS (tApp (tApp tRTower (natlit 1)) (natlit 45)).
+  ```
+
+  with `term_depth = 48`.  This shrinks the depth budget from 345 to 48
+  while still strictly beating `contender_5` (the chain only needs the
+  base case `R_tower_step 0 42`, no escalation to K=100).
+
+End-state theorem:
+
+```coq
+Definition contender_reflect_rtower_small : nat :=
+  largest_RT_nat_of_depth RTower 48.
+
+Theorem contender_5_lt_reflect_rtower_small :
+  Contender.contender_5 < contender_reflect_rtower_small.
+```
+
+`Print Assumptions` and `coqchk` both pass cleanly.
+
+This is the simplest "Phase 1" of the computed-K/D refinement noted in
+the original D.2 sandbox: no new infrastructure, just the realization
+that the chain lemma's smallest case already suffices.  *Phase 2* —
+making `K` and/or `D` themselves *computed* via NatRec, e.g. as powers
+of two or tetration — is a separate refinement that needs a depth-
+monotonicity lemma `largest_RT_nat_of_depth d <= largest_RT_nat_of_depth
+d'` for `d <= d'`, plus inline arithmetic combinators.  The natural
+ceiling for Phase 2 is a depth-budget around 20 (witness involving an
+inline `pow2 5 = 32` for one of the two arguments to `tRTower`).
+
 ## The general framework
 
 Pick a new total object language `L6` with:
@@ -711,41 +804,53 @@ adapted but adds a large dependency.
 
 State of play after the 2026-04-30 follow-up:
 
-* **Approach D.1 is mechanically done in sandbox.** `sandbox/ReflectTower.v`
-  proves `Contender.contender_5 < R_tower 100 342` in 3.5 s with one
-  axiom (FunctionalExtensionality, inherited from Contender.v's reification
-  helpers). Steps 1-4 of the previous "shippable verified bump" plan are
-  closed; only step 5 (taste judgement + no-axioms cleanup) remains.
+* **Approach D.1 is mechanically done in sandbox, axiom-free.**
+  `sandbox/ReflectTowerNoAx.v` proves
+  `Contender.contender_5 < R_tower 100 342` with no axioms (`Print
+  Assumptions` reports a closed global context).  The earlier
+  `sandbox/ReflectTower.v` is the same theorem with the axiom dependency
+  inherited from `FunctionalExtensionality`; both compile in ~3 s.  The
+  no-axioms cleanup goes through by restricting `interp_tApp` to
+  `tpNat`-typed arguments (where `cast tpNat a = a` is definitional) and
+  dropping `interp_tLam` / `cast_impl_same` (which are unused for the
+  witness chain).
+* **Approach D.2 has both the unary-literal version and a small-witness
+  axiom-free version.**  `sandbox/ReflectRTower.v` proves
+  `Contender.contender_5 < largest_RT_nat_of_depth 345` (witness =
+  `S (tRTower 100 342)`, depth 345).  `sandbox/ReflectRTowerSmall.v`
+  proves `Contender.contender_5 < largest_RT_nat_of_depth 48` (witness
+  = `S (tRTower 1 45)`, depth 48) with no axioms, by importing the
+  axiom-free `ReflectTowerNoAx` and using only the smallest case of the
+  step lemma.  Both record the same kernel conversion trap:
+  `eval`/`maxBy`/the enumerator must be made `Opaque` *before* applying
+  the maxBy lower-bound lemma at a concrete depth, or Coq will try to
+  run the depth-bounded search during conversion.
 * **Approach A still has the hard open problem** of well-founded CNF
   ordinal recursion. `sandbox/FGH.v` and `sandbox/L6.v` already expose the
   mechanism, and the cleanest path is well-founded recursion on a
   CNF-ordering relation. The L6 syntax/maxBy machinery is plumbing-only;
   the ordinal descent is the real work.
-* **Approach D.2 is now also done in sandbox.** `sandbox/ReflectRTower.v`
-  defines `L_RT = STLC+NatRec+tRTower` with `tRTower` interpreted as
-  `R_tower`, rebuilds the depth-bounded max, and proves
-  `Contender.contender_5 < largest_RT_nat_of_depth 345` (called
-  `contender_reflect_rtower_8` in-file). It also records the same kernel
-  conversion trap as D.1: `eval`/`maxBy`/the enumerator must be made `Opaque`
-  before applying the maxBy lower-bound lemma at a concrete depth, or Coq will
-  try to run the depth-bounded search during conversion.
 
 Three credible next concrete steps, ordered by ambition:
 
 ### Track 1 — promote ReflectTower to Contender.v (low risk)
 
-1. Refactor `sandbox/ReflectTower.v` to remove
-   `FunctionalExtensionality`. The only place the axiom is used is the
-   reduction lemma `cast_same`, via `cast_impl_same`. Two routes:
-   * Replace the dependent typed evaluator with a lightly typed one that
-     never needs `cast_same` (e.g. always-`tpNat`-target casts).
-   * Restrict reduction lemmas to the cases we actually use
-     (specifically `tApp_nat_nat`), which need only `cast tpNat = id` —
-     definitionally true, no extensionality required.
-2. Pick a defensible level/depth pair (`R_tower 100 342` works; `R_tower
-   k (3k+42)` for any `k` works).
-3. Verify the 15 s / 60 s budgets and `Print Assumptions` empty.
-4. Decide whether the contest format accepts a contender that names a
+The "no-axioms cleanup" sub-step is now done as
+`sandbox/ReflectTowerNoAx.v`; the axiom dependency was via `cast_same`
+in the dependent typed evaluator and is removed by restricting
+reduction lemmas to `tpNat`-typed arguments (`cast tpNat = id` is
+definitional, no extensionality required).
+
+What remains for actual promotion to `Contender.v`:
+
+1. Pick a defensible level/depth pair (`R_tower 100 342` works; `R_tower
+   k (3k+42)` for any `k` works; `R_tower 1 45` is the smallest-witness
+   variant in `ReflectRTowerSmall.v`).
+2. Verify the 15 s / 60 s budgets.  Both
+   `sandbox/ReflectTowerNoAx.v` and `sandbox/ReflectRTowerSmall.v`
+   already comfortably fit; the contender-shape rebuild on top of
+   `Contender.v`'s existing infrastructure should too.
+3. Decide whether the contest format accepts a contender that names a
    reflection oracle. If yes, this is the next contender. If no, this
    sandbox line stays honorable but unofficial.
 
@@ -773,15 +878,22 @@ second of these.
 
 ### Track 3 — push reflection further (post-D.2, low risk, marginal gain)
 
-Approach D.2 is now mechanically demonstrated in `sandbox/ReflectRTower.v`.
-If Track 1 ships and staged reflection is accepted, the next incremental
-pushes are:
+Approach D.2 is now mechanically demonstrated in `sandbox/ReflectRTower.v`
+(unary literals, depth 345) and `sandbox/ReflectRTowerSmall.v` (smallest
+witness, depth 48, no axioms).  If Track 1 ships and staged reflection
+is accepted, the next incremental pushes are:
 
-* the “computed K/D” refinement (pick huge oracle arguments at small
-  `term_depth`, with a careful term-shifting story because the syntax uses
-  de Bruijn levels), and/or
-* D.3: primitivize `largest_RT_nat_of_depth` itself as the next reflective
-  oracle and iterate again.
+* **Phase 2 of computed-K/D**: making `K` and/or `D` themselves
+  *computed* via NatRec inside the object language.  The first step is
+  to prove a depth-monotonicity lemma `largest_RT_nat_of_depth d <=
+  largest_RT_nat_of_depth d'` for `d <= d'`, plus inline arithmetic
+  combinators (`pow2_inline` etc., applied only at the top level so the
+  de Bruijn-level numbering of variables stays consistent).  Estimated
+  payoff: depth budget around 20 with a witness like
+  `S (tRTower (S O) (pow2_inline (S^6 O)))`, exhibiting
+  `S (R_tower 1 64)`.
+* **D.3**: primitivize `largest_RT_nat_of_depth` itself as the next
+  reflective oracle and iterate again.
 
 ### Approach B as a long-term differentiator
 
