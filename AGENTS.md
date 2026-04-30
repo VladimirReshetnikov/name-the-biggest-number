@@ -17,12 +17,22 @@ git checkout -- CLAUDE.md
 (Developer Mode or Administrator privileges are required for the
 checkout to materialize as a real symlink on Windows.)
 
+## Session Startup
+
+- When starting a new conversation/session in this repo, review recent
+  git history before doing substantive work. Do not stop at commit
+  summaries: inspect the actual changes as well (for example with
+  `git log --stat --patch -5` or another suitably detailed command).
+
 ## Git / Branch Conventions
 
 - The default working branch is `ideas`. All next-contender brainstorm
   work, sandbox files, and `IDEAS.md` revisions go on this branch.
 - Push `ideas` to `origin/ideas` only. `origin` is the user's fork at
   <https://github.com/VladimirReshetnikov/name-the-biggest-number.git>.
+- At the end of each task, if any changes were made in this repo, commit
+  them and push the current branch to `origin` without waiting for an
+  explicit commit/push request.
 - **Never** push to `upstream`
   (<https://github.com/codyroux/name-the-biggest-number.git>). It is the
   original maintainer's repository; the local clone has it configured
@@ -198,6 +208,12 @@ the brainstorming thread does not get lost between sessions.
   of toy terms, prints their `term_depth`. Does not include the
   depth-bounded enumeration, the embedding from STLC+NatRec, or the
   Grow lemma — those live in `IDEAS.md` as text for now.
+- `sandbox/ReflectPrev.v` — one-level reflective extension of
+  STLC+NatRec with `tPrevMax : Nat -> Nat` interpreted as
+  `largest_STLCNatRec_nat_of_depth`. Rebuilds depth-bounded
+  enumeration for the extended language and proves
+  `contender_5_lt_reflect_6`; compile from repo root with
+  `coqc -Q . "" sandbox\ReflectPrev.v` after `Contender.vo` exists.
 
 When extending these or adding new ones, drop them in `sandbox/` so
 they are visually distinguished from the contender chain. They do not

@@ -40,6 +40,47 @@ Plenty of room for the enumeration to produce something far past `ack`,
 but everything in the budget is still bounded by some `f_alpha` with
 `alpha < epsilon_0`.
 
+### 2026-04-30 sandbox update
+
+New experiment: `sandbox/ReflectPrev.v`.
+
+It defines a one-level reflective extension of STLC+NatRec with a primitive
+
+```coq
+tPrevMax : Nat -> Nat
+```
+
+interpreted as `largest_STLCNatRec_nat_of_depth`. The file rebuilds the
+depth-bounded term enumeration for this extended language and proves:
+
+```coq
+Theorem contender_5_lt_reflect_6 :
+  Contender.contender_5 < contender_reflect_6.
+```
+
+where
+
+```coq
+Definition contender_reflect_6 : nat := largest_reflect_nat_of_depth 45.
+```
+
+The witness is the internal term
+
+```coq
+S (tPrevMax 42)
+```
+
+with `term_depth = 45`. The proof compiles with:
+
+```powershell
+coqc -Q . "" sandbox\ReflectPrev.v
+```
+
+and `Print Assumptions contender_5_lt_reflect_6` reports a closed global
+context. This does not settle whether reflection is aesthetically acceptable
+for the contest, but it turns Approach D from a handwave into a mechanically
+available fallback.
+
 ## The general framework
 
 Pick a new total object language `L6` with:
@@ -187,6 +228,27 @@ In rough order:
    needs the basic FGH inequality `n < f_alpha(n+1)` for nonzero alpha,
    provable by induction on alpha along the fundamental sequence.
 
+### A.4.1 Termination reality check
+
+The current `sandbox/FGH.v` uses a fuel argument. Promoting it directly means
+replacing that fuel with a real total definition. A quick standard-library
+search did not turn up a ready-made ordinal notation/well-foundedness library
+in the installed Rocq distribution, so the likely paths are:
+
+1. Define an explicit CNF ordinal ordering and prove it well-founded.
+   Then define `FGH_total` by `Fix` over the relation that contains
+   `ord_pred a < a` and `ord_fund_seq a n < a`.
+2. Avoid general runtime ordinal recursion in the first promoted contender:
+   hard-code one large ordinal family with structural recursion over finite
+   indices, e.g. a tower-specific diagonal hierarchy.
+3. Keep `tFGH` as a primitive whose Coq denotation is specified by a
+   separately proven total relation, then extract the executable function
+   through a Bove-Capretta construction in the style of `System_F.v`.
+
+The tempting measure `(ord_size a, n)` is not viable: fundamental sequences
+can increase syntactic size, e.g. `omega^2[n] = omega * n`. So the descent has
+to be ordinal-semantic, not tree-size-semantic.
+
 ### A.5 Why pick this
 
 * Cleanly subsumes STLC+NatRec via embedding.
@@ -290,21 +352,81 @@ tEval : tpNat -> tpNat
 
 evaluating to `largest_STLCNatRec_nat_of_depth n` on input `n`.
 
-This sounds appealing because the new contender literally has access
-to "the answer at smaller depths". But:
+This sounds appealing because the new contender literally has access to
+"the answer at smaller depths". The 2026-04-30 sandbox shows that the
+mechanical path is extremely short:
 
-* It does *not* increase expressive power — the function
-  `n |-> largest_STLCNatRec_nat_of_depth n` is itself System T-definable
-  (it's a primitive recursive function in `n`), so adding it as a
-  primitive only saves depth.
-* The depth saving might still be enough to win against
-  `largest_STLCNatRec_nat_of_depth 42`, but the win feels
-  parameter-bumpy: `tEval (tApp tS (encode 42))` evaluates to
-  `largest_STLCNatRec_nat_of_depth 43` at L6 depth ≈ 5.
+* `sandbox/ReflectPrev.v` adds `tPrevMax : Nat -> Nat`.
+* The term `S (tPrevMax 42)` has depth 45 using naive unary `42`.
+* The extended depth search `largest_reflect_nat_of_depth 45` formally
+  beats `contender_5`.
 
-Probably not gloriously different from `largest_STLCNatRec_nat_of_depth
-43`. We'd still need to bolt FGH or similar on top to get a real
-structural win.
+The previous dismissal of this route as "just primitive recursive" was too
+quick. The syntax enumeration is primitive recursive, but the uniform
+interpreter for arbitrary System T terms is exactly where the proof-theoretic
+strength lives. The current contender already exploits that uniform
+meta-level evaluator by taking a maximum over all depth-42 System T terms.
+Making the previous evaluator available as a primitive in a new object
+language is therefore a genuine staged-reflection move, not obviously a mere
+depth optimization.
+
+Pros:
+
+* Shortest route to a verified next contender.
+* The proof is basically the existing `maxBy` lower-bound proof plus one new
+  constructor case.
+* Can be made systematic: define `R_0(d) = largest_STLCNatRec_nat_of_depth d`
+  and `R_{k+1}(d)` as the depth-`d` maximum of STLC+NatRec plus a primitive
+  `R_k : Nat -> Nat`.
+
+Cons:
+
+* Aesthetic risk. It may read as "the previous contender, but reflected as an
+  oracle", even though it is still constructive and finite.
+* It is philosophically closer to a staged evaluator hierarchy than to a
+  familiar mathematical growth hierarchy like FGH/Goodstein.
+* The current sandbox uses unary `42`, so the witness budget is 45. This is
+  fine for a next contender, but a promoted version should either accept the
+  larger budget explicitly or add small arithmetic/reification helpers to make
+  the argument term less silly.
+
+Verdict: keep as a serious fallback, and possibly as its own line of attack:
+`Reflect_k` is mechanically cleaner than FGH totality and can be pushed to
+large finite `k` by structural recursion on `k`.
+
+### Approach D.1 — stratified reflection tower
+
+Generalize the sandbox from one previous maximum to a tower:
+
+```coq
+R 0 d     = largest_STLCNatRec_nat_of_depth d
+R (S k) d = largest_{STLC+NatRec+tPrevMax_k}_nat_of_depth d
+```
+
+where `tPrevMax_k n` denotes `R k n`.
+
+For every `k`, the language at level `S k` contains a term
+
+```coq
+S (tPrevMax_k c)
+```
+
+so
+
+```coq
+R k c < R (S k) (depth(c) + 2)
+```
+
+by the same proof as `sandbox/ReflectPrev.v`. With a monotonicity lemma for
+`R k d` in `d`, one can chain this at a fixed comfortable depth. For example,
+choose `D = 50`; then `R 42 D` should dwarf the one-step reflective candidate
+while requiring only a structurally recursive Coq definition over the level
+parameter.
+
+This is probably the fastest way to generate a much larger formally verified
+number if the contest accepts staged reflective languages. The next sandbox
+step would be to refactor `ReflectPrev.v` so the evaluator is parameterized by
+an arbitrary `prevMax : nat -> nat`, then define `Fixpoint R (k d : nat)`.
 
 ## Approach E — Higher-order primitive recursion at one specific
 type
@@ -349,8 +471,10 @@ adapted but adds a large dependency.
 
 ## Recommendation / next concrete step
 
-Approach A is the best balance of structural strength, Coq
-implementation cost, and clean proof obligations. Concretely:
+There are now two credible next-step tracks.
+
+If we optimize for mathematical taste, Approach A is still the best balance
+of structural strength and intelligibility:
 
 1. Promote `sandbox/FGH.v` to `FGH.v`: keep the CNF ord and FGH
    definition, but replace the fuel-based `FGH` with a `Fix`-based
@@ -368,9 +492,22 @@ implementation cost, and clean proof obligations. Concretely:
 5. Verify the 15 s / 60 s budgets from `README.md` still hold, and
    that `Print Assumptions` is empty.
 
-If step 2 turns out painful (likely culprit: `term_depth` interactions
-with the new `tpOrd` and the cast machinery), fall back to Approach E
-to ship a working contender, and keep Approach A as the next bump.
+But the known hard part is sharper now: proving well-foundedness of the CNF
+ordinal descent, not the L6 syntax or max machinery.
+
+If we optimize for a shippable verified bump, Approach D is the current leader:
+
+1. Refactor `sandbox/ReflectPrev.v` into a parameterized reflective language.
+2. Define a finite reflection tower `R k d`.
+3. Prove level monotonicity and depth monotonicity once.
+4. Pick a conservative `k` and `d`, e.g. `R 42 50`, and prove
+   `contender_5 < R 42 50`.
+5. Decide whether the staged-reflection taste is acceptable for an official
+   contender or should remain an honorable sandbox line.
+
+If Approach A's total FGH gets bogged down, fall back to either Approach E
+(hardwired FGH primitive) for a traditional-looking contender or Approach D
+(reflection tower) for the fastest mechanically verified jump.
 
 Approach B (System F) is the natural target *after* one of these,
 since it provides a different axis of strength (impredicative
