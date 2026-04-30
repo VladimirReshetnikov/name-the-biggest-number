@@ -1,5 +1,10 @@
 (* Sandbox: probe baseline values of the current STLC+NatRec contender at
-   tiny depths. Throwaway file; not intended to enter Contender.v. *)
+   tiny depths. Throwaway file; not intended to enter Contender.v.
+
+   Compile (from repo root, after Contender.v has been built):
+     coqc -Q . "" sandbox/baseline.v
+   or, from inside sandbox/:
+     coqc -Q .. "" baseline.v *)
 
 Require Import Arith Lia.
 Require Import List. Import ListNotations.

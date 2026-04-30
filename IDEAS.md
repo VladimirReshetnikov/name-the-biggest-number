@@ -19,7 +19,7 @@ longer interesting. What we want is to beat the *method*: produce a new
 contender that subsumes STLC+NatRec by structural embedding and then
 applies a strictly stronger total construct.
 
-Empirically (from `Sandbox_baseline.v`):
+Empirically (from `sandbox/baseline.v`):
 
 | `d`  | `length (termsUpTo d)` | `largest_STLCNatRec_nat_of_depth d` |
 |------|-----------------------:|------------------------------------:|
@@ -72,7 +72,7 @@ The witness `t*` does not need to be named in the definition of
 
 This is the approach already sketched in the previous version of
 `IDEAS.md`. We elaborate it here with the data structures and tradeoffs
-made concrete by `Sandbox_FGH.v` and `Sandbox_L6.v`.
+made concrete by `sandbox/FGH.v` and `sandbox/L6.v`.
 
 ### A.1 Cantor Normal Form ordinals
 
@@ -85,7 +85,7 @@ Inductive ord : Set :=
 ```
 
 with the (non-enforced) CNF invariant `a >= leading_exponent(b)`. From
-`Sandbox_FGH.v` the canonical fundamental sequence and FGH compute as
+`sandbox/FGH.v` the canonical fundamental sequence and FGH compute as
 expected at small inputs:
 
 * `ord_fund_seq omega 5    = 5`
@@ -109,7 +109,7 @@ levels of `term_depth`.
 
 ### A.2 The L6 language
 
-`Sandbox_L6.v` shows the data types compile and evaluate. The
+`sandbox/L6.v` shows the data types compile and evaluate. The
 extension over STLC+NatRec is:
 
 ```coq
@@ -176,7 +176,7 @@ In rough order:
    `Contender.v`, plus the new ord/FGH cases).
 2. Termination of `FGH_total`. The simplest path is well-founded
    recursion on the lexicographic pair `(ord, nat)` or
-   `(ord_size, nat)`. `Sandbox_FGH.v` uses fuel; the cleanup for
+   `(ord_size, nat)`. `sandbox/FGH.v` uses fuel; the cleanup for
    `Contender.v` should switch to `Fix` so no axioms are needed.
 3. `term_depth (embed t) = term_depth t` and
    `eval_L6 (embed t) = eval_STLC t`, by routine structural induction
@@ -191,8 +191,8 @@ In rough order:
 
 * Cleanly subsumes STLC+NatRec via embedding.
 * Compact CNF ordinals — Grow is "just one term constructor".
-* Computable; no axioms; small Coq footprint (`Sandbox_FGH.v` is ~120
-  lines and `Sandbox_L6.v` adds ~100 more).
+* Computable; no axioms; small Coq footprint (`sandbox/FGH.v` is ~120
+  lines and `sandbox/L6.v` adds ~100 more).
 * Genuinely structurally stronger: STLC+NatRec at fixed depth `d`
   cannot uniformly express `f_alpha` for `alpha` close to its own
   proof-theoretic limit; L6 at the same depth can name those `alpha`
@@ -352,11 +352,11 @@ adapted but adds a large dependency.
 Approach A is the best balance of structural strength, Coq
 implementation cost, and clean proof obligations. Concretely:
 
-1. Promote `Sandbox_FGH.v` to `FGH.v`: keep the CNF ord and FGH
+1. Promote `sandbox/FGH.v` to `FGH.v`: keep the CNF ord and FGH
    definition, but replace the fuel-based `FGH` with a `Fix`-based
    total version. Prove the few growth lemmas needed
    (`n < FGH alpha (S n)` for `alpha > 0`, monotonicity).
-2. Promote `Sandbox_L6.v` to a clean `L6.v` (or extend `Contender.v`)
+2. Promote `sandbox/L6.v` to a clean `L6.v` (or extend `Contender.v`)
    adding `tpOrd`, `tOZ`, `tOCons`, `tFGH` and carrying through the
    existing proof structure (`termsUpTo`, `maxBy`, `largest_of_depth`,
    the strict-monotonicity lemma).
