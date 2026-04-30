@@ -1,5 +1,44 @@
 # Agent Notes
 
+`CLAUDE.md` in this repo is a symbolic link to `AGENTS.md`, so Claude
+Code, OpenAI Codex, and any other agent that picks up either filename
+reads the same content. If you edit one, you are editing both. On
+Windows, the symlink is a real NTFS symlink (created with `mklink
+CLAUDE.md AGENTS.md` and recorded in git as mode 120000). If a fresh
+clone on Windows checks the file out as a plain text file containing
+the string `AGENTS.md`, the local git config has symlink support
+disabled — fix it with:
+
+```powershell
+git config core.symlinks true
+git checkout -- CLAUDE.md
+```
+
+(Developer Mode or Administrator privileges are required for the
+checkout to materialize as a real symlink on Windows.)
+
+## Git / Branch Conventions
+
+- The default working branch is `ideas`. All next-contender brainstorm
+  work, sandbox files, and `IDEAS.md` revisions go on this branch.
+- Push `ideas` to `origin/ideas` only. `origin` is the user's fork at
+  <https://github.com/VladimirReshetnikov/name-the-biggest-number.git>.
+- **Never** push to `upstream`
+  (<https://github.com/codyroux/name-the-biggest-number.git>). It is the
+  original maintainer's repository; the local clone has it configured
+  only so we can pull updates.
+- **Never** merge `ideas` (or any experiment branch) into `master`.
+  `master` is treated as read-only on this fork; it tracks upstream so
+  we can rebase/cherry-pick if needed.
+- **Do not open pull requests.** Both inside the fork and against
+  upstream. The brainstorm flow is push-to-`ideas` and iterate;
+  promotion to a real contender PR will be a separate, explicit step
+  the user initiates.
+- Additional branches for experiments are fine. Push them to `origin`
+  only, with descriptive names (e.g. `experiment-system-f`,
+  `sandbox-bar-recursion`). Same rules: no PRs, no merges into
+  `master`, no pushes to `upstream`.
+
 ## Next-Contender Ideas
 
 - Use `IDEAS.md` for brainstorming and subsequent discussion of possible next
