@@ -269,6 +269,18 @@ the brainstorming thread does not get lost between sessions.
   closed global context.  Compile with
   `coqc -Q . "" sandbox\ReflectRTowerSmall.v` after
   `sandbox\ReflectTowerNoAx.vo` has been built.
+- `sandbox/Brouwer.v` — Brouwer ordinal notations and the fast-growing
+  / Hardy hierarchies up to and through `epsilon_0` (Approach A).
+  Inductive type `Brouwer = Bz | Bsucc Brouwer | Blim (nat -> Brouwer)`
+  bakes the fundamental sequence into limit-ordinal data, so `FGH`,
+  `Hardy`, `Badd`, `Bmul`, `omega_pow`, and `epsilon_0` are all plain
+  `Fixpoint`s -- the Coq W-type guard accepts the
+  `Hardy (f n) n` recursive call inside the `Blim f` case as a
+  structural subterm.  Defines
+  `BigGrow := FGH epsilon_0 : nat -> nat` and reports a closed global
+  context for it.  This bypasses the well-foundedness blocker that
+  the CNF-based `sandbox/FGH.v` would have to solve.  Compile with
+  `coqc -Q . "" sandbox\Brouwer.v`; standalone, ~1 s.
 - `sandbox/ReflectRTowerComputed.v` — computed-argument D.2 refinement
   ("Phase 2").  Imports `sandbox.ReflectRTowerSmall` and defines
   offset-aware NatRec arithmetic combinators (`double_at`, `pow2_at`)

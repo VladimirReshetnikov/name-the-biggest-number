@@ -421,6 +421,94 @@ accepts the module.  This closes the specific Phase 2 item, while also
 leaving a useful reusable pattern for future computed arguments:
 parameterize object-level combinator templates by ambient level count.
 
+### 2026-04-30 sandbox update — Brouwer-ordinal FGH at epsilon_0 (Approach A, no Acc)
+
+New experiment: `sandbox/Brouwer.v`.
+
+This is a fresh axis of attack on Approach A.  The original Approach A
+sandbox `sandbox/FGH.v` represents ordinals in Cantor Normal Form and
+defines the fast-growing hierarchy with a fuel parameter, because
+well-founded recursion on the canonical CNF ordering is the open
+problem.  `sandbox/Brouwer.v` sidesteps that problem by switching to
+*Brouwer ordinal notations*:
+
+```coq
+Inductive Brouwer : Type :=
+| Bz   : Brouwer
+| Bsucc: Brouwer -> Brouwer
+| Blim : (nat -> Brouwer) -> Brouwer.
+```
+
+In this presentation each limit ordinal *carries* its fundamental
+sequence as data, and Coq's W-type guard accepts pure structural
+recursion on Brouwer ordinals: a recursive call on `f n` inside a
+`Blim f` case is automatically a strict subterm.  No `Acc`, no `Fix`,
+no fuel.
+
+Concretely the file delivers:
+
+```coq
+Fixpoint Badd  : Brouwer -> Brouwer -> Brouwer.   (* alpha + beta *)
+Fixpoint Bmul  : Brouwer -> Brouwer -> Brouwer.   (* alpha * beta *)
+Fixpoint omega_pow : Brouwer -> Brouwer.          (* omega ^ alpha *)
+
+Definition omega       : Brouwer := Blim nat_to_B.
+Definition omega_omega : Brouwer := omega_pow omega.
+
+Fixpoint omega_tower (n : nat) : Brouwer := ...     (* omega ^^ n *)
+Definition epsilon_0   : Brouwer := Blim omega_tower.
+
+Fixpoint FGH   : Brouwer -> nat -> nat.            (* fast-growing hierarchy *)
+Fixpoint Hardy : Brouwer -> nat -> nat.            (* Hardy hierarchy *)
+
+Definition BigGrow (n : nat) : nat := FGH epsilon_0 n.
+```
+
+`Print Assumptions FGH/Hardy/epsilon_0/BigGrow` all report a closed
+global context.  `coqchk` accepts the module.  Compile time ~1 s on
+this machine.  Sanity outputs match the FGH textbook:
+
+```text
+FGH (nat_to_B 0) 10 = 11    (* f_0(10) *)
+FGH (nat_to_B 2) 4  = 64    (* f_2(4) *)
+FGH (nat_to_B 3) 2  = 2048  (* f_3(2) *)
+FGH omega 2         = 8     (* f_omega(2) = f_2(2) *)
+Hardy omega 10      = 20    (* H_omega(n) = 2n *)
+Hardy omega_omega 2 = 8     (* H_{omega^omega}(2) *)
+```
+
+(`FGH omega 3 = f_3(3) = f_2^3(3)` already has ~10^8 bits, well past
+`vm_compute`'s reach -- definable but not displayable.)
+
+What this opens up:
+
+* **Approach A is no longer blocked on well-foundedness.**  The CNF
+  formulation in `sandbox/FGH.v` was bottlenecked on proving
+  `well_founded ord_lt`; switching to Brouwer notations skips that
+  proof obligation entirely.  Anything we wanted to compute in the
+  `f_alpha` / `H_alpha` style for `alpha` up to and slightly beyond
+  epsilon_0 is now available as a plain Coq function.
+* **Approach E shrinks to a one-line definition.**  Instead of
+  hard-coding a single ordinal-indexed primitive by hand, just take
+  `BigGrow := FGH epsilon_0` (or any other Brouwer ordinal you trust)
+  and add `tBigGrow : tpNat -> tpNat` as a primitive in a new
+  STLC+NatRec+tBigGrow language.  Witness `S (tApp tBigGrow (natlit
+  42))` lands at `term_depth = 45` and evaluates to `S (BigGrow 42) =
+  S (f_{epsilon_0}(42))`.
+
+Open follow-up: prove `BigGrow 42 > Contender.contender_5`.  The mechanical
+shape is the usual maxBy lower-bound -- a contender language with
+`tBigGrow` plus the standard depth-bounded enumeration -- but the
+strict-inequality step needs a meta-theorem that every closed
+`STLC+NatRec` term of depth 42 has eval bounded by `f_alpha(42)` for some
+`alpha < epsilon_0`.  That is essentially the proof-theoretic bound on
+System T; it is true and well-known, but not a one-line Coq proof.
+
+The file also records small structural lemmas (`FGH_Bsucc`,
+`FGH_Blim`, `Nat_iter_FGH_Bz`, `FGH_one_eq`, plus the Hardy analogues)
+that future contender work can build on without re-deriving the
+unfolding.
+
 ### 2026-04-30 sandbox update — meta-reflection over `largest_RT_nat_of_depth` (Approach D.3)
 
 New experiment: `sandbox/ReflectRTower3.v`.
@@ -954,11 +1042,17 @@ State of play after the 2026-04-30 follow-up:
   hence also `Contender.contender_5 < contender_reflect_rtower3`, with a closed
   global context.  The same `Opaque` barrier is needed here too to keep the kernel
   from running the D.2 search during the definitional `change` step.
-* **Approach A still has the hard open problem** of well-founded CNF
-  ordinal recursion. `sandbox/FGH.v` and `sandbox/L6.v` already expose the
-  mechanism, and the cleanest path is well-founded recursion on a
-  CNF-ordering relation. The L6 syntax/maxBy machinery is plumbing-only;
-  the ordinal descent is the real work.
+* **Approach A's well-foundedness obstacle is now bypassed via Brouwer
+  ordinal notations.** `sandbox/Brouwer.v` defines a Brouwer-ordinal
+  inductive type whose `Blim : (nat -> Brouwer) -> Brouwer` constructor
+  bakes the fundamental sequence into the data; pure structural Fixpoint
+  on Brouwer ordinals goes through the W-type guard, so `FGH`, `Hardy`,
+  `Badd`, `Bmul`, `omega_pow`, and `epsilon_0` all live as plain
+  `Fixpoint`s with no axioms, no `Acc`, no fuel.  `BigGrow := FGH
+  epsilon_0 : nat -> nat` is therefore a totally defined Coq function.
+  The remaining work for Approach A / E is now a *connector* lemma --
+  bounding STLC+NatRec evals at depth 42 by `f_alpha(42)` for some
+  `alpha < epsilon_0` -- not a foundational well-foundedness proof.
 
 Three credible next concrete steps, ordered by ambition:
 
@@ -985,25 +1079,39 @@ What remains for actual promotion to `Contender.v`:
 
 ### Track 2 — finish Approach A (medium risk, principled)
 
-The blocker is well-foundedness of the CNF ordinal descent for
-`FGH_total`. Three concrete sub-tracks:
+The previous well-foundedness blocker is now bypassed by
+`sandbox/Brouwer.v`'s Brouwer-ordinal definition of `FGH` and `Hardy`.
+The remaining concrete sub-tracks are:
 
-* **Direct well-founded recursion.** Prove
-  `well_founded ord_lt` for the CNF ordering, define `FGH_total` by
-  `Fix`. This is the textbook path; the Castéran "Cantor / hydras"
-  Coq formalization has the relevant lemmas, but pulling in that
-  library adds a dependency.
-* **Bove-Capretta accessibility.** Construct `Acc` proofs by induction
-  on a measure; package the executable function around them. Heavier
-  on dependent matching, but stays self-contained.
-* **Hard-code one ordinal family** (Approach E), e.g. `f_{omega^omega}`
-  or `f_{omega tower 5}` as a single primitive `tBigGrow`. Sidesteps
-  runtime ordinal reduction entirely; the price is that the language
-  no longer takes the ordinal as a runtime input.
+* **Brouwer-based contender language (Approach E in disguise).**  Add
+  `tBigGrow : tpNat -> tpNat` as a primitive interpreted as
+  `Brouwer.BigGrow := Brouwer.FGH Brouwer.epsilon_0`.  Lift the
+  syntax/maxBy/enumeration scaffolding from `sandbox/ReflectTowerNoAx.v`,
+  drop `tPrevMax` and add `tBigGrow`, prove a `tBigGrow`-using witness
+  beats `contender_5`.  The mechanical shape is the same maxBy
+  lower-bound argument as the reflection-tower sandboxes; the
+  *interesting* obligation is the strict-inequality step, which needs a
+  meta-theorem bounding STLC+NatRec eval at depth 42 by `f_alpha(42)`
+  for some `alpha < epsilon_0`.  That meta-theorem (the proof-theoretic
+  ordinal of System T) is true, well-known, and a real piece of
+  formalization work; it is the only remaining gate.
+* **Brouwer ordinals + ordinal *runtime input* (full Approach A).**
+  Expose Brouwer ordinals as a *type* in the contender language --
+  add `tpOrd`, `tBz`, `tBsucc`, `tBlim`, `tFGH : tpOrd -> tpNat ->
+  tpNat`.  Strictly more general than the previous bullet, but
+  formally more delicate because Brouwer ordinals contain functions
+  (`Blim : (nat -> Brouwer) -> Brouwer`), which interacts with the
+  syntax-of-types convention.
+* **Direct CNF well-founded recursion.**  Still possible; the
+  `sandbox/FGH.v` skeleton plus a `well_founded ord_lt` proof would
+  give the same expressive power as Brouwer-based FGH but with a
+  flatter representation.  Worth doing only if Brouwer's
+  closure-in-ordinal interaction with the contender language proves
+  unwieldy.
 
 Pick whichever seems most tractable for the contributor. The existing
-`sandbox/L6.v` and `sandbox/FGH.v` are already aligned with the first or
-second of these.
+`sandbox/Brouwer.v`, `sandbox/L6.v`, and `sandbox/FGH.v` are aligned
+with the first, second, and third of these respectively.
 
 ### Track 3 — push reflection further (post-D.2, low risk, marginal gain)
 
