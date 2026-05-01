@@ -292,6 +292,17 @@ the brainstorming thread does not get lost between sessions.
   witness at `term_depth = 46`. `Print Assumptions` reports a closed
   global context. Compile with `coqc -Q . "" sandbox\BigGrowPrevMax.v`
   after `Contender.vo` and `sandbox\Brouwer.vo`.
+- `sandbox/BigGrowRTower.v` — composes the Brouwer-FGH and reflection
+  axes.  Plugs `R_tower 1` in as the `prevMax` oracle to the existing
+  `BigGrowPrevMax.largest_BGPrev_nat_of_depth`, and also records a
+  pure-composition variant `BigGrow (S (R_tower 1 45))` and a stacked
+  variant `BigGrow (S contender_BG_RT_layered)`.  All three are
+  axiom-free (`Print Assumptions` reports closed global contexts) and
+  beat `contender_5` via the chain `contender_5 < R_tower 1 45 <
+  contender_BG_RT_layered < contender_BG_RT_stacked` plus
+  `contender_5 < contender_BG_RT_simple` via `BigGrow_ge`.  Compile
+  with `coqc -Q . "" sandbox\BigGrowRTower.v` after
+  `sandbox\BigGrowPrevMax.vo`.
 - `sandbox/ReflectRTowerComputed.v` — computed-argument D.2 refinement
   ("Phase 2").  Imports `sandbox.ReflectRTowerSmall` and defines
   offset-aware NatRec arithmetic combinators (`double_at`, `pow2_at`)

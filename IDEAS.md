@@ -542,6 +542,47 @@ Theorem contender_5_lt_bigGrowPrev :
 
 with a closed global context (`Print Assumptions` reports none).
 
+### 2026-04-30 sandbox update — BigGrow ∘ R_tower (composing the two axes)
+
+New experiment: `sandbox/BigGrowRTower.v`.
+
+The previous `BigGrowPrevMax.v` plugs `Contender.largest_STLCNatRec_nat_of_depth`
+in as the `prevMax` oracle.  But the lemma `prevMax_lt_BGPrev` is
+generic over any oracle, so we can plug in `R_tower 1` (or any
+`R_tower (S k)`) instead and inherit the corresponding strength.  The
+file documents three flavors, all with closed global contexts:
+
+```coq
+(* Flavor 1: pure composition.  No depth-bounded enumeration. *)
+Definition contender_BG_RT_simple : nat :=
+  Brouwer.BigGrow (S (R_tower 1 45)).
+
+(* Flavor 2: depth-bounded max over L_BG_Prev with prevMax := R_tower 1. *)
+Definition contender_BG_RT_layered : nat :=
+  largest_BGPrev_nat_of_depth (R_tower 1) 49.
+
+(* Flavor 3: stack BigGrow on top of flavor 2. *)
+Definition contender_BG_RT_stacked : nat :=
+  Brouwer.BigGrow (S contender_BG_RT_layered).
+```
+
+All three are mechanically `> Contender.contender_5`.  The chain is
+`contender_5 < R_tower 1 45 < contender_BG_RT_layered <
+contender_BG_RT_stacked`, and the simple flavor satisfies
+`contender_5 < contender_BG_RT_simple` directly via [BigGrow_ge].
+
+This is the first concrete artifact that combines *both* axes of
+strength -- impredicative reflection (Approach D.1) and ordinal-indexed
+fast growth (Approach A / E via Brouwer ordinals) -- into a single
+contender that beats `contender_5` mechanically, without invoking any
+proof-theoretic-ordinal-of-System-T meta-theorem.
+
+The proven *lower bound* on the actual value is mild (only `R_tower 1
+45 + 1` after `BigGrow_ge`).  The actual *value* of any of these
+contenders is enormously larger; sharper bounds would require extra
+properties of `BigGrow` (e.g. `BigGrow x >= 2x`, `BigGrow x >= x^2`,
+etc.) which are true but not currently proved.
+
 ### 2026-04-30 sandbox update — meta-reflection over `largest_RT_nat_of_depth` (Approach D.3)
 
 New experiment: `sandbox/ReflectRTower3.v`.
@@ -1092,6 +1133,16 @@ State of play after the 2026-04-30 follow-up:
   `tPrevMax` oracle.  The witness `tBigGrow (S (tPrevMax 42))` evaluates to
   `BigGrow (S contender_5) > contender_5` by `Brouwer.BigGrow_gt_S`, giving a
   fully mechanical strict inequality with no proof-theory connector lemma.
+* **Both axes can be composed: BigGrow ∘ R_tower also beats `contender_5`.**
+  `sandbox/BigGrowRTower.v` plugs `R_tower 1` in as the `prevMax` oracle to
+  the existing `largest_BGPrev_nat_of_depth` machinery, and also records a
+  pure-composition variant `Brouwer.BigGrow (S (R_tower 1 45))` and a
+  stacked variant `Brouwer.BigGrow (S contender_BG_RT_layered)`.  All
+  three close under the global context; the chain is `contender_5 <
+  R_tower 1 45 < contender_BG_RT_layered < contender_BG_RT_stacked` and
+  `contender_5 < contender_BG_RT_simple` directly via `BigGrow_ge`.  This
+  is the first concrete artifact that combines impredicative reflection
+  *and* ordinal-indexed FGH growth into a single contender.
 
 Three credible next concrete steps, ordered by ambition:
 
