@@ -400,28 +400,6 @@ Lemma cast_related : forall from to v1 v2,
     RelVal to (@cast from to v1) (@cast from to v2).
 Proof. intros; apply (proj1 (cast_impl_related _ _)); assumption. Qed.
 
-Local Transparent Contender.lookup.
-
-(* Self-contained reduction lemmas for the tVar case.  [Contender.interp_tVar]
-   covers the old-language [Some] case; the local lemmas cover the remaining
-   reductions without relying on fragile rewriting under the surrounding
-   [match]. *)
-Lemma Contender_interp_term_tVar_None : forall e x,
-    Contender.lookup e x = None ->
-    Contender.interp_term e (Contender.tVar x)
-    = existT Contender.interp_type tpNat (@error tpNat).
-Proof. intros e x H. simpl. rewrite H. reflexivity. Qed.
-
-Lemma interp_term_tVar_Some : forall e x p,
-    Contender.lookup e x = Some p -> interp_term e (tVar x) = p.
-Proof. intros e x p H. simpl. rewrite H. reflexivity. Qed.
-
-Lemma interp_term_tVar_None : forall e x,
-    Contender.lookup e x = None ->
-    interp_term e (tVar x)
-    = existT Contender.interp_type tpNat (@error tpNat).
-Proof. intros e x H. simpl. rewrite H. reflexivity. Qed.
-
 Lemma embed_interp_related :
   forall e1 e2 t,
     RelEnv e1 e2 ->
@@ -431,29 +409,35 @@ Proof.
   revert e1 e2 Henv.
   induction t as [x|A B body IH|t1 IH1 t2 IH2| | |R];
     intros e1 e2 Henv.
-  - (* tVar.  [destruct] both lookups; [lookup_related] rules out one-sided
-       cases.  Then [Contender.interp_tVar] / [interp_term_tVar_*] rewrite
-       both [interp_term]s to the looked-up pack (or [existT _ tpNat error]). *)
-    cbn [embed_term].
+  - (* tVar.  Make both sides explicit [match lookup] expressions, then
+       [lookup_related] rules out the one-sided cases. *)
+    change
+      (RelPack
+         (match Contender.lookup e1 x with
+          | Some p => p
+          | None => existT Contender.interp_type tpNat (@error tpNat)
+          end)
+         (match Contender.lookup e2 x with
+          | Some p => p
+          | None => existT Contender.interp_type tpNat (@error tpNat)
+          end)).
     pose proof (lookup_related e1 e2 x Henv) as Hlk.
-    destruct (Contender.lookup e1 x) as [p1|] eqn:E1;
-      destruct (Contender.lookup e2 x) as [p2|] eqn:E2;
+    destruct (Contender.lookup e1 x), (Contender.lookup e2 x);
       simpl in Hlk; try contradiction.
-    + rewrite (Contender.interp_tVar _ _ _ E1).
-      rewrite (interp_term_tVar_Some _ _ _ E2).
-      exact Hlk.
-    + rewrite (Contender_interp_term_tVar_None _ _ E1).
-      rewrite (interp_term_tVar_None _ _ E2).
-      apply RelPack_error.
+    + exact Hlk.
+    + exact RelPack_error.
   - (* tLam.  Build the [tpArr]-typed RelPack directly (the explicit packs
        avoid any reliance on function extensionality); the IH gives a
        related body for any related extension of the environment. *)
-    exists (tpArr A B).
-    exists (fun x' : interp_type A =>
-              cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))).
-    exists (fun x' : interp_type A =>
-              cast B (projT2 (interp_term (existT _ A x' :: e2) (embed_term body)))).
-    repeat split. simpl. intros x y Hxy.
+    change
+      (RelPack
+         (existT Contender.interp_type (tpArr A B)
+            (fun x' : interp_type A =>
+               cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))))
+         (existT Contender.interp_type (tpArr A B)
+            (fun x' : interp_type A =>
+               cast B (projT2 (interp_term (existT _ A x' :: e2) (embed_term body)))))).
+    apply RelPack_intro. simpl. intros x y Hxy.
     assert (RelEnv (existT _ A x :: e1) (existT _ A y :: e2)) as Henv'.
     { constructor; [|exact Henv]. apply RelPack_intro. exact Hxy. }
     destruct (IH _ _ Henv') as (tpb & rb1 & rb2 & Eold & Enew & Hrb).

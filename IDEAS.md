@@ -1540,6 +1540,16 @@ Engineering issues discovered and resolved during the proof
    `tApp`, constant, and `tNatRec` cases and reused `Contender.interp_tVar`
    for the old-language `Some` reduction.
 
+8. **Third polish pass (2026-05-01): `change`-based sigma cleanup.**
+   The key remaining simplification opportunity was to stop proving the
+   `tVar` and `tLam` cases by manually unpacking sigma witnesses.  A
+   direct `change` to the explicit pack-shaped goal works in both cases:
+   for `tVar`, it exposes the two `lookup` matches directly and lets the
+   branch collapse to a single paired `destruct`; for `tLam`, it turns the
+   goal into an explicit packed arrow, so `RelPack_intro` applies there too.
+   This in turn made the old local `tVar` reduction lemmas and the
+   `Local Transparent Contender.lookup` directive unnecessary.
+
 The first issue in particular is worth recording for future sandbox
 work in this codebase, since the same pattern (destruct + rewrite
 inside an interp_term reduction) is likely to recur.

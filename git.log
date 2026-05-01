@@ -1,4 +1,59 @@
-* commit a4ca22fffe2849f11d7cd0dac5f097fdeef00b6c (HEAD -> ideas, origin/ideas)
+* commit 9045ca001ef0fe8d6361e2a3fcef51d4dcae856a (HEAD -> ideas, origin/ideas)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Fri May 1 09:58:07 2026 -0700
+| 
+|     Polish GrowEmbed.v further: factor backward Ltac, tighten reductions
+|     
+|     Incremental polish on top of the existing GrowEmbed.v:
+|     
+|       - Factor the [pose proof (proj2 (...UpTo_correct _ _)) ...] +
+|         [pose proof (proj2 (IHn _)) ...] + [simpl; lia] tail of every
+|         [termsUpTo_correct] backward case as a single Ltac
+|         [termsUpTo_depth_lia], symmetric to the existing
+|         [termsUpTo_solve_in] for the forward direction.  Each backward
+|         case shrinks to 1-2 lines.
+|     
+|       - Use [apply in_map_iff in H as (...)] (intro pattern) instead of
+|         the equivalent [apply in_map_iff in H. destruct H as [...]]
+|         two-step form.
+|     
+|       - Tighten [Forall2_nth_error] from a 7-line case-split into a
+|         single [induction ... intros [|n] ...; simpl; (discriminate ||
+|         eauto)] chain.
+|     
+|       - Compress trivial reduction lemmas
+|         ([Contender_interp_term_tVar_None], [interp_term_tVar_*]) to
+|         one-line [Proof. ... Qed.] form.
+|     
+|       - Drop a redundant [simpl] from [embed_eval]; the [destruct tp]
+|         already reduces both [match] expressions.
+|     
+|       - Tighten the tVar / tLam comments to match the simpler proof
+|         text.
+|     
+|     File goes from 647 -> 639 lines (-8).  [coqc -Q . ""
+|     sandbox/GrowEmbed.v] still emits [Closed under the global context]
+|     for [contender_grow_6], [BigGrow_lower_bound], and
+|     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
+|     no regressions.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  sandbox/GrowEmbed.v | 98 +++++++++++++++++++++++----------------------------
+|  1 file changed, 45 insertions(+), 53 deletions(-)
+| 
+* commit 02adebd28f725d9b3bd1e16c43716fad3fc29dc7
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Fri May 1 09:42:30 2026 -0700
+| 
+|     Polish GrowEmbed lookup relation proof
+| 
+|  IDEAS.md            |   8 ++++
+|  git.log             |  13 ++++++-
+|  sandbox/GrowEmbed.v | 100 ++++++++++++++++++++------------------------------
+|  3 files changed, 59 insertions(+), 62 deletions(-)
+| 
+* commit a4ca22fffe2849f11d7cd0dac5f097fdeef00b6c
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Fri May 1 09:32:24 2026 -0700
 | 
