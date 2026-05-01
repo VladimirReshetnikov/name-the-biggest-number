@@ -583,17 +583,30 @@ contenders is enormously larger; sharper bounds would require extra
 properties of `BigGrow` (e.g. `BigGrow x >= 2x`, `BigGrow x >= x^2`,
 etc.) which are true but not currently proved.
 
-### 2026-04-30 sandbox update — higher Brouwer ordinals (epsilon_omega, zeta_0, Gamma_0)
+### 2026-04-30 sandbox update — higher Brouwer ordinals (epsilon_omega, pseudo_zeta_0, pseudo_Gamma_0)
 
 New experiment: `sandbox/BrouwerHigh.v`.
 
 Extends `sandbox/Brouwer.v` past `epsilon_0` with named Brouwer terms
-for `epsilon_1`, `epsilon_k` (any finite `k`), `epsilon_omega`,
-`zeta_0` (= `phi_2(0)`), `phi_2(a)` for any Brouwer `a`, and
-`Gamma_0`.  All as plain `Fixpoint` / `Definition`s, no axioms, no
-fuel.  Companion `BigGrow_eN`, `BigGrow_e_omega`, `BigGrow_zeta_0`,
-`BigGrow_Gamma_0` are total Coq functions `nat -> nat`, each strictly
-faster-growing than the previous (in the FGH ordering).
+for `epsilon_1`, `epsilon_k` (any finite `k`), `epsilon_omega`, plus
+pseudo-Veblen iterates `pseudo_zeta_0`, `pseudo_phi_2`, and
+`pseudo_Gamma_0`.  All as plain `Fixpoint` / `Definition`s, no axioms,
+no fuel.  Companion `BigGrow_eN`, `BigGrow_e_omega`,
+`BigGrow_pseudo_zeta_0`, `BigGrow_pseudo_Gamma_0` are total Coq
+functions `nat -> nat`.
+
+**Naming caveat (corrected after Review 1):**  The `pseudo_*` prefix
+is deliberate.  Review 1 in `reviews/review-1.md` correctly observes
+that the original labels `zeta_0` and `Gamma_0` were
+mathematically wrong: the real Feferman/Bachmann `zeta_0` is the
+smallest fixed point of `alpha |-> epsilon_alpha`, far above
+`epsilon_omega`, and the real `Gamma_0` requires a full multivariate
+Veblen function.  The Brouwer terms in this file are still total and
+useful as alternative "engines" for `FGH`, but they do not match those
+specific named ordinals.  Future work would add a real
+`epsilon_indexed : Brouwer -> Brouwer` (recursing on its argument) to
+build a genuine `zeta_0`, and a real Veblen
+`phi : Brouwer -> Brouwer -> Brouwer` to build a genuine `Gamma_0`.
 
 Why this matters:
 
@@ -605,8 +618,9 @@ Why this matters:
 * It pre-positions stronger ordinals as alternative "engines" for any
   future fresh-engine `contender_6`.  If the connector lemma is ever
   proved at any specific finite ordinal `f_alpha(42) >=
-  contender_5`, swapping in `FGH Gamma_0` (or any of the higher
-  ordinals) gives a much larger contender for free at the same proof
+  contender_5`, swapping in `FGH pseudo_Gamma_0` (or any of the
+  higher ordinals) gives a much larger contender for free at the same
+  proof
   cost.
 
 Compile time ~1 s.  `coqchk` accepts the module.  All nine
@@ -1138,10 +1152,14 @@ same problem as for FGH at finite ordinals, so the work isn't
 ## Approach H — Veblen and beyond, via Brouwer notations
 
 The new `sandbox/BrouwerHigh.v` already exposes `epsilon_at`,
-`epsilon_omega`, `phi_2`, `zeta_0`, and `Gamma_0` as Brouwer terms.
-Each strictly extends Approach A's reach; e.g. `BigGrow_Gamma_0 :=
-FGH Gamma_0 : nat -> nat` is a total Coq function whose growth rate
-is the Feferman-Schutte fast-growing function `f_{Gamma_0}`.
+`epsilon_omega`, plus pseudo-iterates `pseudo_phi_2`,
+`pseudo_zeta_0`, and `pseudo_Gamma_0` as Brouwer terms.  These are
+total Coq functions but the `pseudo_*` ones are NOT the standard
+Veblen / Feferman-Schutte ordinals of the same root names; see the
+correction note in `BrouwerHigh.v`'s file header and the matching
+sandbox-update entry above.  A genuine
+`Gamma_0` would require a real multivariate Veblen
+`phi : Brouwer -> Brouwer -> Brouwer`.
 
 Open: extend `phi_2` to a full Veblen `phi : Brouwer -> Brouwer ->
 Brouwer` (parameterized by *both* the Veblen index and the argument).
@@ -1282,6 +1300,177 @@ hierarchies, no STLC machinery.
 
 This is essentially Approach E with two layers, but the connector
 question is the same as Approach J.
+
+## Approach M — Embedding-witness fresh-engine shell (NEW, top priority)
+
+Three external reviews in `reviews/review-{1,2,3}.md` independently
+converge on this idea, and Reviews 1 and 2 explicitly recommend it as
+the next concrete experiment.  It is now the highest-priority
+direction in `AGENTS.md`'s Current Game Plan.
+
+### The sharper reading of the don't-be-lazy rule
+
+The upstream README rule says:
+
+> don't use `contender_N` as a definition when defining `contender_N+1`,
+> it's just lazy.
+
+Read closely: this is about the *definition*, not the *proof*.  The
+contender's `Definition` line must not name the previous contender's
+maximum/search machinery; the proof of strict inequality is allowed
+to do anything Coq accepts -- including extracting an existential
+maximizer for `contender_5` via the existing
+`Contender.lowerbound_maxBy` lemma and using it as a witness term in
+a *new* language.
+
+This distinction unlocks a much cheaper clean route than Approach J's
+connector lemma.  We get a fresh-engine contender without doing the
+proof-theoretic-ordinal-of-System-T work.
+
+### The construction
+
+1. **A fresh object language.**  Define `L_Grow := STLC+NatRec +
+   tGrow`, where `tGrow : Nat -> Nat` is interpreted as
+   `sandbox.Brouwer.BigGrow` (or any other total `nat -> nat` engine
+   with `forall n, n < grow (S n)`).  Critically: no `tPrevMax`, no
+   `tRTower`, no oracle pointing back at `Contender`.
+
+2. **An embedding from STLC+NatRec to L_Grow.**  Define
+   `embed_term : Contender.term -> L_Grow.term` mapping each
+   constructor 1:1 (`tO -> tO`, `tS -> tS`, `tApp -> tApp`,
+   `tNatRec R -> tNatRec R`, etc.).  Prove `term_depth_BG (embed_term
+   t) = Contender.term_depth t` (depth preservation).
+
+3. **Eval preservation via a logical relation.**  Defining
+   `Contender.eval (embed_term t) = eval_BG (embed_term t)`
+   pointwise on all values needs care because Coq doesn't have FunExt
+   in the no-axioms regime.  Use a Tait-style logical relation:
+
+   ```coq
+   Fixpoint RelVal (A : type) : interp_type A -> interp_type_BG A -> Prop :=
+     match A with
+     | tpNat        => fun x y => x = y
+     | tpArr A1 A2  => fun f g => forall x y, RelVal A1 x y -> RelVal A2 (f x) (g y)
+     end.
+   ```
+
+   Then prove an environment-parametric preservation:
+
+   ```coq
+   Lemma embed_interp_related : forall e_old e_new t,
+     RelEnv e_old e_new ->
+     RelPack (Contender.interp_term e_old t) (interp_BG e_new (embed_term t)).
+   ```
+
+   At `tpNat` this collapses to plain equality of natural-number
+   evaluations, which is what we actually need.  Includes a
+   companion `cast_related` so that ill-typed raw terms (which
+   `Contender.eval` handles by returning `error`) are harmless.
+
+4. **Existential extraction for `contender_5`.**  Use
+   `Contender.lowerbound_maxBy` plus `Contender.termsUpTo_correct` to
+   obtain `t* : Contender.term` with `Contender.term_depth t* <= 42`
+   and `Contender.eval t* = Contender.contender_5`.
+
+5. **The witness term.**  In `L_Grow`:
+
+   ```coq
+   Definition witness_grow : term_BG :=
+     tApp tGrow (tApp tS (embed_term t*)).
+   ```
+
+   `term_depth_BG witness_grow <= 44` (depth-preservation lemma plus
+   one `tS` and one `tApp tGrow`).  Eval (via `embed_eval` and
+   `tGrow`'s denotation) = `BigGrow (S Contender.contender_5)`.
+
+6. **The contender.**  Definition is clean: no banned identifiers.
+
+   ```coq
+   Definition contender_6 : nat := largest_Grow_nat_of_depth 44.
+   ```
+
+   Its `largest_Grow_nat_of_depth` is the new language's depth-bounded
+   max, defined by the standard `maxBy (eval_BG) 0 tO (termsUpTo_BG
+   d)` shape lifted from `ReflectTowerNoAx.v` minus the `prevMax`
+   parameter.
+
+7. **The strict inequality.**  `lowerbound_maxBy` for `L_Grow`'s max
+   places `eval_BG witness_grow = BigGrow (S contender_5)` below the
+   max.  By `Brouwer.BigGrow_gt_S`, that beats `contender_5`
+   strictly.  More: the explicit lower bound
+
+   ```coq
+   BigGrow (S Contender.contender_5) <= contender_6
+   ```
+
+   is what Reviews 1 and 3 call a "decisive margin" -- much stronger
+   than the bare strict inequality.
+
+### Why this is cleaner than the connector route
+
+* **No proof-theoretic ordinal analysis.**  We never bound
+  `contender_5` from above by any `f_alpha(42)`.  We just feed it to
+  `BigGrow` via the existential witness.
+* **No oracle in the definition.**  `largest_Grow_nat_of_depth 44`
+  references only the new language.  Pass the cleanliness grep check.
+* **Strictly stronger lower bound than reflection.**  Reflection-tower
+  variants prove `contender_5 + 1 <= contender_X`; this proves
+  `BigGrow (S contender_5) <= contender_6`, which is unimaginably
+  larger.
+
+### Generic-engine refinement
+
+Once the basic shell works, parameterize over the growth function
+(Review 1's "Module Type GrowSig" idea):
+
+```coq
+Module Type GrowSig.
+  Parameter grow : nat -> nat.
+  Axiom grow_gt_S : forall n, n < grow (S n).
+End GrowSig.
+```
+
+Then prove `largest_T_plus_grow_nat_of_depth 44 > contender_5`
+generically.  Instantiate with `Brouwer.BigGrow`, then with
+`BrouwerHigh.BigGrow_e_omega`, `BrouwerHigh.BigGrow_pseudo_Gamma_0`,
+or any future engine satisfying `grow_gt_S`.  Swapping the engine is
+free in syntactic depth: it's just changing the denotation of
+`tGrow`.
+
+### Estimated cost
+
+300-500 lines of Coq.  The biggest individual chunks:
+
+* The new `L_Grow` syntax, evaluator, enumerator, depth lemmas
+  (~150-200 lines, mostly transferred from `ReflectTowerNoAx.v`
+  with `tPrevMax` removed and `tGrow` added).
+* `embed_term` plus depth preservation (~30 lines).
+* The logical relation and `embed_interp_related` (~80-150 lines;
+  this is the one piece that has no direct sandbox precedent and
+  needs careful proof engineering).
+* The witness assembly and the final theorem (~50 lines).
+
+The hardest sub-step is the logical relation across function types;
+everything else is mechanical transfer.
+
+### Caveats
+
+* Even with a clean definition, an upstream maintainer might still
+  judge "applying BigGrow to the previous maximizer in the proof" as
+  derivative.  This taste call is undocumented in the README.
+* The compile budget should still be fine (sandbox files in this
+  family run in ~2-3 s); but with the embedding plus logical-relation
+  proof, expect rebuild times closer to 5-10 s.
+
+### Next milestones after experiment 1
+
+* **Engine swap to `pseudo_Gamma_0`** at the same syntactic depth, to
+  test that the architecture is truly engine-agnostic.
+* **Connector lemma (Approach J)** as a separate, longer-running
+  project that would yield a future `contender_7 := BigGrow N` with
+  no embedding at all.
+* **System F reconnaissance** (Approach B) to cost out a substantial
+  qualitatively different engine.
 
 ## Recommendation / next concrete step
 

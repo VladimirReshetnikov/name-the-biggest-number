@@ -84,14 +84,15 @@ checkout to materialize as a real symlink on Windows.)
 
 ## Current Game Plan
 
-(Updated 2026-04-30, second relay session.)
+(Updated 2026-04-30, third relay session, after incorporating three
+external reviews in `reviews/review-{1,2,3}.md`.)
 
-The existing sandbox candidates beat `Contender.contender_5` mechanically
-and axiom-free, but submitting any of them to upstream is **premature**.
-Most of them reuse `Contender.largest_STLCNatRec_nat_of_depth` (the
-exact engine that defines `contender_5`) as an *oracle* in a slightly
-larger reflective language, which is borderline-violating the upstream
-`README.md` rule:
+The existing sandbox candidates beat `Contender.contender_5`
+mechanically and axiom-free, but submitting any of them to upstream is
+**premature**.  Most of them reuse
+`Contender.largest_STLCNatRec_nat_of_depth` (the exact engine that
+defines `contender_5`) as an *oracle* in a slightly larger reflective
+language, which is borderline-violating the upstream `README.md` rule:
 
 > Hope this doesn't really need to be said, but don't use `contender_N`
 > as a definition when defining `contender_N+1`, it's just lazy. Try to
@@ -104,80 +105,135 @@ to violating the don't-be-lazy rule" for an upstream PR.  So:
   Git / Branch Conventions above; adds the further rule that we do not
   even *plan* a specific submission until we have a candidate the user
   approves as clean.
-- **Aim for `contender_6` candidates whose definitions do not reference
-  `largest_STLCNatRec_nat_of_depth`** (or anything definitionally tied
-  to it: `interp_term`, `termsUpTo`, `largest_of_depth`, etc.).  A
-  *fresh engine* is the goal -- a number whose Coq definition uses a
-  growth mechanism that is not just "depth-bounded max over System T
-  terms, possibly wrapped".
-- **The Brouwer-FGH track (`sandbox/Brouwer.v`) is the cleanest fresh
-  engine we have right now**, but its connector to `contender_5` is
-  open.  Specifically, proving `BigGrow N > Contender.contender_5` for
-  some specific `N` requires bounding the eval of any closed depth-≤42
-  STLC+NatRec term by `f_alpha(42)` for some `alpha < epsilon_0`.  That
-  is the proof-theoretic ordinal of System T -- a known, true theorem,
-  but not a one-line Coq lemma.
+- **Sharpened don't-be-lazy rule (from the reviews).**  The README
+  rule is about the contender's *definition*, not its *proof*:
+  > The new contender's **definition** must not mention the previous
+  > contender's maximum/search machinery
+  > (`largest_STLCNatRec_nat_of_depth`, `interp_term`, `termsUpTo`,
+  > `largest_of_depth`, `R_tower`, `tPrevMax`, `tRTower`, …).  The
+  > **proof** *may* obtain the previous maximum's existential witness
+  > via `Contender.maxBy_In` / `Contender.lowerbound_maxBy` and use it
+  > to choose a witness term in the new language.
+
+  This is the most important strategic correction the reviews
+  contributed.  It cleanly separates "definitional cleanliness" (the
+  README's actual rule) from "proof witness reuse" (which the README
+  does not forbid; the existing `contender_4 < contender_5` proof
+  already does it).
+
+- **The new highest-priority direction is a fresh `tGrow` shell with
+  the embedding-witness pattern**, not the connector lemma:
+
+  1. Define a fresh object language `L_Grow := STLC+NatRec + tGrow`
+     where `tGrow : Nat -> Nat` is interpreted as
+     `sandbox.Brouwer.BigGrow` (or any other total `nat -> nat` engine,
+     e.g. one of the higher-ordinal `BigGrow_*` from
+     `sandbox/BrouwerHigh.v`).  The language is **fresh** -- no
+     `tPrevMax`, no `tRTower`.
+  2. Define `embed_term : Contender.term -> L_Grow.term` and prove an
+     `embed_eval` preservation result via a *logical relation* (NOT by
+     equality of higher-type denotations -- that needs FunExt).  The
+     relation collapses to plain equality at `tpNat`, which is what we
+     actually need.
+  3. Use `Contender.lowerbound_maxBy` to obtain an existential
+     `t* : Contender.term` with `term_depth t* <= 42` and
+     `Contender.eval t* = Contender.contender_5`.
+  4. Use the witness `tApp tGrow (tApp tS (embed_term t*))` at term
+     depth ~44.
+  5. Conclude `Contender.contender_5 < contender_grow_6` and, more
+     decisively, `BigGrow (S Contender.contender_5) <=
+     contender_grow_6`.  The latter explicit lower bound is the
+     "decisive margin" the README hopes for.
+
+  The contender's **definition** is `largest_Grow_nat_of_depth 44` --
+  no mention of any `contender_5` machinery.  Its **proof** uses
+  `contender_5`'s existential maximizer as a witness, which is
+  exactly the "structural embedding" pattern the contest is supposed
+  to reward.
+
+- **The connector lemma is now a long-game item, not the gate.**
+  Approach J in `IDEAS.md` (proving every closed depth-42 STLC+NatRec
+  term has eval bounded by `f_alpha(42)` for some `alpha < epsilon_0`)
+  is still the cleanest possible submission shape -- it would yield
+  `Definition contender_6 := BigGrow N` with no embedding at all --
+  but it costs an order of magnitude more work than the embedding
+  shell, and the embedding shell already gets a "fresh engine" status
+  with strictly stronger explicit lower bounds.  Treat the connector
+  as the eventual *contender_7* path, not as a prerequisite.
+
 - **Existing oracle-based sandboxes stay as research artifacts.**
   `ReflectTowerNoAx`, `ReflectRTowerSmall`, `ReflectRTowerComputed`,
   `ReflectRTower3`, `BigGrowPrevMax`, and `BigGrowRTower` document
   mechanical patterns and small lemmas (`R_tower_S_d_mono`,
-  `BigGrow_ge`, `BigGrow_gt_S`, `maxBy_subset`) that any future fresh-
-  engine candidate may reuse.  They should *not* be ported to
-  `Contender.v` as-is.
+  `BigGrow_ge`, `BigGrow_gt_S`, `maxBy_subset`, the `_at c` template
+  hygiene for reversed de Bruijn levels, the `Opaque` placement
+  discipline) that the embedding shell will reuse.  They should *not*
+  be ported to `Contender.v` as-is.
 
-Concrete brainstorming directions we want to push next, ordered roughly
-by how clean a `contender_6` they would produce:
+Concrete brainstorming directions, reordered after the reviews:
 
-1. **Connector lemma for Brouwer-FGH.**  Prove (or even partially
-   prove) `eval t <= f_alpha(d)` for closed STLC+NatRec terms `t` of
-   depth `d`, for some specific schema of `alpha < epsilon_0`.  Once
-   any concrete bound is in place, `Definition contender_6 := BigGrow
-   N` for a sufficiently large `N` is the cleanest possible submission
-   -- the engine (Brouwer-ordinal FGH at `epsilon_0`) is wholly
-   disjoint from `contender_5`'s machinery.
-2. **Higher Brouwer ordinals.**  Define `epsilon_1`, `epsilon_omega`,
-   `zeta_0`, `Gamma_0`, Bachmann-Howard, etc. as Brouwer terms (the
-   `Blim : (nat -> Brouwer) -> Brouwer` constructor handles any
-   countable ordinal with a fundamental sequence).  Each gives a
-   stronger `BigGrow := FGH ord` for free.  Strengthens (1) when the
-   connector lemma is in place; on its own, an aesthetic win and a
-   stress test of the Brouwer formulation.
-3. **Veblen functions (φ_β).**  φ_0(α) = ω^α, φ_{β+1}(α) the α-th
-   common fixed point of φ_β.  Directly definable on Brouwer ordinals.
-   Goes through `Gamma_0` (the small Veblen ordinal) cleanly.
-4. **Approach B (System F).**  The repo already ships `System_F.v`
-   with a normalization proof.  A System-F-based contender would use
-   impredicative polymorphism, a genuinely orthogonal axis to System
-   T's ordinal-indexed primitive recursion.  Heavier engineering than
-   the Brouwer track; depth-bounded enumeration over both type and
-   term binders is fiddlier.
-5. **Approach F (Goodstein / hydra).**  Define the Goodstein function
-   in Coq via Brouwer-ordinal descent, or the Kirby-Paris hydra
-   game.  Both are canonical `f_{epsilon_0}`-strength examples and
-   would be a different engine from any reflection-based candidate.
-   Brouwer ordinals make termination easy; the encoding of hereditary
-   base-`n` representations is the real work.
-6. **Friedman's TREE / SCG / WORM.**  Beyond `f_{epsilon_0}` strength;
-   Π^1_1-CA_0-flavoured.  Substantial encoding cost.
-7. **Bar recursion (Spector).**  Different recursion principle, HA²
-   strength.  Heavier still.
-8. **Genuinely different evaluation models.**  Term graphs,
-   interaction nets, abstract reduction systems with explicit
-   termination invariants.  Open-ended but possibly fruitful for
-   "fresh engine" contenders.
+1. **Embedding-witness `tGrow` shell** (new top priority).
+   `sandbox/GrowEmbed.v` (or similar): `L_Grow = STLC+NatRec+tGrow`,
+   `tGrow := Brouwer.BigGrow`.  Define logical-relation embedding,
+   extract existential `t*`, prove
+   `BigGrow (S contender_5) <= largest_Grow_nat_of_depth 44`.  Strict
+   inequality follows from `Brouwer.BigGrow_gt_S`.  Estimated 300-500
+   lines of Coq, mostly familiar boilerplate (the
+   `ReflectTowerNoAx`-style scaffold transfers directly, minus the
+   `prevMax` parameter, plus the `embed` machinery).
+2. **Generic `Module Type GrowSig`.**  Once experiment 1 works, lift
+   it to a generic theorem parameterized over any `grow : nat -> nat`
+   with `forall n, n < grow (S n)`.  Then instantiate with
+   `Brouwer.BigGrow`, then with `BrouwerHigh.BigGrow_e_omega`, etc.
+   The fork already has all four: `BigGrow`, `BigGrow_eN`,
+   `BigGrow_e_omega`, `BigGrow_pseudo_zeta_0`,
+   `BigGrow_pseudo_Gamma_0`.  Swapping denotation costs nothing in
+   syntactic depth.
+3. **Higher Brouwer ordinals (real Veblen).**  Review 1 caught that
+   the original `zeta_0` and `Gamma_0` labels in `BrouwerHigh.v` were
+   mathematically wrong (`zeta_0 := epsilon_omega` is *not* the
+   Feferman/Bachmann zeta_0; the real one is the first fixed point of
+   `alpha |-> epsilon_alpha`, far above `epsilon_omega`).  The names
+   are now prefixed `pseudo_*` to flag them as research-grade
+   constructions, not literal ordinal landmarks.  Future work: add a
+   genuine `epsilon_indexed : Brouwer -> Brouwer` recursing on its
+   argument (built `Bz` -> `epsilon_0`, `Bsucc a` -> `next_epsilon
+   (epsilon_indexed a)`, `Blim f` -> `Blim (fun n => epsilon_indexed
+   (f n))`), and a genuine multivariate Veblen
+   `phi : Brouwer -> Brouwer -> Brouwer`.
+   The total Coq functions remain useful regardless.
+4. **Approach J: connector lemma (downgraded to long game).**  Still
+   worth pursuing, but as the path to a future *contender_7*, not as
+   the gate for *contender_6*.  See `IDEAS.md` Approach J for
+   structure.  Cheaper variant: target a deliberately loose ordinal
+   bound (e.g. `f_{omega_tower (d+c)} (d+c)` for some loose `c`)
+   rather than aiming for sharpness.
+5. **Approach B (System F) reconnaissance.**  Add `term_depth` and a
+   small `termsUpTo` prototype around `System_F.v`, just to *cost out*
+   the full-blown System F contender.  Goal: turn "plausible" into
+   "this many lines, this much compile time."
+6. **Approach F (Goodstein / hydra).**  Brouwer ordinals make
+   termination easy; the work is the hereditary base-`n`
+   representation.  Could borrow from `coq-contribs/cantor` (Castéran)
+   for reference, though importing as a dependency is undesirable for
+   a clean submission.
+7. **Approach I (TREE / SCG / WORM).**  Heavy.  Defer until at least
+   experiments 1-2 ship.
+8. **Approach C (bar recursion).**  Heavy.  Defer.
+9. **Approach G (Conway chained arrows).**  Reviews 1 and 3 both note
+   that chains stay below `epsilon_0` and inherit the same connector
+   problem as finite-ordinal FGH.  Less attractive than Brouwer; only
+   worth doing as a small standalone exercise if a session is short.
 
-When extending the sandbox, prefer files that explore the above
-directions over files that combine more oracles into the existing
-reflection track.  In particular, "+1 step on top of the previous
-oracle-based contender" patterns are now considered saturated: writing
-yet another `contender_X = BigGrow (S contender_Y)` style file is not
-a productive use of session bandwidth.
+When extending the sandbox, prefer files that move toward experiment 1
+(the `tGrow` shell) and away from "+1 step on top of the previous
+oracle-based contender" patterns, which are now considered saturated.
 
 When in doubt about whether a proposed candidate is "clean enough",
-write the candidate's `Definition` in prose first and check: does its
-reading mention `largest_STLCNatRec_nat_of_depth`, `R_tower`, or any
-sandbox alias of those?  If yes, it is still oracle-based, and is
-useful as a research artifact but not as a submission target.
+write the candidate's `Definition` in prose first and grep the
+unfolded definition for the banned identifiers (`Contender.largest_*`,
+`R_tower`, `tPrevMax`, `tRTower`, …).  Zero matches = definition is
+clean; the proof is then free to reference any of those.
 
 ## Local Windows Environment
 
@@ -404,13 +460,18 @@ the brainstorming thread does not get lost between sessions.
   `sandbox\BigGrowPrevMax.vo`.
 - `sandbox/BrouwerHigh.v` — extends `sandbox/Brouwer.v` with named
   Brouwer terms past `epsilon_0`: `next_epsilon`, `epsilon_at` (any
-  finite `epsilon_k`), `epsilon_omega`, `phi_2`, `zeta_0`, and
-  `Gamma_0` (the Feferman-Schutte ordinal).  Companion `nat -> nat`
-  candidate engines `BigGrow_eN`, `BigGrow_e_omega`, `BigGrow_zeta_0`,
-  `BigGrow_Gamma_0` are FGH at the corresponding ordinals.  All
-  axiom-free; nine `Print Assumptions` lines all report closed global
-  contexts.  Useful as alternative engines for any future fresh-engine
-  `contender_6` once the connector lemma (IDEAS.md Approach J) is in
+  finite `epsilon_k`), `epsilon_omega`, plus pseudo-iterates
+  `pseudo_phi_2`, `pseudo_zeta_0`, and `pseudo_Gamma_0`.  Companion
+  `nat -> nat` candidate engines `BigGrow_eN`, `BigGrow_e_omega`,
+  `BigGrow_pseudo_zeta_0`, `BigGrow_pseudo_Gamma_0` are FGH at the
+  corresponding ordinals.  All axiom-free; nine `Print Assumptions`
+  lines all report closed global contexts.  **Naming caveat:** the
+  `pseudo_*` names are prefixed deliberately because they iterate
+  `next_epsilon` rather than computing the standard Feferman/Veblen
+  ordinals of the same root names; the file header documents the
+  correction (suggested by `reviews/review-1.md`).  Useful as
+  alternative engines for any future fresh-engine `contender_6` once
+  the connector lemma (IDEAS.md Approach J) is in
   place.  Compile with `coqc -Q . "" sandbox\BrouwerHigh.v` after
   `sandbox\Brouwer.vo`.
 - `sandbox/ReflectRTowerComputed.v` — computed-argument D.2 refinement
