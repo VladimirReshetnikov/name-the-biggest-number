@@ -1525,6 +1525,13 @@ Engineering issues discovered and resolved during the proof
    inheritance chain (Definition supports `:= body`; Theorem requires
    a `Proof` block).
 
+6. **Polish pass (2026-05-01): reduce boilerplate + warnings.**
+   Introduced a tiny `RelPack_intro` helper to cut `exists ...; repeat split`
+   noise in the embedding proof, simplified the `tLam` case by removing
+   redundant `projT2 (existT ...)` wrappers, switched imports to
+   `From Stdlib Require ...` (removes Rocq 9 deprecation warnings), and
+   deleted a couple of unused micro-lemmas (`cast_nat_id`, `interp_tO`).
+
 The first issue in particular is worth recording for future sandbox
 work in this codebase, since the same pattern (destruct + rewrite
 inside an interp_term reduction) is likely to recur.

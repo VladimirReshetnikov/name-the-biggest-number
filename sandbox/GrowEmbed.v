@@ -30,8 +30,8 @@
      coqc -Q . "" sandbox\GrowEmbed.v
 *)
 
-Require Import Arith Lia.
-Require Import List. Import ListNotations.
+From Stdlib Require Import Arith Lia List.
+Import ListNotations.
 
 Require Contender.
 Require Import sandbox.Brouwer.
@@ -131,12 +131,6 @@ Definition eval (t : term) : nat :=
   end res.
 
 (* Simple reduction lemmas for the witness chain (no FunExt needed). *)
-
-Lemma cast_nat_id : forall (a : nat), @cast tpNat tpNat a = a.
-Proof. intro a. reflexivity. Qed.
-
-Lemma interp_tO : forall e, interp_term e tO = existT _ tpNat 0.
-Proof. intros. reflexivity. Qed.
 
 Lemma interp_tS : forall e, interp_term e tS = existT _ (tpArr tpNat tpNat) S.
 Proof. intros. reflexivity. Qed.
@@ -289,6 +283,17 @@ Definition RelPack (p q : pack) : Prop :=
     /\ q = existT Contender.interp_type tp v2
     /\ RelVal tp v1 v2.
 
+(* Convenience constructor for [RelPack] when both packs are explicit. *)
+Lemma RelPack_intro :
+  forall tp (v1 v2 : interp_type tp),
+    RelVal tp v1 v2 ->
+    RelPack (existT Contender.interp_type tp v1) (existT Contender.interp_type tp v2).
+Proof.
+  intros tp v1 v2 H.
+  exists tp, v1, v2.
+  repeat split; assumption.
+Qed.
+
 Definition RelEnv (e1 e2 : list pack) : Prop :=
   List.Forall2 RelPack e1 e2.
 
@@ -306,8 +311,7 @@ Lemma RelPack_error :
     (existT Contender.interp_type tpNat (@error tpNat))
     (existT Contender.interp_type tpNat (@error tpNat)).
 Proof.
-  exists tpNat, (@error tpNat), (@error tpNat).
-  repeat split.
+  apply RelPack_intro. reflexivity.
 Qed.
 
 Lemma Forall2_nth_error :
@@ -466,19 +470,16 @@ Proof.
       exact RelPack_error.
   - (* tLam.  Build the [tpArr]-typed RelPack directly; the IH gives us
        a related body for any related extension of the environment.
-       The [projT2 (existT _ ...)] dressing is needed because Coq picks
-       the value-side of [RelPack]'s existT in a form where [rewrite]
-       can match the inner [interp_term] call. *)
+       (We keep the packs explicit to avoid any dependence on function
+       extensionality.) *)
     exists (tpArr A B).
-    exists (projT2 (existT _ (tpArr A B)
-              (fun x' : interp_type A =>
-                 cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))))).
-    exists (projT2 (existT _ (tpArr A B)
-              (fun x' : interp_type A =>
-                 cast B (projT2 (interp_term (existT _ A x' :: e2) (embed_term body)))))).
+    exists (fun x' : interp_type A =>
+              cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))).
+    exists (fun x' : interp_type A =>
+              cast B (projT2 (interp_term (existT _ A x' :: e2) (embed_term body)))).
     repeat split. simpl. intros x y Hxy.
     assert (RelEnv (existT _ A x :: e1) (existT _ A y :: e2)) as Henv'.
-    { constructor; [|exact Henv]. exists A, x, y; repeat split; exact Hxy. }
+    { constructor; [|exact Henv]. apply RelPack_intro. exact Hxy. }
     destruct (IH _ _ Henv') as [tpb [rb1 [rb2 [Eold [Enew Hrb]]]]].
     rewrite Eold, Enew. simpl. apply cast_related, Hrb.
   - (* tApp.  Both interp_term calls reduce to a [match] on the
@@ -517,8 +518,8 @@ Lemma embed_eval : forall t,
     eval (embed_term t) = Contender.eval t.
 Proof.
   intro t.
-  pose proof (embed_interp_related [] [] t (List.Forall2_nil _)) as H.
-  destruct H as [tp [v1 [v2 [Hp1 [Hp2 Hrel]]]]].
+  pose proof (embed_interp_related [] [] t (List.Forall2_nil _))
+    as [tp [v1 [v2 [Hp1 [Hp2 Hrel]]]]].
   unfold eval, Contender.eval.
   replace (Contender.interp_term [] t)
     with (existT Contender.interp_type tp v1) by (symmetry; exact Hp1).
