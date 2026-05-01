@@ -48,6 +48,8 @@ checkout to materialize as a real symlink on Windows.)
   only, with descriptive names (e.g. `experiment-system-f`,
   `sandbox-bar-recursion`). Same rules: no PRs, no merges into
   `master`, no pushes to `upstream`.
+- Run `git log --all --graph --decorate --stat --stat-count=10 > git.log`
+  from time and commit it together with your other changes.
 
 ## Next-Contender Ideas
 
