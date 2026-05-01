@@ -58,11 +58,14 @@ REPO = Path(__file__).resolve().parents[1]
 # Unqualified identifier names that disqualify a contender's definition.
 # Each is matched on word boundaries against the [Print] output.
 BANNED: dict[str, str] = {
-    # Core "previous engine" identifiers from Contender.v.
+    # Core "previous engine" identifier from Contender.v.  We deliberately
+    # do NOT include the generic name [largest_of_depth] here, because
+    # fresh-engine sandboxes (e.g. sandbox/GrowEmbed.v's L_Grow) define
+    # their own [largest_of_depth] and a substring match would flag those
+    # as false positives.  [largest_STLCNatRec_nat_of_depth] is specific
+    # enough to catch direct uses of contender_5's engine.
     "largest_STLCNatRec_nat_of_depth":
         "Contender.v's depth-bounded max (the engine of contender_5)",
-    "largest_of_depth":
-        "Contender.v's argmax helper -- previous-engine internal",
 
     # Reflection-tower oracle structures (Approach D.x).
     "R_tower":
@@ -120,6 +123,13 @@ CANDIDATES: list[tuple[str, str]] = [
     ("sandbox.Brouwer.BigGrow", "sandbox.Brouwer"),
     ("sandbox.BrouwerHigh.BigGrow_e_omega", "sandbox.BrouwerHigh"),
     ("sandbox.BrouwerHigh.BigGrow_pseudo_Gamma_0", "sandbox.BrouwerHigh"),
+
+    # Approach M -- the embedding-witness fresh-engine candidate.  This
+    # is the first sandbox candidate that should pass cleanliness:
+    # contender_grow_6 := largest_Grow_nat_of_depth 44, definitionally
+    # disjoint from contender_5's engine.
+    ("sandbox.GrowEmbed.contender_grow_6", "sandbox.GrowEmbed"),
+    ("sandbox.GrowEmbed.BigGrowEmbed.contender_grow_6", "sandbox.GrowEmbed"),
 ]
 
 

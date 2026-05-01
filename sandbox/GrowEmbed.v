@@ -562,6 +562,42 @@ Proof.
   eapply cast_impl_fw_related; eassumption.
 Qed.
 
+Local Transparent Contender.lookup.
+
+(* Self-contained reduction lemmas for the tVar case.  By proving them
+   outside of the main induction, we avoid whatever interaction between
+   [destruct ... eqn:] and the [Opaque] pragmas above is making
+   in-place [rewrite] fail in the main proof. *)
+Lemma Contender_interp_term_tVar_Some : forall e x p,
+    Contender.lookup e x = Some p ->
+    Contender.interp_term e (Contender.tVar x) = p.
+Proof.
+  intros e x p H. simpl. rewrite H. reflexivity.
+Qed.
+
+Lemma Contender_interp_term_tVar_None : forall e x,
+    Contender.lookup e x = None ->
+    Contender.interp_term e (Contender.tVar x)
+    = existT Contender.interp_type tpNat (@error tpNat).
+Proof.
+  intros e x H. simpl. rewrite H. reflexivity.
+Qed.
+
+Lemma interp_term_tVar_Some : forall e x p,
+    Contender.lookup e x = Some p ->
+    interp_term e (tVar x) = p.
+Proof.
+  intros e x p H. simpl. rewrite H. reflexivity.
+Qed.
+
+Lemma interp_term_tVar_None : forall e x,
+    Contender.lookup e x = None ->
+    interp_term e (tVar x)
+    = existT Contender.interp_type tpNat (@error tpNat).
+Proof.
+  intros e x H. simpl. rewrite H. reflexivity.
+Qed.
+
 Lemma embed_interp_related :
   forall e1 e2 t,
     RelEnv e1 e2 ->
@@ -570,22 +606,24 @@ Proof.
   intros e1 e2 t Henv.
   revert e1 e2 Henv.
   induction t as [x|A B body IH|t1 IH1 t2 IH2| | |R];
-    intros e1 e2 Henv; simpl.
-  - (* tVar *)
+    intros e1 e2 Henv.
+  - (* tVar.  After [simpl], both sides become
+       [match Contender.lookup _ x with Some R => R | None => existT _ tpNat error end].
+       [destruct (Contender.lookup e1 x) eqn:E1] substitutes the LHS
+       match (so the goal's first conjunct becomes [p1 = ...]
+       directly).  The RHS still mentions [Contender.lookup e2 x],
+       which we substitute via [rewrite E2] using the
+       [lookup_related_*] lemmas. *)
+    cbn [embed_term].
     destruct (Contender.lookup e1 x) as [p1|] eqn:E1.
     + destruct (lookup_related_some e1 e2 x p1 Henv E1) as [p2 [E2 HR]].
-      cbn [Contender.interp_term interp_term embed_term].
-      destruct HR as [tp [v1 [v2 [Hp1 [Hp2 Hrel]]]]].
-      exists tp, v1, v2.
-      split; [rewrite E1; simpl; exact Hp1|].
-      split; [rewrite E2; simpl; exact Hp2|].
-      exact Hrel.
-    + assert (Contender.lookup e2 x = None) as E2 by (eapply lookup_related_none; eauto).
-      cbn [Contender.interp_term interp_term embed_term].
-      exists tpNat, 0, 0.
-      split; [rewrite E1; reflexivity|].
-      split; [rewrite E2; reflexivity|].
-      reflexivity.
+      rewrite (Contender_interp_term_tVar_Some _ _ _ E1).
+      rewrite (interp_term_tVar_Some _ _ _ E2).
+      exact HR.
+    + pose proof (lookup_related_none e1 e2 x Henv E1) as E2.
+      rewrite (Contender_interp_term_tVar_None _ _ E1).
+      rewrite (interp_term_tVar_None _ _ E2).
+      exact RelPack_error.
   - (* tLam *)
     exists (tpArr A B).
     exists (projT2 (existT _ (tpArr A B)
@@ -606,31 +644,26 @@ Proof.
     }
     specialize (IH Henv').
     destruct IH as [tpb [rb1 [rb2 [Eold [Enew Hrb]]]]].
-    subst.
-    simpl in *.
-    eapply cast_related.
+    rewrite Eold, Enew.
+    simpl.
+    apply cast_related.
     exact Hrb.
   - (* tApp *)
+    cbn [Contender.interp_term interp_term embed_term].
     specialize (IH1 e1 e2 Henv).
     specialize (IH2 e1 e2 Henv).
-    destruct (Contender.interp_term e1 t1) as [R1 r1] eqn:E1.
-    destruct (interp_term e2 (embed_term t1)) as [R1' r1'] eqn:E1'.
-    destruct (Contender.interp_term e1 t2) as [R2 r2] eqn:E2.
-    destruct (interp_term e2 (embed_term t2)) as [R2' r2'] eqn:E2'.
     destruct IH1 as [tp1 [v1 [v1' [Htp1 [Htp1' Hrel1]]]]].
     destruct IH2 as [tp2 [v2 [v2' [Htp2 [Htp2' Hrel2]]]]].
-    inversion Htp1; inversion Htp1'; subst.
-    inversion Htp2; inversion Htp2'; subst.
-    simpl in *.
-    destruct R1 as [|A B].
+    rewrite Htp1, Htp1', Htp2, Htp2'.
+    simpl.
+    destruct tp1 as [|A B].
     + (* tpNat: both error *)
       exact RelPack_error.
     + (* arrow *)
       exists B.
-      exists (r1 (cast A r2)).
-      exists (r1' (cast A r2')).
+      exists (v1 (Contender.cast A v2)).
+      exists (v1' (cast A v2')).
       split; [reflexivity|]. split; [reflexivity|].
-      simpl.
       eapply Hrel1.
       eapply cast_related.
       exact Hrel2.
@@ -641,9 +674,9 @@ Proof.
     split; [reflexivity|]. split; [reflexivity|].
     simpl. intros x y Hxy. subst. reflexivity.
   - (* tNatRec *)
-    exists (tpArr t (tpArr (tpArr tpNat (tpArr t t)) (tpArr tpNat t))).
-    exists (@Nat.recursion (interp_type t)).
-    exists (@Nat.recursion (interp_type t)).
+    exists (tpArr R (tpArr (tpArr tpNat (tpArr R R)) (tpArr tpNat R))).
+    exists (@Nat.recursion (interp_type R)).
+    exists (@Nat.recursion (interp_type R)).
     split; [reflexivity|]. split; [reflexivity|].
     (* Nat.recursion respects the logical relation. *)
     simpl.
@@ -656,24 +689,30 @@ Proof.
     + exact Hbase.
     + eapply Hstep.
       * reflexivity.
-      * exact IHn1; eauto.
+      * apply IHn1; assumption.
 Qed.
+
+(* embed_eval needs to peek inside [Contender.eval] (which is otherwise
+   kept Opaque to keep the kernel from running depth-bounded searches).
+   We expose it just for this lemma and re-mark it Opaque afterwards. *)
+Local Transparent Contender.eval.
 
 Lemma embed_eval : forall t,
     eval (embed_term t) = Contender.eval t.
 Proof.
   intro t.
-  unfold eval, Contender.eval.
-  pose proof (embed_interp_related [] [] t) as H.
-  specialize (H (List.Forall2_nil _)).
-  destruct (Contender.interp_term [] t) as [tp1 r1] eqn:E1.
-  destruct (interp_term [] (embed_term t)) as [tp2 r2] eqn:E2.
+  pose proof (embed_interp_related [] [] t (List.Forall2_nil _)) as H.
   destruct H as [tp [v1 [v2 [Hp1 [Hp2 Hrel]]]]].
-  inversion Hp1; inversion Hp2; subst.
-  destruct tp; simpl in *.
-  - exact Hrel.
-  - reflexivity.
+  unfold eval, Contender.eval.
+  replace (Contender.interp_term [] t)
+    with (existT Contender.interp_type tp v1) by (symmetry; exact Hp1).
+  replace (interp_term [] (embed_term t))
+    with (existT Contender.interp_type tp v2) by (symmetry; exact Hp2).
+  simpl.
+  destruct tp; [symmetry; exact Hrel | reflexivity].
 Qed.
+
+Local Opaque Contender.eval.
 
 (* -------------------------------------------------------------------- *)
 (* Main theorems: explicit lower bound and strict inequality.            *)
@@ -681,19 +720,25 @@ Qed.
 
 Definition contender_grow_6 : nat := largest_Grow_nat_of_depth 44.
 
+(* The next two lemmas need to peek inside Contender's opaque
+   definitions (they need [largest_STLCNatRec_nat_of_depth = eval
+   (largest_of_depth ...)] etc.).  Restore transparency just for them
+   and re-mark Opaque afterwards. *)
+Local Transparent Contender.largest_STLCNatRec_nat_of_depth.
+Local Transparent Contender.largest_of_depth.
+Local Transparent Contender.eval.
+
 Lemma contender_5_ge_1 : 1 <= Contender.contender_5.
 Proof.
   unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth.
   unfold Contender.largest_of_depth.
   (* Witness term: S 0 = 1 is in termsUpTo 42. *)
   pose (one := Contender.tApp Contender.tS Contender.tO).
-  have Hone_in : List.In one (Contender.termsUpTo 42). {
-    apply (proj1 (Contender.termsUpTo_correct 42 one)).
-    subst one. cbv [Contender.term_depth Contender.nat_depth Contender.type_depth]. lia.
-  }
-  have Hone_eval : Contender.eval one = 1. {
-    subst one. unfold Contender.eval. cbv. reflexivity.
-  }
+  assert (Hone_in : List.In one (Contender.termsUpTo 42)).
+  { apply (proj1 (Contender.termsUpTo_correct 42 one)).
+    subst one. cbv [Contender.term_depth Contender.nat_depth Contender.type_depth]. lia. }
+  assert (Hone_eval : Contender.eval one = 1).
+  { subst one. unfold Contender.eval. cbv. reflexivity. }
   (* lowerbound_maxBy gives eval one <= eval (maxBy ... termsUpTo 42). *)
   eapply Nat.le_trans. 1: exact (eq_ind_r (fun k => k <= _) (le_n 1) Hone_eval).
   eapply Contender.lowerbound_maxBy with (x := one). 2: reflexivity.
@@ -712,14 +757,15 @@ Proof.
     destruct P as [Pin | Peq].
     + apply (proj2 (Contender.termsUpTo_correct 42 _)) in Pin.
       exact Pin.
-    + subst.
+    + (* Peq: largest_of_depth 42 = tO.  But contender_5 = eval (largest_of_depth 42) >= 1
+         and eval tO = 0, contradiction. *)
       exfalso.
-      (* If the maximizer were tO, its eval would be 0, contradicting 1 <= contender_5. *)
-      pose proof contender_5_ge_1.
-      unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth in H.
-      unfold Contender.eval, Contender.largest_of_depth in H.
-      simpl in H.
-      lia.
+      pose proof contender_5_ge_1 as Hge.
+      unfold Contender.contender_5,
+             Contender.largest_STLCNatRec_nat_of_depth,
+             Contender.largest_of_depth in Hge.
+      rewrite Peq in Hge.
+      unfold Contender.eval in Hge. cbn in Hge. lia.
   - unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth.
     reflexivity.
 Qed.
@@ -736,7 +782,9 @@ Proof.
   unfold witness_grow.
   simpl.
   rewrite term_depth_embed.
-  lia.
+  (* simpl unfolded [Nat.max 1 X] into a [match X with 0 => 1 | S _ => S _]
+     case, which [lia] handles by destructing the depth. *)
+  destruct (Contender.term_depth tstar) as [|n]; simpl; lia.
 Qed.
 
 Lemma witness_grow_eval :
@@ -746,35 +794,33 @@ Lemma witness_grow_eval :
 Proof.
   intros tstar Heq.
   unfold witness_grow.
-  unfold eval.
   (* Get the exact nat-typed interpretation of the embedded maximizer. *)
   assert (eval (embed_term tstar) = Contender.contender_5) as Hembed.
   { rewrite embed_eval. exact Heq. }
   assert (1 <= eval (embed_term tstar)) as Hpos.
   { rewrite Hembed. exact contender_5_ge_1. }
+  (* Destruct the interp_term result.  The eqn:E equation lets us
+     compute what eval reduces to in each case. *)
   destruct (interp_term [] (embed_term tstar)) as [tp res] eqn:E.
+  unfold eval in Hembed, Hpos. rewrite E in Hembed, Hpos.
   destruct tp as [|A B].
-  - (* tpNat *)
-    simpl in Hembed.
-    replace res with (Contender.contender_5) in * by lia.
-    (* First: tS (embed tstar) = S contender_5 *)
-    have ES : interp_term [] (tApp tS (embed_term tstar)) = existT _ tpNat (S Contender.contender_5). {
-      eapply interp_tApp_nat.
+  - (* tpNat: Hembed says res = contender_5. *)
+    simpl in Hembed. subst res.
+    (* First: tS (embed tstar) evaluates to S contender_5. *)
+    assert (interp_term [] (tApp tS (embed_term tstar))
+            = existT _ tpNat (S Contender.contender_5)) as ES.
+    { eapply interp_tApp_nat.
       - apply interp_tS.
-      - rewrite E. reflexivity.
-    }
-    (* Second: tGrow (S contender_5) *)
-    have EG : interp_term [] (tApp tGrow (tApp tS (embed_term tstar))) =
-              existT _ tpNat (G.grow (S Contender.contender_5)). {
-      eapply interp_tApp_nat.
+      - exact E. }
+    (* Second: tGrow applied to that. *)
+    assert (interp_term [] (tApp tGrow (tApp tS (embed_term tstar)))
+            = existT _ tpNat (G.grow (S Contender.contender_5))) as EG.
+    { eapply interp_tApp_nat.
       - apply interp_tGrow.
-      - exact ES.
-    }
-    rewrite EG.
-    reflexivity.
-  - (* arrow type: eval = 0 contradicts contender_5 >= 1 *)
-    simpl in Hembed.
-    lia.
+      - exact ES. }
+    unfold eval. rewrite EG. reflexivity.
+  - (* arrow type: eval = 0 contradicts contender_5 >= 1. *)
+    simpl in Hpos. lia.
 Qed.
 
 Theorem grow_lower_bound :
@@ -782,14 +828,10 @@ Theorem grow_lower_bound :
 Proof.
   unfold contender_grow_6, largest_Grow_nat_of_depth, largest_of_depth.
   destruct exists_maximizer_42 as [tstar [Hdepth Heval]].
-  eapply Nat.le_trans.
-  - (* eval witness = grow ... *)
-    rewrite <- (witness_grow_eval tstar Heval).
-    (* f x <= f (maxBy ... l) *)
-    eapply lowerbound_maxBy with (x := witness_grow tstar). 2: reflexivity.
-    apply (proj1 (termsUpTo_correct 44 (witness_grow tstar))).
-    eapply witness_grow_depth; eassumption.
-  - lia.
+  rewrite <- (witness_grow_eval tstar Heval).
+  eapply lowerbound_maxBy with (x := witness_grow tstar). 2: reflexivity.
+  apply (proj1 (termsUpTo_correct 44 (witness_grow tstar))).
+  apply witness_grow_depth. exact Hdepth.
 Qed.
 
 Theorem contender_5_lt_contender_grow_6 :
@@ -807,19 +849,21 @@ End GrowEmbed.
 
 Module BigGrowSig <: GrowSig.
   Definition grow := sandbox.Brouwer.BigGrow.
-  Theorem grow_gt_S : forall n, n < grow (S n) := sandbox.Brouwer.BigGrow_gt_S.
+  Definition grow_gt_S : forall n, n < grow (S n) := sandbox.Brouwer.BigGrow_gt_S.
 End BigGrowSig.
 
 Module BigGrowEmbed := GrowEmbed(BigGrowSig).
 
 (* Named instances for grep/search from other sandboxes. *)
 Definition contender_grow_6 : nat := BigGrowEmbed.contender_grow_6.
-Theorem BigGrow_lower_bound :
-  sandbox.Brouwer.BigGrow (S Contender.contender_5) <= contender_grow_6 :=
-  BigGrowEmbed.grow_lower_bound.
-Theorem contender_5_lt_contender_grow_6 :
-  Contender.contender_5 < contender_grow_6 :=
-  BigGrowEmbed.contender_5_lt_contender_grow_6.
+
+Definition BigGrow_lower_bound :
+    sandbox.Brouwer.BigGrow (S Contender.contender_5) <= contender_grow_6
+  := BigGrowEmbed.grow_lower_bound.
+
+Definition contender_5_lt_contender_grow_6 :
+    Contender.contender_5 < contender_grow_6
+  := BigGrowEmbed.contender_5_lt_contender_grow_6.
 
 Print Assumptions BigGrow_lower_bound.
 Print Assumptions contender_5_lt_contender_grow_6.

@@ -1462,29 +1462,72 @@ everything else is mechanical transfer.
   family run in ~2-3 s); but with the embedding plus logical-relation
   proof, expect rebuild times closer to 5-10 s.
 
-### WIP status (2026-05-01)
+### Status (2026-05-01): COMPLETE and axiom-free
 
-Started implementing this as `sandbox/GrowEmbed.v` (fresh `tGrow`
-language + embedding + logical relation).  The file is committed as
-**WIP** and does **not** compile yet.
+`sandbox/GrowEmbed.v` is now fully proved.  Compile time ~1.5 s on this
+machine; `coqchk` accepts the module; `Print Assumptions` reports closed
+global contexts for `BigGrow_lower_bound` and
+`contender_5_lt_contender_grow_6`.
 
-Current blocker: `embed_interp_related`, `tVar` case, where goal
-normalization / rewriting around `Contender.lookup` and the packed
-sigma types still doesn't line up (after adding a `pack :=
-{tp : Contender.type & Contender.interp_type tp}` alias to force the
-same sigma type on both sides).  Current build output:
+End-state theorems exposed at file top level (after instantiating the
+`GrowSig` functor with `BigGrowSig := { grow := Brouwer.BigGrow,
+grow_gt_S := Brouwer.BigGrow_gt_S }`):
 
+```coq
+Definition contender_grow_6 : nat := BigGrowEmbed.contender_grow_6.
+
+(* Definitionally: largest_Grow_nat_of_depth 44.  Mentions no
+   contender_5-engine identifier; passes scripts/check_cleanliness.py. *)
+
+Theorem BigGrow_lower_bound :
+  sandbox.Brouwer.BigGrow (S Contender.contender_5) <= contender_grow_6.
+
+Theorem contender_5_lt_contender_grow_6 :
+  Contender.contender_5 < contender_grow_6.
 ```
-coqc -Q . "" sandbox\GrowEmbed.v
-File "sandbox/GrowEmbed.v", line 580, characters 14-24:
-Error: Found no subterm matching "Contender.lookup e1 x" in the current goal.
-```
 
-Next step when resuming: restructure the `tVar` case to avoid
-fragile `cbn`+`rewrite` interaction (likely by unfolding
-`Contender.interp_term` only far enough to expose the `lookup`/`match`,
-or by proving a small local lemma that relates the `tVar` reductions
-without rewriting under binders).
+Engineering issues discovered and resolved during the proof
+(documented inline in `sandbox/GrowEmbed.v`):
+
+1. **`destruct EXPR eqn:E` does not substitute inside `match`.** In
+   Rocq 9.0.1 (and at least some prior Coq versions), `destruct
+   (Contender.lookup e1 x) eqn:E1` adds the equation `E1` but does NOT
+   substitute the scrutinee inside the surrounding `match`.
+   Subsequent `rewrite E1` then fails with "Found no subterm
+   matching", and `replace` likewise can't find the term -- both
+   tactics check syntactic equality, but the displayed form may use
+   eta-expanded implicit arguments that don't match the equation's
+   form.  The workaround is to prove self-contained reduction lemmas
+   (`Contender_interp_term_tVar_Some`, etc.) **outside** the main
+   induction, then `rewrite` those instead.
+
+2. **`Local Transparent` for the depth-42 enumeration.** The
+   `embed_eval` and `contender_5_ge_1` lemmas need to peek inside
+   `Contender.eval` and `Contender.largest_STLCNatRec_nat_of_depth`
+   (which are kept Opaque at file scope).  Wrapping them in `Local
+   Transparent ... Local Opaque` brackets exposes the bodies just
+   for those proofs without letting the kernel evaluate
+   `largest_*_nat_of_depth 42` everywhere else.
+
+3. **`existT` eta vs. non-eta forms.** Coq sometimes prints
+   `existT (fun tp => Contender.interp_type tp) tp1 r1` and sometimes
+   the equivalent `existT Contender.interp_type tp1 r1`; `rewrite`
+   does not auto-eta-convert across these.  We sidestep this by using
+   `replace`-style equational rewriting at the [pack]-level rather
+   than at the [existT]-level.
+
+4. **`have ... { ... }` is SSReflect-only.** The original WIP draft
+   used `have` (an ssreflect tactic) which is not a standard Coq
+   tactic.  Replaced with `assert ... { ... }`.
+
+5. **`Theorem name : type := body.` is a syntax error.** Replaced
+   the alias-style theorem definitions with `Definition` for the
+   inheritance chain (Definition supports `:= body`; Theorem requires
+   a `Proof` block).
+
+The first issue in particular is worth recording for future sandbox
+work in this codebase, since the same pattern (destruct + rewrite
+inside an interp_term reduction) is likely to recur.
 
 ### Next milestones after experiment 1
 

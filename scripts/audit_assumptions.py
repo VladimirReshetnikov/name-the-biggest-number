@@ -95,6 +95,8 @@ EXTRAS: list[tuple[str, str]] = [
     ("sandbox.Brouwer.FGH", "sandbox.Brouwer"),
     ("sandbox.BrouwerHigh.epsilon_omega", "sandbox.BrouwerHigh"),
     ("sandbox.BrouwerHigh.pseudo_Gamma_0", "sandbox.BrouwerHigh"),
+    ("sandbox.GrowEmbed.contender_grow_6", "sandbox.GrowEmbed"),
+    ("sandbox.GrowEmbed.BigGrow_lower_bound", "sandbox.GrowEmbed"),
 ]
 
 NOISE_PATTERNS = (
