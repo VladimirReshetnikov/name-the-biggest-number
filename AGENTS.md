@@ -499,6 +499,15 @@ the brainstorming thread does not get lost between sessions.
   conversion to run the depth-bounded enumeration.  Compile with
   `coqc -Q . "" sandbox\ReflectRTower3.v` after
   `sandbox\ReflectRTowerComputed.vo`.
+- `sandbox/GrowEmbed.v` — **WIP** Approach M (fresh-engine `tGrow` shell):
+  fresh object language `L_Grow := STLC+NatRec+tGrow` where `tGrow` is
+  interpreted as a total `nat -> nat` engine (`GrowSig.grow`, intended
+  to be instantiated with `sandbox.Brouwer.BigGrow`).  Intended theorem
+  shape: `BigGrow (S Contender.contender_5) <= largest_Grow_nat_of_depth 44`
+  and hence `Contender.contender_5 < contender_grow_6` with a
+  definitionally clean contender line.  **Currently does not compile**
+  (blocked in the `embed_interp_related` logical-relation proof; see
+  `IDEAS.md` Approach M WIP status).
 
 When extending these or adding new ones, drop them in `sandbox/` so
 they are visually distinguished from the contender chain. They do not

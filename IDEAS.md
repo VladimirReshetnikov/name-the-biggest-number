@@ -1462,6 +1462,30 @@ everything else is mechanical transfer.
   family run in ~2-3 s); but with the embedding plus logical-relation
   proof, expect rebuild times closer to 5-10 s.
 
+### WIP status (2026-05-01)
+
+Started implementing this as `sandbox/GrowEmbed.v` (fresh `tGrow`
+language + embedding + logical relation).  The file is committed as
+**WIP** and does **not** compile yet.
+
+Current blocker: `embed_interp_related`, `tVar` case, where goal
+normalization / rewriting around `Contender.lookup` and the packed
+sigma types still doesn't line up (after adding a `pack :=
+{tp : Contender.type & Contender.interp_type tp}` alias to force the
+same sigma type on both sides).  Current build output:
+
+```
+coqc -Q . "" sandbox\GrowEmbed.v
+File "sandbox/GrowEmbed.v", line 580, characters 14-24:
+Error: Found no subterm matching "Contender.lookup e1 x" in the current goal.
+```
+
+Next step when resuming: restructure the `tVar` case to avoid
+fragile `cbn`+`rewrite` interaction (likely by unfolding
+`Contender.interp_term` only far enough to expose the `lookup`/`match`,
+or by proving a small local lemma that relates the `tVar` reductions
+without rewriting under binders).
+
 ### Next milestones after experiment 1
 
 * **Engine swap to `pseudo_Gamma_0`** at the same syntactic depth, to
