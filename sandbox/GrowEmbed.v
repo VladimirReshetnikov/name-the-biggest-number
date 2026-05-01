@@ -181,10 +181,9 @@ Fixpoint termsUpTo (n : nat) : list term :=
     [tGrow]
   end.
 
-(* Helper for [termsUpTo_correct]'s forward direction: discharge an
-   [In _ (map _ _)] / [In _ (list_prod _ _)] obligation by repeatedly peeling
-   off [in_map] / [in_prod] and discharging side conditions via the
-   correctness lemmas of [natsUpTo] / [typesUpTo] and an in-scope [IHn]. *)
+(* Forward helper: discharge an [In _ (map _ _)] / [In _ (list_prod _ _)]
+   obligation by repeatedly peeling off [in_map] / [in_prod] and discharging
+   side conditions via the correctness lemmas plus an in-scope [IHn]. *)
 Ltac termsUpTo_solve_in IHn :=
   repeat first
     [ apply in_map | apply in_prod
@@ -192,6 +191,17 @@ Ltac termsUpTo_solve_in IHn :=
     | apply (proj1 (typesUpTo_correct _ _))
     | apply (proj1 (IHn _))
     | lia].
+
+(* Backward helper: convert all [In _ (natsUpTo _ / typesUpTo _ / termsUpTo _)]
+   hypotheses into depth bounds via the correctness lemmas, then close by
+   [simpl; lia]. *)
+Ltac termsUpTo_depth_lia IHn :=
+  repeat match goal with
+  | H : List.In _ (natsUpTo _)  |- _ => apply (proj2 (natsUpTo_correct  _ _)) in H
+  | H : List.In _ (typesUpTo _) |- _ => apply (proj2 (typesUpTo_correct _ _)) in H
+  | H : List.In _ (termsUpTo _) |- _ => apply (proj2 (IHn _)) in H
+  end;
+  simpl; lia.
 
 Lemma termsUpTo_correct : forall n t,
     term_depth t <= n <-> List.In t (termsUpTo n).
@@ -218,23 +228,20 @@ Proof.
       apply in_app_iff; left. termsUpTo_solve_in IHn.
     + do 3 (apply in_or_app; right). simpl. right. right.
       apply in_app_iff; right. simpl. auto.
-  - simpl in *.
+  - (* Backward: split [t] across the [++] segments, then for each segment
+       extract the pre-image (if any) of [List.map] / [list_prod] and use
+       [termsUpTo_depth_lia] to read off depth bounds via the correctness
+       lemmas of [natsUpTo] / [typesUpTo] and the IH. *)
+    simpl in *.
     repeat ((simpl in H || apply in_app_iff in H || idtac); destruct H).
-    + apply in_map_iff in H. destruct H as [x [? H]]. subst t.
-      pose proof ((proj2 (natsUpTo_correct _ _)) H). simpl. lia.
-    + apply in_map_iff in H. destruct H as [[[A B] body] [? H]]. subst t.
-      repeat (apply in_prod_iff in H; destruct H).
-      pose proof ((proj2 (typesUpTo_correct _ _)) H).
-      pose proof ((proj2 (typesUpTo_correct _ _)) H1).
-      pose proof ((proj2 (IHn _)) H0). simpl. lia.
-    + apply in_map_iff in H. destruct H as [[t1 t2] [? H]]. subst t.
-      repeat (apply in_prod_iff in H; destruct H).
-      pose proof ((proj2 (IHn _)) H).
-      pose proof ((proj2 (IHn _)) H0). simpl. lia.
+    + apply in_map_iff in H as (x & ? & H); subst t. termsUpTo_depth_lia IHn.
+    + apply in_map_iff in H as ([[A B] body] & ? & H); subst t.
+      repeat (apply in_prod_iff in H; destruct H). termsUpTo_depth_lia IHn.
+    + apply in_map_iff in H as ([t1 t2] & ? & H); subst t.
+      repeat (apply in_prod_iff in H; destruct H). termsUpTo_depth_lia IHn.
     + simpl. lia.
     + simpl. lia.
-    + apply in_map_iff in H. destruct H as [R [? H]]. subst t.
-      pose proof ((proj2 (typesUpTo_correct _ _)) H). simpl. lia.
+    + apply in_map_iff in H as (R & ? & H); subst t. termsUpTo_depth_lia IHn.
     + simpl. lia.
 Qed.
 
@@ -320,13 +327,9 @@ Lemma Forall2_nth_error :
     nth_error l1 n = Some x ->
     exists y, nth_error l2 n = Some y /\ R x y.
 Proof.
-  intros A B R l1 l2 n x H.
-  revert n x.
-  induction H; intros n x0 Hnth.
-  - destruct n; simpl in Hnth; discriminate.
-  - destruct n; simpl in *.
-    + inversion Hnth; subst. exists y. split; [reflexivity|assumption].
-    + eauto.
+  intros A B R l1 l2 n x H. revert n x.
+  induction H; intros [|n] x0 Hnth; simpl in *;
+    [discriminate|discriminate|inversion Hnth; subst; eauto|eauto].
 Qed.
 
 (* Since [RelEnv] is [Forall2], both environments have the same length.
@@ -407,24 +410,17 @@ Lemma Contender_interp_term_tVar_None : forall e x,
     Contender.lookup e x = None ->
     Contender.interp_term e (Contender.tVar x)
     = existT Contender.interp_type tpNat (@error tpNat).
-Proof.
-  intros e x H. simpl. rewrite H. reflexivity.
-Qed.
+Proof. intros e x H. simpl. rewrite H. reflexivity. Qed.
 
 Lemma interp_term_tVar_Some : forall e x p,
-    Contender.lookup e x = Some p ->
-    interp_term e (tVar x) = p.
-Proof.
-  intros e x p H. simpl. rewrite H. reflexivity.
-Qed.
+    Contender.lookup e x = Some p -> interp_term e (tVar x) = p.
+Proof. intros e x p H. simpl. rewrite H. reflexivity. Qed.
 
 Lemma interp_term_tVar_None : forall e x,
     Contender.lookup e x = None ->
     interp_term e (tVar x)
     = existT Contender.interp_type tpNat (@error tpNat).
-Proof.
-  intros e x H. simpl. rewrite H. reflexivity.
-Qed.
+Proof. intros e x H. simpl. rewrite H. reflexivity. Qed.
 
 Lemma embed_interp_related :
   forall e1 e2 t,
@@ -435,26 +431,23 @@ Proof.
   revert e1 e2 Henv.
   induction t as [x|A B body IH|t1 IH1 t2 IH2| | |R];
     intros e1 e2 Henv.
-  - (* tVar.  After [simpl], both sides become
-       [match Contender.lookup _ x with Some R => R | None => existT _ tpNat error end].
-       [destruct (Contender.lookup e1 x) eqn:E1] substitutes the LHS
-       match (so the goal's first conjunct becomes [p1 = ...]
-       directly).  The paired [lookup_related] lemma rules out the
-       impossible one-sided lookup cases. *)
+  - (* tVar.  [destruct] both lookups; [lookup_related] rules out one-sided
+       cases.  Then [Contender.interp_tVar] / [interp_term_tVar_*] rewrite
+       both [interp_term]s to the looked-up pack (or [existT _ tpNat error]). *)
     cbn [embed_term].
     pose proof (lookup_related e1 e2 x Henv) as Hlk.
     destruct (Contender.lookup e1 x) as [p1|] eqn:E1;
-      destruct (Contender.lookup e2 x) as [p2|] eqn:E2; simpl in Hlk; try contradiction.
+      destruct (Contender.lookup e2 x) as [p2|] eqn:E2;
+      simpl in Hlk; try contradiction.
     + rewrite (Contender.interp_tVar _ _ _ E1).
       rewrite (interp_term_tVar_Some _ _ _ E2).
       exact Hlk.
     + rewrite (Contender_interp_term_tVar_None _ _ E1).
       rewrite (interp_term_tVar_None _ _ E2).
-      exact RelPack_error.
-  - (* tLam.  Build the [tpArr]-typed RelPack directly; the IH gives us
-       a related body for any related extension of the environment.
-       (We keep the packs explicit to avoid any dependence on function
-       extensionality.) *)
+      apply RelPack_error.
+  - (* tLam.  Build the [tpArr]-typed RelPack directly (the explicit packs
+       avoid any reliance on function extensionality); the IH gives a
+       related body for any related extension of the environment. *)
     exists (tpArr A B).
     exists (fun x' : interp_type A =>
               cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))).
@@ -499,11 +492,10 @@ Proof.
   pose proof (embed_interp_related [] [] t (List.Forall2_nil _))
     as (tp & v1 & v2 & Hp1 & Hp2 & Hrel).
   unfold eval, Contender.eval.
-  replace (Contender.interp_term [] t)
-    with (existT Contender.interp_type tp v1) by (symmetry; exact Hp1).
-  replace (interp_term [] (embed_term t))
-    with (existT Contender.interp_type tp v2) by (symmetry; exact Hp2).
-  simpl.
+  replace (Contender.interp_term nil t) with (existT Contender.interp_type tp v1)
+    by (symmetry; exact Hp1).
+  replace (interp_term nil (embed_term t)) with (existT Contender.interp_type tp v2)
+    by (symmetry; exact Hp2).
   destruct tp; [symmetry; exact Hrel | reflexivity].
 Qed.
 
