@@ -499,6 +499,46 @@ the brainstorming thread does not get lost between sessions.
   conversion to run the depth-bounded enumeration.  Compile with
   `coqc -Q . "" sandbox\ReflectRTower3.v` after
   `sandbox\ReflectRTowerComputed.vo`.
+- `sandbox/GrowEmbed.v` — Approach M (fresh-engine `tGrow` shell)
+  **complete and axiom-free**.  Defines a fresh object language
+  `L_Grow := STLC+NatRec+tGrow` where `tGrow : Nat -> Nat` is interpreted
+  as a parameterised total `nat -> nat` growth engine (`GrowSig.grow`),
+  instantiated at file end with `sandbox.Brouwer.BigGrow` to produce
+  the named theorems
+
+  ```coq
+  Definition contender_grow_6 : nat := BigGrowEmbed.contender_grow_6.
+  Theorem  BigGrow_lower_bound :
+    sandbox.Brouwer.BigGrow (S Contender.contender_5) <= contender_grow_6.
+  Theorem  contender_5_lt_contender_grow_6 :
+    Contender.contender_5 < contender_grow_6.
+  ```
+
+  `contender_grow_6 = largest_Grow_nat_of_depth 44` mentions no
+  previous-engine identifier (passes `scripts/check_cleanliness.py`
+  cleanly).  Both theorems have `Print Assumptions` reporting a
+  closed global context.  The proof of `embed_eval` (eval preservation
+  through the embedding) uses a Tait-style logical relation
+  `RelVal : type -> interp_type tp -> interp_type tp -> Prop` that
+  collapses to plain equality at `tpNat`, sidestepping the need for
+  functional extensionality.  Compile time ~1.5 s after dependencies
+  are built; coqchk accepts the module.  Compile with
+  `coqc -Q . "" sandbox\GrowEmbed.v` after `Contender.vo` and
+  `sandbox\Brouwer.vo` exist.
+
+  Engineering notes embedded in the file:
+
+  * In Rocq 9.0.1, `destruct EXPR eqn:E` does NOT always substitute
+    the scrutinee inside `match` expressions in the goal.  We work
+    around this in the `tVar` case of `embed_interp_related` by proving
+    self-contained reduction lemmas (`Contender_interp_term_tVar_Some`
+    etc.) outside the main induction, then `rewrite`-ing them in.
+
+  * `Contender.eval` and `Contender.largest_STLCNatRec_nat_of_depth`
+    are kept Opaque at file scope to keep the kernel from running the
+    depth-42 enumeration.  Two helper lemmas (`embed_eval`,
+    `contender_5_ge_1`) need to peek inside; they are wrapped in
+    `Local Transparent ... Local Opaque` blocks.
 
 When extending these or adding new ones, drop them in `sandbox/` so
 they are visually distinguished from the contender chain. They do not

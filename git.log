@@ -1,16 +1,249 @@
-* commit 74d9698654e4cd6737cb296d793b30ed5d986a89 (HEAD -> ideas, origin/ideas)
+* commit 260097b2469918346363bb1c587e1a061c8de8b8 (tooling)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Apr 30 21:05:18 2026 -0700
+| 
+|     Add cleanliness check + status dashboard (tooling)
+|     
+|     Two more high-leverage scripts on top of build.py + audit_assumptions.py:
+|     
+|     * `scripts/check_cleanliness.py` (~310 lines).  Operationalises the
+|       upstream README "don't be lazy" rule.  For each contender candidate
+|       (configurable list, or supplied as CLI arguments), asks Coq for
+|       `Print T` with `Set Printing All`, recursively up to a configurable
+|       depth, and scans every reachable body for a banned identifier
+|       (`largest_STLCNatRec_nat_of_depth`, `R_tower`, `tPrevMax`, `RT1`,
+|       ...).  Reports each candidate as `clean`, `LAZY`, or `ERROR`.
+|       Heuristic, not a sound transitive analysis -- the depth-2 default
+|       catches every aliasing chain currently in the sandbox; bump
+|       `--depth` if a deeper chain shows up.
+|     
+|       Verified against the current state: `Contender.contender_5` and
+|       every oracle-based sandbox candidate flag LAZY (correctly), the
+|       pure Brouwer-FGH engines (`BigGrow`, `BigGrow_e_omega`,
+|       `BigGrow_pseudo_Gamma_0`) flag clean.  Exit code 1 when any
+|       candidate is lazy, 0 otherwise.
+|     
+|     * `scripts/status.py` (~200 lines).  Thin orchestrator that runs the
+|       three other scripts and stitches their outputs into a single
+|       Markdown dashboard at the repo root (default STATUS.md).  Sections:
+|       build times, Print Assumptions, definition cleanliness, file
+|       metrics (lines, logical name), summary line.  Useful as a relay
+|       snapshot.  STATUS.md added to .gitignore -- it's a derivable
+|       cache, not a tracked artefact.
+|     
+|     Other changes:
+|     
+|     * `.gitignore`: add `/STATUS.md` (anchored to repo root).
+|     
+|     * `scripts/README.md`: describe the new scripts, their flags, exit
+|       codes, extension points, and caveats.  Adjusts the "Why these and
+|       not more" section to acknowledge the four scripts now cover the
+|       high-leverage workflow needs identified in the brainstorming
+|       discussion.
+|     
+|     Engineering details worth recording:
+|     
+|     * Cleanliness check generates one temp `Print T.` script per audited
+|       identifier rather than batching, so a per-Print Coq error (e.g.
+|       identifier not in scope) doesn't poison the whole run.  Fall-back:
+|       silently skip an identifier whose Print fails.
+|     
+|     * The recursion uses Coq's qualified spelling from `Set Printing All`
+|       output, so mid-chain aliases are resolved correctly when fed back
+|       to the next `Print` call.  Without `Set Printing All`, Coq prints
+|       short names that fail to resolve outside the printing module.
+|     
+|     * `status.py` reads `audit_assumptions.py --json` rather than
+|       re-parsing the human-readable Markdown, to keep the join precise.
+|       `check_cleanliness.py`'s output is parsed from Markdown (no JSON
+|       exporter yet); a future change could add `--json` there too.
+| 
+|  .gitignore                   |   4 +
+|  scripts/README.md            | 117 +++++++++++-
+|  scripts/check_cleanliness.py | 396 +++++++++++++++++++++++++++++++++++++++++
+|  scripts/status.py            | 272 ++++++++++++++++++++++++++++
+|  4 files changed, 780 insertions(+), 9 deletions(-)
+| 
+* commit 00b01c20cbb75a0661b00135e34814e32227647e
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Apr 30 20:32:35 2026 -0700
+| 
+|     Add minimal Coq build / audit scripts (tooling branch)
+|     
+|     A small set of Python helpers for working with the Coq sandbox, as
+|     discussed in the preceding brainstorming exchange.  Scope is
+|     deliberately narrow: orchestrate coqc / coqchk, parse their output,
+|     and report.  No replacement of CoqIDE / coq-lsp.  No clever proof
+|     exploration.  No CI dashboards.
+|     
+|     Files added:
+|     
+|     * `_CoqProject`: standard Coq project marker, just `-Q . ""`.
+|       Lets coq-lsp and coqdep work without per-invocation flags.
+|     
+|     * `scripts/build.py` (~190 lines).  Discovers .v files at the repo
+|       root and in sandbox/, parses Require lines to derive a dependency
+|       graph, topologically sorts, rebuilds anything whose .vo is older
+|       than its .v or any dependency's .vo, and reports per-file compile
+|       times.  Flags: --clean, --force, --check (coqchk after each
+|       build), --all (include archival files), --timeout, plus a single
+|       positional argument to build one file and its prerequisites.
+|       Skips Graveyard.v / Shenannigans.v / System_F.v by default
+|       because they are archival, paradox-using, or don't compile on
+|       Rocq 9.0.1.
+|     
+|     * `scripts/audit_assumptions.py` (~230 lines).  Auto-discovers
+|       theorems whose names match `contender_*_lt_*` across the active
+|       sandbox, plus a small fixed EXTRAS list (Contender.contender_5,
+|       Brouwer.BigGrow, BrouwerHigh.pseudo_Gamma_0, etc.), generates a
+|       temporary .v file at the repo root running `Print Assumptions T`
+|       on each, parses coqc output, and writes a Markdown table reporting
+|       status (OK / AXIOMS / UNKNOWN) and any axiom dependencies.
+|       --md / --json options for persisting the report.  Exit code is 1
+|       when any theorem still depends on axioms.
+|     
+|     * `scripts/README.md`: usage notes, including the explicit non-goals
+|       (no replacement of in-editor proof tooling; no cleanliness lint;
+|       no CI; no cross-version testing) and where to extend each script.
+|     
+|     Tested end-to-end on the current ideas-branch state.  build.py
+|     rebuilds the 15 active .v files in ~13 s on this machine and
+|     correctly skips up-to-date files in 0 s.  audit_assumptions.py
+|     discovers 17 strict-inequality theorems plus 6 extras, correctly
+|     flags the three FunExt-tainted reflection-tower theorems, and
+|     reports the rest as closed under the global context.
+|     
+|     Engineering details:
+|     
+|     * Module discovery in audit_assumptions.py strips Coq comments via
+|       a small balanced-paren walker before applying its regex; nested
+|       (* (* *) *) comments are handled.  Section / Module Type / Module
+|       Import are deliberately not tracked as module openers (they
+|       don't add to qualified names in our codebase).
+|     
+|     * All output is ASCII-only -- Windows cp1252 consoles can't print
+|       ✅ / ⚠️ / ❓ so the reports use **OK** / **AXIOMS** / **UNKNOWN**
+|       bold-text instead.
+|     
+|     * Both scripts anchor on their own location via Path(__file__).resolve(),
+|       so they can be invoked from any working directory.
+| 
+|  _CoqProject                  |   1 +
+|  scripts/README.md            | 104 +++++++++++++
+|  scripts/audit_assumptions.py | 331 +++++++++++++++++++++++++++++++++++++++++
+|  scripts/build.py             | 269 +++++++++++++++++++++++++++++++++
+|  4 files changed, 705 insertions(+)
+| 
+* commit 28aa95e856f56f4141c334a7ede34b68fc830591 (HEAD -> ideas, origin/ideas)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Apr 30 19:39:54 2026 -0700
+| 
+|     Incorporate review feedback: sharpened don't-be-lazy rule + Approach M
+|     
+|     The three external reviews in reviews/review-{1,2,3}.md converge on a
+|     single major correction to our plan, plus several smaller fixes.
+|     
+|     ** Strategic correction: definition vs proof **
+|     
+|     The reviews collectively read the upstream README rule
+|     
+|       > don't use `contender_N` as a definition when defining `contender_N+1`
+|     
+|     literally: it forbids using `contender_5` (or its engine) in the
+|     contender's *definition*, but says nothing about the *proof*.  Using
+|     `contender_5`'s existential maximizer as a *witness* in the proof of
+|     strict inequality is exactly the structural-embedding pattern the
+|     contest is supposed to reward, and is already the proof shape used by
+|     upstream's own `contender_4_lt_contender_5`.
+|     
+|     This unlocks a much cheaper clean route than the connector lemma:
+|     build a fresh-engine `tGrow` shell with no oracle in its definition,
+|     extract `t*` for `contender_5` via `Contender.lowerbound_maxBy`,
+|     witness `tApp tGrow (tApp tS (embed t*))`.  The contender's
+|     definition references only the new language; the proof references the
+|     existential witness.  Lower bound is the explicit
+|     `BigGrow (S contender_5) <= contender_6` -- a "decisive margin" by the
+|     README's own preference.
+|     
+|     ** Files changed **
+|     
+|     * AGENTS.md "Current Game Plan": rewritten to make the
+|       definition-vs-proof distinction explicit, promote the
+|       embedding-witness shell to highest priority, downgrade the connector
+|       lemma to "long game", and re-order the candidate directions.
+|       Records that this update incorporates review feedback.
+|     
+|     * IDEAS.md: adds "Approach M -- Embedding-witness fresh-engine shell
+|       (NEW, top priority)" as a detailed proof-of-construction sketch for
+|       the recommended next experiment (sandbox/GrowEmbed.v in the next
+|       session).  Includes the logical-relation proof structure (avoiding
+|       FunExt) and a generic Module Type GrowSig refinement.
+|     
+|     * sandbox/BrouwerHigh.v: Review 1 caught a labeling bug.  The original
+|       zeta_0 := epsilon_omega is mathematically wrong (the real zeta_0 is
+|       the smallest fixed point of alpha |-> epsilon_alpha, far above
+|       epsilon_omega), and the original Gamma_0 needs a real multivariate
+|       Veblen function.  Renames the suspect names with a `pseudo_` prefix
+|       to flag them as research-grade Brouwer iterates rather than literal
+|       ordinal landmarks.  Total Coq functions are unchanged; only the
+|       labels and a new explanatory file header.  Print Assumptions still
+|       reports closed global contexts for all nine names.
+|     
+|     ** Other review suggestions noted but not adopted in this commit **
+|     
+|     * `_CoqProject` / Makefile build harness (Reviews 1, 3): minor
+|       hygiene; defer.
+|     * Importing coq-contribs/cantor for ordinal/hydra reference (Review 2):
+|       adds a heavy dependency; not appropriate for a clean submission.
+|     * System F reconnaissance experiment (all three): valuable later,
+|       noted in Approach M's "next milestones".
+|     * Coq 8.10.2 vs Rocq 9.0.1 compatibility check (Review 1): only
+|       relevant once a serious submission candidate exists.
+|     
+|     The reviews are explicitly not gospel; this commit takes the parts
+|     that genuinely improve the plan.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  AGENTS.md             | 225 ++++++++++++++++++++++++++++++------------------
+|  IDEAS.md              | 215 ++++++++++++++++++++++++++++++++++++++++++---
+|  sandbox/BrouwerHigh.v | 144 +++++++++++++++++--------------
+|  3 files changed, 426 insertions(+), 158 deletions(-)
+| 
+* commit a01f1d43f8a35a139f0f2a6c28e1175aef50917f
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Apr 30 19:26:28 2026 -0700
+| 
+|     Add 3 external reviews. They may contain some useful ideas
+| 
+|  reviews/review-1.md | 671 ++++++++++++++++++++++++++++++++++++++++++++++++++
+|  reviews/review-2.md | 330 +++++++++++++++++++++++++
+|  reviews/review-3.md | 199 +++++++++++++++
+|  3 files changed, 1200 insertions(+)
+| 
+* commit fcba943108d569271c8b82800e6305ac02f9d22a
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Apr 30 19:17:41 2026 -0700
+| 
+|     Add git.log and mention it in AGENTS.md
+| 
+|  AGENTS.md |   2 +
+|  git.log   | 943 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  2 files changed, 945 insertions(+)
+| 
+* commit 74d9698654e4cd6737cb296d793b30ed5d986a89
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Thu Apr 30 18:40:24 2026 -0700
 | 
 |     Docs reorg
 | 
-|  Coq Tutorial.pdf                                                                     | Bin 201789 -> 0 bytes
-|  Coq-Tutorial.md => docs/Coq-Tutorial.md                                              |   0
-|  {Large-Numbers-assets => docs/Large-Numbers-assets}/gamow-123i-p23-fig8.jpg          | Bin
-|  {Large-Numbers-assets => docs/Large-Numbers-assets}/graham-1971.jpg                  | Bin
-|  {Large-Numbers-assets => docs/Large-Numbers-assets}/graham-gardner-def-wikipedia.jpg | Bin
-|  {Large-Numbers-assets => docs/Large-Numbers-assets}/xkcd-207-ack-graham.jpg          | Bin
-|  Large-Numbers.md => docs/Large-Numbers.md                                            |   0
+|  Coq Tutorial.pdf                                     | Bin 201789 -> 0 bytes
+|  Coq-Tutorial.md => docs/Coq-Tutorial.md              |   0
+|  .../Large-Numbers-assets}/gamow-123i-p23-fig8.jpg    | Bin
+|  .../Large-Numbers-assets}/graham-1971.jpg            | Bin
+|  .../graham-gardner-def-wikipedia.jpg                 | Bin
+|  .../Large-Numbers-assets}/xkcd-207-ack-graham.jpg    | Bin
+|  Large-Numbers.md => docs/Large-Numbers.md            |   0
 |  7 files changed, 0 insertions(+), 0 deletions(-)
 | 
 * commit 30d9ec73c6d7b1c795bfb1e28ec7467e420da446
@@ -64,9 +297,9 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md             | 108 +++++++++++++++++++++++++++++++++++++++++++
-|  IDEAS.md              | 204 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-|  sandbox/BrouwerHigh.v | 223 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md             | 108 +++++++++++++++++++++++
+|  IDEAS.md              | 204 +++++++++++++++++++++++++++++++++++++++++++
+|  sandbox/BrouwerHigh.v | 223 ++++++++++++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 535 insertions(+)
 | 
 * commit 113d8c4b69244f5caa83282e5f08362c5d46ac57
@@ -116,9 +349,9 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md               |  11 ++++++++
-|  IDEAS.md                |  51 +++++++++++++++++++++++++++++++++
-|  sandbox/BigGrowRTower.v | 133 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md               |  11 ++++
+|  IDEAS.md                |  51 ++++++++++++++++++
+|  sandbox/BigGrowRTower.v | 133 ++++++++++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 195 insertions(+)
 | 
 * commit 81f369b41990feb02d741a1f02d48aa32af1cb53
@@ -127,10 +360,10 @@
 | 
 |     Add BigGrow+prevMax diagonal sandbox
 | 
-|  AGENTS.md                |  11 ++
-|  IDEAS.md                 |  39 ++++++
-|  sandbox/BigGrowPrevMax.v | 574 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-|  sandbox/Brouwer.v        |  42 +++++++
+|  AGENTS.md                |  11 +
+|  IDEAS.md                 |  39 +++
+|  sandbox/BigGrowPrevMax.v | 574 +++++++++++++++++++++++++++++++++++++++++++++
+|  sandbox/Brouwer.v        |  42 ++++
 |  4 files changed, 666 insertions(+)
 | 
 * commit be517ee0f2d10bfe4f9e4234a11731ab62521237
@@ -185,9 +418,9 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md         |  12 ++++
-|  IDEAS.md          | 152 ++++++++++++++++++++++++++++++++++++++++++--------
-|  sandbox/Brouwer.v | 277 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md         |  12 +++
+|  IDEAS.md          | 152 +++++++++++++++++++++++-----
+|  sandbox/Brouwer.v | 277 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 419 insertions(+), 22 deletions(-)
 | 
 * commit 64524d81ed02d90fa0ffea5f7297a69c17bd5310
@@ -196,9 +429,9 @@
 | 
 |     Add RTower meta-reflection sandbox (D.3)
 | 
-|  AGENTS.md                | 12 +++++++++++
-|  IDEAS.md                 | 43 +++++++++++++++++++++++++++++++++++++-
-|  sandbox/ReflectRTower3.v | 98 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md                | 12 ++++++
+|  IDEAS.md                 | 43 +++++++++++++++++++-
+|  sandbox/ReflectRTower3.v | 98 ++++++++++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 152 insertions(+), 1 deletion(-)
 | 
 * commit 9795e0c76413a4067483d42157806e096654277c
@@ -207,9 +440,9 @@
 | 
 |     Add computed RTower argument sandbox
 | 
-|  AGENTS.md                       |  13 ++++++
-|  IDEAS.md                        | 113 +++++++++++++++++++++++++++++++++++++++++-----------
-|  sandbox/ReflectRTowerComputed.v | 168 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md                       |  13 +++
+|  IDEAS.md                        | 113 ++++++++++++++++++++-----
+|  sandbox/ReflectRTowerComputed.v | 168 ++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 272 insertions(+), 22 deletions(-)
 | 
 * commit 5e176e43c2fa152334d1f1e935faa2d833aa64d0
@@ -246,9 +479,9 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md                  |  4 +++-
-|  IDEAS.md                   | 33 ++++++++++++++++++++++++++-------
-|  sandbox/ReflectTowerNoAx.v | 76 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md                  |  4 ++-
+|  IDEAS.md                   | 33 +++++++++++++++----
+|  sandbox/ReflectTowerNoAx.v | 76 ++++++++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 105 insertions(+), 8 deletions(-)
 | 
 * commit 446a75bb5169a91a8c606a194f94b8260e05e090
@@ -283,10 +516,10 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md                    |  19 +++
-|  IDEAS.md                     | 180 ++++++++++++++++++++++------
-|  sandbox/ReflectRTowerSmall.v | 520 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-|  sandbox/ReflectTowerNoAx.v   | 530 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md                    |  19 ++
+|  IDEAS.md                     | 180 +++++++++++---
+|  sandbox/ReflectRTowerSmall.v | 520 ++++++++++++++++++++++++++++++++++++++++
+|  sandbox/ReflectTowerNoAx.v   | 530 +++++++++++++++++++++++++++++++++++++++++
 |  4 files changed, 1215 insertions(+), 34 deletions(-)
 | 
 * commit 71a048199d95afdd39a9f9bcdd7215c5ae622d5b
@@ -295,9 +528,9 @@
 | 
 |     Add ReflectRTower sandbox (Approach D.2)
 | 
-|  AGENTS.md               |  11 +++
-|  IDEAS.md                |  90 ++++++++++++++---
-|  sandbox/ReflectRTower.v | 457 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md               |  11 ++
+|  IDEAS.md                |  90 +++++++--
+|  sandbox/ReflectRTower.v | 457 ++++++++++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 547 insertions(+), 11 deletions(-)
 | 
 * commit d1ed169a164b676161d2c5b2ef79f983f497fa1f
@@ -338,9 +571,9 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md              |  12 ++
-|  IDEAS.md               | 302 +++++++++++++++++++++++++++++++++++-------
-|  sandbox/ReflectTower.v | 624 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md              |  12 +
+|  IDEAS.md               | 302 +++++++++++++++++++----
+|  sandbox/ReflectTower.v | 624 +++++++++++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 894 insertions(+), 44 deletions(-)
 | 
 * commit 10f89d212c4a9783d477dc876c86ad8801c230b2
@@ -358,16 +591,16 @@
 | 
 |     Add Rocq source snapshot
 | 
-|  AGENTS.md                                       |   5 ++
-|  rocq/.github/CODEOWNERS                         | 293 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-|  rocq/.github/ISSUE_TEMPLATE/bug_report.yml      |  42 +++++++++
-|  rocq/.github/ISSUE_TEMPLATE/config.yml          |  11 +++
-|  rocq/.github/ISSUE_TEMPLATE/feature_request.yml |  23 +++++
-|  rocq/.github/PULL_REQUEST_TEMPLATE.md           |  42 +++++++++
-|  rocq/.github/SUPPORT.md                         |  21 +++++
-|  rocq/.github/workflows/check-conflicts.yml      |  18 ++++
-|  rocq/.github/workflows/ci-github.yml            |  65 ++++++++++++++
-|  rocq/.github/workflows/stale.yml                |  19 ++++
+|  AGENTS.md                                       |   5 +
+|  rocq/.github/CODEOWNERS                         | 293 ++++++++++++++++++++++
+|  rocq/.github/ISSUE_TEMPLATE/bug_report.yml      |  42 ++++
+|  rocq/.github/ISSUE_TEMPLATE/config.yml          |  11 +
+|  rocq/.github/ISSUE_TEMPLATE/feature_request.yml |  23 ++
+|  rocq/.github/PULL_REQUEST_TEMPLATE.md           |  42 ++++
+|  rocq/.github/SUPPORT.md                         |  21 ++
+|  rocq/.github/workflows/check-conflicts.yml      |  18 ++
+|  rocq/.github/workflows/ci-github.yml            |  65 +++++
+|  rocq/.github/workflows/stale.yml                |  19 ++
 |  ...
 |  4027 files changed, 596657 insertions(+)
 | 
@@ -377,7 +610,7 @@
 | 
 |     Convert Coq tutorial PDF to full Markdown
 | 
-|  Coq-Tutorial.md | 2291 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------
+|  Coq-Tutorial.md | 2291 ++++++++++++++++++++++++++++++++++++++++++++++++-----
 |  1 file changed, 2109 insertions(+), 182 deletions(-)
 | 
 * commit 277870883b6bd7b00c157668b9b6995717ed61f5
@@ -386,9 +619,9 @@
 | 
 |     Add reflective contender sandbox and workflow notes
 | 
-|  AGENTS.md             |  16 ++++
-|  IDEAS.md              | 173 +++++++++++++++++++++++++++++++++++++-----
-|  sandbox/ReflectPrev.v | 367 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md             |  16 +++
+|  IDEAS.md              | 173 ++++++++++++++++++++---
+|  sandbox/ReflectPrev.v | 367 ++++++++++++++++++++++++++++++++++++++++++++++++
 |  3 files changed, 538 insertions(+), 18 deletions(-)
 | 
 * commit d267c07fb716b4c94ee5515f9c2c685cc9f758b5
@@ -428,7 +661,7 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md | 85 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  AGENTS.md | 85 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |  1 file changed, 85 insertions(+)
 | 
 * commit 122cf17fd015043699784dbf240d5a9d0d212bc2
@@ -446,7 +679,7 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  Coq-Tutorial.md | 266 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  Coq-Tutorial.md | 266 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |  1 file changed, 266 insertions(+)
 | 
 * commit 92a4d10cef7bf5924bdf82b348a535765323537f
@@ -481,11 +714,11 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md                                | 54 ++++++++++++++++++++++++++++++++----------------------
-|  IDEAS.md                                 | 18 +++++++++---------
+|  AGENTS.md                                | 54 ++++++++++++++++++------------
+|  IDEAS.md                                 | 18 +++++-----
 |  Sandbox_FGH.v => sandbox/FGH.v           |  0
 |  Sandbox_L6.v => sandbox/L6.v             |  0
-|  Sandbox_baseline.v => sandbox/baseline.v |  7 ++++++-
+|  Sandbox_baseline.v => sandbox/baseline.v |  7 +++-
 |  5 files changed, 47 insertions(+), 32 deletions(-)
 | 
 * commit 6a9ce3fdd40d4041891b29c31bd3bc757a8ae501
@@ -521,7 +754,7 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  Large-Numbers.md | 3693 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  Large-Numbers.md | 3693 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 |  1 file changed, 3693 insertions(+)
 | 
 * commit 81444d0f7aa2f47d7c59b3c5a2f8877155812619
@@ -565,11 +798,11 @@
 |     
 |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | 
-|  AGENTS.md          |  45 +++++++++++
-|  IDEAS.md           | 392 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------
-|  Sandbox_FGH.v      | 185 +++++++++++++++++++++++++++++++++++++++++++
-|  Sandbox_L6.v       | 267 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-|  Sandbox_baseline.v |  23 ++++++
+|  AGENTS.md          |  45 ++++++
+|  IDEAS.md           | 392 +++++++++++++++++++++++++++++++++++++++++++--------
+|  Sandbox_FGH.v      | 185 ++++++++++++++++++++++++
+|  Sandbox_L6.v       | 267 +++++++++++++++++++++++++++++++++++
+|  Sandbox_baseline.v |  23 +++
 |  5 files changed, 853 insertions(+), 59 deletions(-)
 | 
 * commit 88b5c66bf972f4e6bb5bd177784cefa9e01e4279
@@ -596,7 +829,7 @@
 | 
 |     Add ideas for next contender
 | 
-|  IDEAS.md | 103 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  IDEAS.md | 103 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |  1 file changed, 103 insertions(+)
 |   
 | * commit 6d4a74c6dc9408e4bf805bf09a8c392500871005 (upstream/oracle-lang)
@@ -605,7 +838,7 @@
 | | 
 | |     Fix up enum, finally!
 | | 
-| |  ha2_enum.v | 1679 +++++++++++++++++++++++++++++++++---------------------------------------------------------------
+| |  ha2_enum.v | 1679 +++++++++++++++++++-------------------------------------
 | |  1 file changed, 566 insertions(+), 1113 deletions(-)
 | | 
 | * commit 06f30c9f079408b78d0779d088fe3be2063b0c8c
@@ -614,9 +847,9 @@
 | | 
 | |     Big dump of enumerations and proofs
 | | 
-| |  ha2_enum.v     | 1252 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| |  ha2_syn.sig    |   20 ++
-| |  ha2_system_t.v |   84 +++++++
+| |  ha2_enum.v     | 1252 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  ha2_syn.sig    |   20 +
+| |  ha2_system_t.v |   84 ++++
 | |  3 files changed, 1356 insertions(+)
 | | 
 | * commit f8f4cdedb4600f5fe852721a28cb6588ea04f6db
@@ -625,8 +858,8 @@
 | | 
 | |     Changed derives back to type, now we need a bunch of decidability hyps for some completeness proofs...
 | | 
-| |  ha2.v      |  29 +++++++------
-| |  ha2_refl.v | 219 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----------------------------------
+| |  ha2.v      |  29 ++++----
+| |  ha2_refl.v | 219 ++++++++++++++++++++++++++++++++++++---------------------
 | |  2 files changed, 154 insertions(+), 94 deletions(-)
 | | 
 | * commit bd7870ab4c14a2b4b7ec53b167265ea42f43735a
@@ -644,7 +877,7 @@
 | | 
 | |     Prove some equivalences between internal connectives and external ones.
 | | 
-| |  ha2_refl.v | 129 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++------
+| |  ha2_refl.v | 129 +++++++++++++++++++++++++++++++++++++++++++++++++++++----
 | |  1 file changed, 122 insertions(+), 7 deletions(-)
 | | 
 | * commit 5d34f148d4b451b596c443cc9b39e606b175e49e
@@ -653,7 +886,7 @@
 | | 
 | |     Add a proof of normalization for system t, for reference.
 | | 
-| |  system_t.v | 328 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  system_t.v | 328 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 | |  1 file changed, 328 insertions(+)
 | | 
 | * commit 389fab04aba4a69e48c74c07c5c6f486408640af
@@ -662,7 +895,7 @@
 | | 
 | |     Finish reflection for sigma 1
 | | 
-| |  ha2_refl.v | 103 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------
+| |  ha2_refl.v | 103 ++++++++++++++++++++++++++++++++++++++++++++++++---------
 | |  1 file changed, 88 insertions(+), 15 deletions(-)
 | | 
 | * commit 69e4d9665f201b964ee583a99f89ef444c2bc2cf
@@ -671,8 +904,8 @@
 | | 
 | |     Some more helper functions for substitutions, and some more reflection proofs...
 | | 
-| |  ha2.v      | 601 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-------------------------------------------
-| |  ha2_refl.v | 316 +++++++++++++++++++++++++++++++++++++++++++++------
+| |  ha2.v      | 601 +++++++++++++++++++++++++++++++--------------------------
+| |  ha2_refl.v | 316 ++++++++++++++++++++++++++----
 | |  2 files changed, 615 insertions(+), 302 deletions(-)
 | | 
 | * commit 191a7094cbed7c3eebbcfe205e7451b254782bda
@@ -681,8 +914,8 @@
 | | 
 | |     Finish first order pattern matching.
 | | 
-| |  ha2.v      | 485 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------
-| |  ha2_refl.v |  18 ++++
+| |  ha2.v      | 485 ++++++++++++++++++++++++++++++++++++++++++++++++++++-----
+| |  ha2_refl.v |  18 +++
 | |  2 files changed, 464 insertions(+), 39 deletions(-)
 | | 
 | * commit 9149d1caa501eccacd8d7fcd16ab8d6b40cdc578
@@ -691,8 +924,8 @@
 | | 
 | |     Finish Delta_0 completeness for equalities, start generalizing, define and and or, and prove a soundness lemma about existentials
 | | 
-| |  ha2.v      | 251 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
-| |  ha2_refl.v | 337 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---------------
+| |  ha2.v      | 251 +++++++++++++++++++++++++++++++++++++++++-
+| |  ha2_refl.v | 337 ++++++++++++++++++++++++++++++++++++++++++++++++---------
 | |  2 files changed, 535 insertions(+), 53 deletions(-)
 | | 
 | * commit ad1f2f6bb0d1279b85142868cd398ec91e612a75
@@ -701,10 +934,10 @@
 | | 
 | |     Add some stuff on reflection, start proving Delta_0 completeness
 | | 
-| |  System_F.v      | 729 +++++---------------------------------------------------------------------------------------
-| |  System_F_syn.v  | 228 +++++++++++++++++++++++++++--
-| |  ha2.v           |  52 +++++--
-| |  ha2_refl.v      | 149 +++++++++++++++++++
+| |  System_F.v      | 729 +++-------------------------------------------------
+| |  System_F_syn.v  | 228 +++++++++++++++-
+| |  ha2.v           |  52 +++-
+| |  ha2_refl.v      | 149 +++++++++++
 | |  realizability.v |   2 +
 | |  5 files changed, 445 insertions(+), 715 deletions(-)
 | | 
@@ -715,8 +948,8 @@
 | |     Some facts about the relationship between HA2 and system F. Still has axioms :_(
 | | 
 | |  OracleLang.v    |   2 +-
-| |  ha2.v           |  34 +++++++-------
-| |  realizability.v | 237 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  ha2.v           |  34 ++++----
+| |  realizability.v | 237 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 | |  3 files changed, 256 insertions(+), 17 deletions(-)
 | | 
 | * commit 7e5fea95218950035d0ca6743f2249bf684313c3
@@ -725,8 +958,8 @@
 | | 
 | |     Rewrite ha2 using autosubst-2.
 | | 
-| |  ha2.v     | 870 +++++++++++++++++++++++++++++++++++++++-----------------------------------------------------------
-| |  ha2_syn.v | 661 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  ha2.v     | 870 +++++++++++++++++++++++-----------------------------------
+| |  ha2_syn.v | 661 ++++++++++++++++++++++++++++++++++++++++++++
 | |  2 files changed, 1007 insertions(+), 524 deletions(-)
 | | 
 | * commit 8d580c21085d94644c3406d60ecfa203c5dcf38e
@@ -735,10 +968,10 @@
 | | 
 | |     Rewrite System f yet again, this time with autosubst 2... Now uses axioms...
 | | 
-| |  System_F.v     | 176 +++++++++++++++++++++++++++++++++++++++--------------------------------
-| |  System_F_syn.v | 229 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| |  axioms.v       | 113 ++++++++++++++++++++++++++++++++++++++++++++++
-| |  unscoped.v     | 214 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  System_F.v     | 176 ++++++++++++++++++++++------------------
+| |  System_F_syn.v | 229 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  axioms.v       | 113 ++++++++++++++++++++++++++
+| |  unscoped.v     | 214 +++++++++++++++++++++++++++++++++++++++++++++++++
 | |  4 files changed, 654 insertions(+), 78 deletions(-)
 | | 
 | * commit 7be9bfc29e6f2f7cc352eb33a15a31587c8b3543
@@ -747,7 +980,7 @@
 | | 
 | |     Refactor to use autosubst db vars.
 | | 
-| |  System_F.v | 553 +++++++++++++++++++++++++++++++++++++------------------------------------------------------------
+| |  System_F.v | 553 ++++++++++++++++++++++-----------------------------------
 | |  1 file changed, 208 insertions(+), 345 deletions(-)
 | | 
 | * commit b8df39df9a2169c4c74266d45fefadf2850be1f5
@@ -756,7 +989,7 @@
 | | 
 | |     Finish soundness proof
 | | 
-| |  ha2.v | 183 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----------------------
+| |  ha2.v | 183 ++++++++++++++++++++++++++++++++++++++++++++++++--------------
 | |  1 file changed, 142 insertions(+), 41 deletions(-)
 | | 
 | * commit bb4a80310766cae0c0406101fe9ad8ff07c2e8f9
@@ -765,7 +998,7 @@
 | | 
 | |     Start formalizing 2nd order arithmetic. Still some variable shennanigans to prove...
 | | 
-| |  ha2.v | 563 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  ha2.v | 563 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 | |  1 file changed, 563 insertions(+)
 | | 
 | * commit 28afb68719c83c0f3c517d0284aa40dd0819a651
@@ -774,7 +1007,7 @@
 |   
 |       Tentative try to define a language with an oracle eval
 |   
-|    OracleLang.v | 141 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|    OracleLang.v | 141 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |    1 file changed, 141 insertions(+)
 | 
 * commit d56dce013e6264292533efdc5e1de71863c6fb86 (upstream/master, upstream/HEAD, origin/master, origin/HEAD, master)
@@ -783,7 +1016,7 @@
 | 
 |     Just adding an evaluator for system F in case I (or someone else) decides they wanna do something clever with it. I expect it's still quite a bit of work to beat the current contender (by a non-trivial amount).
 | 
-|  System_F.v | 822 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|  System_F.v | 822 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |  1 file changed, 822 insertions(+)
 |   
 *   commit 1008bbd525d90798bc70a7df86b98f5cdf6a4293
@@ -816,8 +1049,8 @@
 | |     * finish proof that the largest number expressible as an AST of STLC+NatRec of depth at most 42 is bigger than `ack 5 42 10002`
 | | 
 | |  .gitignore  |   8 +
-| |  Contender.v | 922 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++----------------
-| |  Graveyard.v | 212 +++++++++++++++++++++-
+| |  Contender.v | 922 ++++++++++++++++++++++++++++++++++++++++++++++----------
+| |  Graveyard.v | 212 ++++++++++++-
 | |  3 files changed, 984 insertions(+), 158 deletions(-)
 | | 
 | * commit 146b5f1381e205b1ac9b9fe8a1ac07ad82444bc8
@@ -834,8 +1067,8 @@
 | |     
 | |     * Update graveyard
 | | 
-| |  Contender.v | 235 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----------------
-| |  Graveyard.v |  58 ++++++++++++++++++++++++
+| |  Contender.v | 235 ++++++++++++++++++++++++++++++++++++++++++++++----------
+| |  Graveyard.v |  58 ++++++++++++++
 | |  2 files changed, 252 insertions(+), 41 deletions(-)
 | | 
 * | commit c08de16fc65bf4415608855644b6648ee909a0fb
@@ -853,7 +1086,7 @@
 |   
 |       Upload clever submission exploiting an inconsistency. Move to 8.10.x
 |   
-|    Shenannigans.v | 89 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|    Shenannigans.v | 89 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |    1 file changed, 89 insertions(+)
 | 
 * commit 97c6127f45bc072c5cb2c6ab97026caba505a6df
@@ -880,8 +1113,8 @@
 | 
 |     Restore honor to my dojo
 | 
-|  Contender.v | 79 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++----------------------
-|  Graveyard.v | 23 +++++++++++++++++++++++
+|  Contender.v | 79 ++++++++++++++++++++++++++++++++++++++++++-----------------
+|  Graveyard.v | 23 +++++++++++++++++
 |  2 files changed, 80 insertions(+), 22 deletions(-)
 | 
 * commit ee8afd2f2e4b41c71be789fd89ef2e3eda41826a

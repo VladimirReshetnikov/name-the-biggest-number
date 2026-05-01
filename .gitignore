@@ -6,3 +6,7 @@
 *.vok
 *.glob
 *.aux
+
+# Output of scripts/status.py.  Local-only snapshot; regenerate with
+# `python scripts/status.py`.
+/STATUS.md
