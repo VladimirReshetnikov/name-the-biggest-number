@@ -264,8 +264,7 @@ Proof.
   destruct (nth_error e1 (length e2 - S n)) as [p1|] eqn:E1.
   - eapply Forall2_nth_error in Henv as (p2 & E2 & HR);
       [rewrite E2; exact HR | exact E1].
-  - apply Nat.leb_gt in E.
-    apply (proj1 (nth_error_None _ _)) in E1; lia.
+  - apply Nat.leb_gt in E; apply (proj1 (nth_error_None _ _)) in E1; lia.
 Qed.
 
 (* Past this point, treat lookup as opaque to keep simplification from
@@ -359,13 +358,12 @@ Proof.
     cbn [Contender.interp_term interp_term embed_term].
     destruct (IH1 _ _ Henv) as (tp1 & v1 & v1' & -> & -> & Hrel1).
     destruct (IH2 _ _ Henv) as (tp2 & v2 & v2' & -> & -> & Hrel2).
-    simpl.
-    destruct tp1 as [|A B]; [exact RelPack_error|].
-    apply RelPack_intro. apply Hrel1, cast_related, Hrel2.
+    simpl; destruct tp1 as [|A B]; [exact RelPack_error|].
+    apply RelPack_intro; apply Hrel1, cast_related, Hrel2.
   - (* tO *)
     apply RelPack_intro. reflexivity.
   - (* tS *)
-    apply RelPack_intro. simpl. intros x y Hxy. subst. reflexivity.
+    apply RelPack_intro; simpl; intros x y Hxy; subst; reflexivity.
   - (* tNatRec.  [Nat.recursion] respects the logical relation: equal
        counters + related base/step give related accumulators. *)
     apply RelPack_intro. simpl.
