@@ -78,13 +78,109 @@ To extend the audit: add new entries to `EXTRAS` in
 strict-inequality theorem in any new sandbox file, as long as the
 theorem's name follows the `contender_*_lt_*` convention.
 
+## `check_cleanliness.py`
+
+Operationalises the upstream README's "don't be lazy" rule, as sharpened
+in `AGENTS.md`'s Current Game Plan.  For every contender candidate in
+the script's `CANDIDATES` list (or names passed on the command line),
+asks Coq to print the body of that definition and -- recursively, up
+to a configurable depth -- the bodies of every non-trivial identifier
+that body mentions, then scans for any name in `BANNED`.  Reports
+each candidate as **clean**, **LAZY**, or **ERROR**.
+
+```text
+python scripts/check_cleanliness.py             # check default candidate list
+python scripts/check_cleanliness.py NAME ...    # check specific qualified names
+python scripts/check_cleanliness.py --depth 3   # recursion depth (default 2)
+python scripts/check_cleanliness.py --no-build  # skip the rebuild step
+python scripts/check_cleanliness.py --md FILE   # also write a Markdown report
+```
+
+Output excerpt (from a recent run):
+
+```text
+| Candidate                                                              | Status     | Banned references |
+|---|---|---|
+| `Contender.contender_5`                                                | **LAZY**   | `largest_STLCNatRec_nat_of_depth` |
+| `sandbox.BigGrowRTower.contender_BG_RT_simple`                         | **LAZY**   | `RT1` |
+| `sandbox.BigGrowRTower.contender_BG_RT_stacked`                        | **LAZY**   | `RT1`, `largest_BGPrev_nat_of_depth` |
+| `sandbox.Brouwer.BigGrow`                                              | **clean**  | (none) |
+| `sandbox.BrouwerHigh.BigGrow_pseudo_Gamma_0`                           | **clean**  | (none) |
+
+summary: 3 clean, 8 lazy, 0 error
+```
+
+`Contender.contender_5` is intentionally listed as a sanity check: it
+references `largest_STLCNatRec_nat_of_depth` directly, so it MUST flag
+LAZY (otherwise the check is broken).  Most of the existing
+oracle-based sandbox candidates also flag LAZY by design -- per the
+"Current Game Plan" they are research artifacts, not promotion
+targets.
+
+The check uses `Print` with `Set Printing All` so identifiers come
+back qualified, and recurses on the qualified form so mid-chain
+aliases (e.g. `RT1 := R_tower 1`) are caught even when their direct
+parent appears benign.  It is a *heuristic* check -- by design, not a
+sound transitive analysis.  If a candidate's chain is deeper than
+`--depth`, the script may miss the banned reference.  The depth
+default of 2 is enough for everything we currently care about; bump it
+if a new aliasing chain is added.
+
+To extend:
+
+* New candidates that should pass (or should fail) -- add to
+  `CANDIDATES` in `scripts/check_cleanliness.py`.
+* New banned identifiers (e.g. when a future fresh-engine sandbox
+  introduces yet another oracle) -- add to `BANNED` in the same file.
+  Each entry is `<unqualified-name>: <one-line-explanation>`; the
+  explanation is currently informational only.
+
+Exit code:
+
+* `0` -- every audited candidate is clean;
+* `1` -- at least one candidate references a banned identifier;
+* `2` -- infrastructure error.
+
+## `status.py`
+
+Thin orchestrator that runs `build.py`, `audit_assumptions.py`, and
+`check_cleanliness.py`, then stitches their outputs into a single
+`STATUS.md` at the repo root.  Useful as a relay snapshot.
+
+```text
+python scripts/status.py                  # write STATUS.md
+python scripts/status.py --out FILE       # to a different file
+python scripts/status.py --stdout         # print to stdout instead
+python scripts/status.py --no-cleanliness # skip the (slowest) cleanliness pass
+```
+
+The generated file has four sections plus a footer:
+
+* **Build times** -- per-module compile time from this run.  Files
+  whose `.vo` was already up-to-date show `0.00s`; pass
+  `python scripts/build.py --force` first if you want fresh
+  measurements.
+* **Print Assumptions** -- the same Markdown table
+  `audit_assumptions.py` emits.
+* **Definition cleanliness** -- the table from
+  `check_cleanliness.py`.
+* **Files** -- per-`.v`-file logical name and line count.
+* **Summary** -- one-line totals.
+
+The file is *not* tracked by git; treat it as a local artefact.  The
+authoritative source of state is the .v files and the three underlying
+scripts; `STATUS.md` is a derivable cache.
+
 ## Why these and not more
 
-The brainstorm discussion explicitly called out these two as the
-high-leverage scripts; everything beyond them (cleanliness lint, CI
-dashboards, cross-version testing, term-unfolding tooling) was deemed
-overkill for a brainstorming-mode repo.  If the repo's workflow shifts
-toward serious submission preparation, that judgment may change.
+The brainstorm discussion called out four high-leverage scripts: build
+orchestration, `Print Assumptions` reporting, cleanliness enforcement,
+and a combined dashboard.  All four are now in this directory.
+Everything beyond them (CI dashboards, cross-version testing,
+term-unfolding tooling, Coq-source code generators, and so on) was
+deemed overkill for a brainstorming-mode repo.  If the repo's
+workflow shifts toward serious submission preparation, that judgment
+may change.
 
 ## Caveats
 
@@ -95,10 +191,13 @@ toward serious submission preparation, that judgment may change.
 * `Module Type X.` and `Section X.` are deliberately *not* tracked as
   module openers.  We don't currently use them in the sandbox; if that
   changes, the discovery regex needs an update.
-* The temporary `.v` file produced by `audit_assumptions.py` lives at
-  the repo root for the duration of the run (so it shares the
-  `_CoqProject` namespace).  If a previous run was interrupted hard,
-  stale `tmp*.v` files may need manual cleanup.
+* `check_cleanliness.py` is a heuristic check, not a sound transitive
+  analysis (see its own caveats above).
+* The temporary `.v` file produced by `audit_assumptions.py` and
+  `check_cleanliness.py` lives at the repo root for the duration of
+  the run (so it shares the `_CoqProject` namespace).  If a previous
+  run was interrupted hard, stale `tmp*.v` files may need manual
+  cleanup.
 * `coqc` and `coqchk` must be on `PATH`.  On Windows the Rocq Platform
   installer normally arranges this; see the project root `AGENTS.md`
   for the canonical install paths and how to fix `PATH` if needed.
