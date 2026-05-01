@@ -1,4 +1,4 @@
-(* Sandbox: Approach M -- embedding-witness fresh-engine shell.  (WIP)
+(* Sandbox: Approach M -- embedding-witness fresh-engine shell.
 
    This file implements the "clean-definition, proof-witness reuse" idea
    from IDEAS.md / reviews/review-{1,2,3}.md:
@@ -22,7 +22,7 @@
 
          grow (S contender_5) <= contender_grow_6
 
-       and hence the strict inequality contender_5 < contender_grow_6
+       and hence the strict inequality contender_5 < contender_grow_6,
        assuming grow_gt_S : forall n, n < grow (S n).
 
    Compile from repo root, after Contender.vo and sandbox/Brouwer.vo exist:
@@ -96,36 +96,32 @@ Definition error {tp : type} : interp_type tp := Contender.error (tp := tp).
 Definition cast {from : type} (to : type) : interp_type from -> interp_type to :=
   Contender.cast (from := from) to.
 
-Definition interp_term :
-  forall (e : list pack) (t : term),
-    pack.
-  refine (fix rec e t {struct t} :=
-    match t with
-    | tVar x => _
-    | tLam A B body => _
-    | tApp t1 t2 => _
-    | tO => _
-    | tS => _
-    | tNatRec R => _
-    | tGrow => _
-    end).
-  - destruct (Contender.lookup e x) as [R|].
-    + exact R.
-    + exact (existT _ tpNat error).
-  - refine (existT _ (tpArr A B) _).
-    intro x'.
-    set (r := projT2 (rec (existT _ A x' :: e) body)).
-    exact (cast B r).
-  - destruct (rec e t1) as [R1 r1].
-    destruct (rec e t2) as [R2 r2].
-    destruct R1 as [|A B]; [exact (existT _ tpNat error)|].
-    exact (existT _ B (r1 (cast A r2))).
-  - exact (existT _ tpNat 0).
-  - exact (existT _ (tpArr tpNat tpNat) S).
-  - exact (existT _ (tpArr R (tpArr (tpArr tpNat (tpArr R R)) (tpArr tpNat R)))
-                   (@Nat.recursion (interp_type R))).
-  - exact (existT _ (tpArr tpNat tpNat) G.grow).
-Defined.
+(* Tactic-style [refine] is unnecessary here: a direct [Fixpoint]
+   definition is more readable and slightly shorter. *)
+Fixpoint interp_term (e : list pack) (t : term) : pack :=
+  match t with
+  | tVar x =>
+      match Contender.lookup e x with
+      | Some R => R
+      | None   => existT _ tpNat error
+      end
+  | tLam A B body =>
+      existT _ (tpArr A B)
+             (fun x' => cast B (projT2 (interp_term ((existT _ A x') :: e) body)))
+  | tApp t1 t2 =>
+      let '(existT _ R1 r1) := interp_term e t1 in
+      let '(existT _ R2 r2) := interp_term e t2 in
+      match R1 as R1' return interp_type R1' -> pack with
+      | tpNat       => fun _  => existT _ tpNat error
+      | tpArr A B   => fun r1 => existT _ B (r1 (cast A r2))
+      end r1
+  | tO       => existT _ tpNat 0
+  | tS       => existT _ (tpArr tpNat tpNat) S
+  | tNatRec R =>
+      existT _ (tpArr R (tpArr (tpArr tpNat (tpArr R R)) (tpArr tpNat R)))
+             (@Nat.recursion (interp_type R))
+  | tGrow    => existT _ (tpArr tpNat tpNat) G.grow
+  end.
 
 Definition eval (t : term) : nat :=
   let (tp, res) := interp_term nil t in
@@ -191,153 +187,73 @@ Fixpoint termsUpTo (n : nat) : list term :=
     [tGrow]
   end.
 
+(* Helper for [termsUpTo_correct]'s forward direction: discharge an
+   [In _ (map _ _)] / [In _ (list_prod _ _)] obligation by repeatedly peeling
+   off [in_map] / [in_prod] and discharging side conditions via the
+   correctness lemmas of [natsUpTo] / [typesUpTo] and an in-scope [IHn]. *)
+Ltac termsUpTo_solve_in IHn :=
+  repeat first
+    [ apply in_map | apply in_prod
+    | apply (proj1 (natsUpTo_correct _ _))
+    | apply (proj1 (typesUpTo_correct _ _))
+    | apply (proj1 (IHn _))
+    | lia].
+
 Lemma termsUpTo_correct : forall n t,
     term_depth t <= n <-> List.In t (termsUpTo n).
 Proof.
+  (* The forward direction navigates to the correct ++ slot per constructor
+     and proves membership using [termsUpTo_solve_in IHn]; the backward
+     direction destructs the list-of-append-segments and reads off depth
+     bounds. *)
   induction n; intros; split; intros.
   - destruct t; simpl in *; lia.
   - simpl in *. contradiction.
   - destruct t; simpl in *.
     + do 0 (apply in_or_app; right). apply in_or_app; left.
-      apply in_map. apply natsUpTo_correct. lia.
+      termsUpTo_solve_in IHn.
     + do 1 (apply in_or_app; right). apply in_or_app; left.
-      match goal with
-      | |- In ?e (map ?f _) => change e with (f (A, B, t))
-      end.
-      repeat first
-             [ apply in_map
-             | apply in_prod
-             | apply (proj1 (natsUpTo_correct _ _))
-             | apply (proj1 (typesUpTo_correct _ _))
-             | apply (proj1 (IHn _))
-             | lia].
+      match goal with |- In ?e (map ?f _) => change e with (f (A, B, t)) end.
+      termsUpTo_solve_in IHn.
     + do 2 (apply in_or_app; right). apply in_or_app; left.
-      match goal with
-      | |- In ?e (map ?f _) => change e with (f (t1, t2))
-      end.
-      repeat first
-             [ apply in_map
-             | apply in_prod
-             | apply (proj1 (natsUpTo_correct _ _))
-             | apply (proj1 (typesUpTo_correct _ _))
-             | apply (proj1 (IHn _))
-             | lia].
+      match goal with |- In ?e (map ?f _) => change e with (f (t1, t2)) end.
+      termsUpTo_solve_in IHn.
     + do 3 (apply in_or_app; right). simpl. auto.
     + do 3 (apply in_or_app; right). simpl. auto.
-    + do 3 (apply in_or_app; right).
-      simpl.
-      right. right.
-      apply in_app_iff; left.
-      repeat first
-             [ apply in_map
-             | apply in_prod
-             | apply (proj1 (natsUpTo_correct _ _))
-             | apply (proj1 (typesUpTo_correct _ _))
-             | apply (proj1 (IHn _))
-             | lia].
-    + do 3 (apply in_or_app; right).
-      simpl.
-      right. right.
-      apply in_app_iff; right.
-      simpl. auto.
+    + do 3 (apply in_or_app; right). simpl. right. right.
+      apply in_app_iff; left. termsUpTo_solve_in IHn.
+    + do 3 (apply in_or_app; right). simpl. right. right.
+      apply in_app_iff; right. simpl. auto.
   - simpl in *.
     repeat ((simpl in H || apply in_app_iff in H || idtac); destruct H).
-    + apply in_map_iff in H.
-      destruct H as [x [? H]]. subst t.
-      pose proof ((proj2 (natsUpTo_correct _ _)) H).
-      simpl. lia.
-    + apply in_map_iff in H.
-      destruct H as [[[A B] body] [? H]]. subst t.
+    + apply in_map_iff in H. destruct H as [x [? H]]. subst t.
+      pose proof ((proj2 (natsUpTo_correct _ _)) H). simpl. lia.
+    + apply in_map_iff in H. destruct H as [[[A B] body] [? H]]. subst t.
       repeat (apply in_prod_iff in H; destruct H).
       pose proof ((proj2 (typesUpTo_correct _ _)) H).
       pose proof ((proj2 (typesUpTo_correct _ _)) H1).
-      pose proof ((proj2 (IHn _)) H0).
-      simpl. lia.
-    + apply in_map_iff in H.
-      destruct H as [[t1 t2] [? H]]. subst t.
+      pose proof ((proj2 (IHn _)) H0). simpl. lia.
+    + apply in_map_iff in H. destruct H as [[t1 t2] [? H]]. subst t.
       repeat (apply in_prod_iff in H; destruct H).
       pose proof ((proj2 (IHn _)) H).
-      pose proof ((proj2 (IHn _)) H0).
-      simpl. lia.
+      pose proof ((proj2 (IHn _)) H0). simpl. lia.
     + simpl. lia.
     + simpl. lia.
-    + apply in_map_iff in H.
-      destruct H as [R [? H]]. subst t.
-      pose proof ((proj2 (typesUpTo_correct _ _)) H).
-      simpl. lia.
+    + apply in_map_iff in H. destruct H as [R [? H]]. subst t.
+      pose proof ((proj2 (typesUpTo_correct _ _)) H). simpl. lia.
     + simpl. lia.
 Qed.
 
-Fixpoint maxBy {T : Type} (f : T -> nat) (currentMax : nat) (currentBest : T) (l : list T) : T :=
-  match l with
-  | nil => currentBest
-  | cons h t =>
-      if currentMax <? (f h) then
-        maxBy f (f h) h t
-      else
-        maxBy f currentMax currentBest t
-  end.
+(* [maxBy] and its standard lemmas are polymorphic over the element
+   type, so we reuse Contender's definitions verbatim rather than
+   re-defining them.  [Contender.maxBy] is kept Opaque file-wide
+   (above) -- only its public lemmas are needed. *)
 
 Definition largest_of_depth (n : nat) : term :=
-  maxBy eval 0 tO (termsUpTo n).
+  Contender.maxBy eval 0 tO (termsUpTo n).
 
 Definition largest_Grow_nat_of_depth (n : nat) : nat :=
   eval (largest_of_depth n).
-
-(* Generic lower-bound lemma for our maxBy (copied from Contender). *)
-
-Lemma maxBy_In {T : Type} :
-  forall f (l : list T) currentMax currentBest,
-    currentMax = f currentBest ->
-    List.In (maxBy f currentMax currentBest l) l \/ maxBy f currentMax currentBest l = currentBest.
-Proof.
-  induction l; intros.
-  - simpl. auto.
-  - subst. simpl in *.
-    destruct (f currentBest <? f a) eqn:E.
-    + specialize (IHl (f a) _ eq_refl). firstorder congruence.
-    + specialize (IHl (f currentBest) _ eq_refl). firstorder congruence.
-Qed.
-
-Lemma maxBy_at_least_currentMax {T : Type} :
-  forall (f : T -> nat) l currentMax currentBest,
-    f currentBest = currentMax ->
-    currentMax <= f (maxBy f currentMax currentBest l).
-Proof.
-  induction l; intros; simpl in *.
-  - lia.
-  - subst. destruct (f currentBest <? f a) eqn:E.
-    + apply Nat.ltb_lt in E.
-      specialize (IHl (f a) _ eq_refl).
-      lia.
-    + apply Nat.ltb_ge in E.
-      eapply IHl.
-      reflexivity.
-Qed.
-
-Lemma lowerbound_maxBy {T : Type} :
-  forall (f : T -> nat) x l currentMax currentBest,
-    List.In x l ->
-    f currentBest = currentMax ->
-    f x <= f (maxBy f currentMax currentBest l).
-Proof.
-  induction l; intros; simpl in *.
-  - contradiction.
-  - destruct H.
-    + subst.
-      destruct (f currentBest <? f x) eqn:E.
-      * apply Nat.ltb_lt in E.
-        eapply maxBy_at_least_currentMax.
-        reflexivity.
-      * apply Nat.ltb_ge in E.
-        eapply Nat.le_trans. 1: eassumption.
-        eapply maxBy_at_least_currentMax.
-        reflexivity.
-    + subst.
-      destruct (f currentBest <? f a) eqn:E.
-      * apply Nat.ltb_lt in E. eauto.
-      * apply Nat.ltb_ge in E. eauto.
-Qed.
 
 (* -------------------------------------------------------------------- *)
 (* Embedding from Contender.term into L_Grow + logical relation.         *)
@@ -390,9 +306,8 @@ Lemma RelPack_error :
     (existT Contender.interp_type tpNat (@error tpNat))
     (existT Contender.interp_type tpNat (@error tpNat)).
 Proof.
-  exists tpNat, (@error tpNat), (@error tpNat). split; [reflexivity|].
-  split; [reflexivity|].
-  simpl. reflexivity.
+  exists tpNat, (@error tpNat), (@error tpNat).
+  repeat split.
 Qed.
 
 Lemma Forall2_nth_error :
@@ -418,24 +333,12 @@ Lemma lookup_related_some :
 Proof.
   intros e1 e2 n p1 Henv Hlk.
   pose proof (List.Forall2_length Henv) as Hlen.
-  (* Unfold lookup just enough to expose the [length e1 <=? n] branch. *)
-  unfold Contender.lookup in Hlk.
-  change
-    ((if length e1 <=? n then None else nth_error e1 (length e1 - S n)) = Some p1)
-    in Hlk.
-  destruct (length e1 <=? n) eqn:E in Hlk.
+  (* Expose lookup's if-branches via [unfold; cbv zeta]. *)
+  unfold Contender.lookup in *. cbv zeta in *.
+  destruct (length e1 <=? n) eqn:E.
   - discriminate Hlk.
-  - (* Now [Hlk] is an [nth_error] fact at index [length e1 - S n]. *)
-    (* Now [Hlk] is an [nth_error] fact at index [length e1 - S n]. *)
-    eapply Forall2_nth_error in Henv. 2: exact Hlk.
-    destruct Henv as [p2 [H2 HR]].
-    exists p2. split; [|exact HR].
-    unfold Contender.lookup.
-    change
-      ((if length e2 <=? n then None else nth_error e2 (length e2 - S n)) = Some p2).
-    rewrite <- Hlen.
-    rewrite E.
-    exact H2.
+  - eapply Forall2_nth_error in Henv as [p2 [H2 HR]]; [|exact Hlk].
+    exists p2. rewrite <- Hlen, E. split; [exact H2 | exact HR].
 Qed.
 
 Lemma lookup_related_none :
@@ -446,23 +349,13 @@ Lemma lookup_related_none :
 Proof.
   intros e1 e2 n Henv Hlk.
   pose proof (List.Forall2_length Henv) as Hlen.
-  unfold Contender.lookup in Hlk.
-  change
-    ((if length e1 <=? n then None else nth_error e1 (length e1 - S n)) = None)
-    in Hlk.
-  destruct (length e1 <=? n) eqn:E in Hlk.
-  - unfold Contender.lookup.
-    change
-      ((if length e2 <=? n then None else nth_error e2 (length e2 - S n)) = None).
-    rewrite <- Hlen.
-    rewrite E.
-    reflexivity.
-  - (* Impossible: if [length e1 > n] then the computed index is in-bounds. *)
-    simpl in Hlk.
+  unfold Contender.lookup in *. cbv zeta in *.
+  destruct (length e1 <=? n) eqn:E.
+  - rewrite <- Hlen, E. reflexivity.
+  - (* Impossible: if [length e1 > n] then the index is in-bounds. *)
     apply Nat.leb_gt in E.
     apply (proj1 (nth_error_None e1 (length e1 - S n))) in Hlk.
-    assert (length e1 - S n < length e1) as Hlt.
-    { apply Nat.sub_lt; lia. }
+    assert (length e1 - S n < length e1) by (apply Nat.sub_lt; lia).
     lia.
 Qed.
 
@@ -470,97 +363,44 @@ Qed.
    expanding it into [length]/[nth_error] arithmetic during conversion. *)
 Opaque Contender.lookup.
 
-(* Relation-preservation of Contender.cast_impl (both directions). *)
+(* [cast_impl from to] is related to itself (in both directions) when
+   inputs are related.  Both directions have to be done together because
+   the [tpArr -> tpArr] case casts the function argument *backward*. *)
 
-Lemma cast_impl_related :
-  forall from to,
-    (forall (v1 v2 : interp_type from),
+Lemma cast_impl_related : forall from to,
+    (forall v1 v2,
         RelVal from v1 v2 ->
-        RelVal to (fst (Contender.cast_impl from to) v1) (fst (Contender.cast_impl from to) v2))
+        RelVal to (fst (Contender.cast_impl from to) v1)
+                  (fst (Contender.cast_impl from to) v2))
     /\
-    (forall (u1 u2 : interp_type to),
+    (forall u1 u2,
         RelVal to u1 u2 ->
-        RelVal from (snd (Contender.cast_impl from to) u1) (snd (Contender.cast_impl from to) u2)).
+        RelVal from (snd (Contender.cast_impl from to) u1)
+                    (snd (Contender.cast_impl from to) u2)).
 Proof.
-  induction from; intros to; destruct to.
-  - split; intros; assumption.
-  - (* tpNat -> tpArr *)
-    split.
-    + intros v1 v2 Hv. simpl. intros x y Hxy.
-      exact (error_related to2).
-    + intros u1 u2 Hu. simpl. reflexivity.
-  - (* tpArr -> tpNat *)
-    split.
-    + intros v1 v2 Hv. simpl. reflexivity.
-    + intros u1 u2 Hu. simpl. intros x y Hxy.
-      exact (error_related from2).
-  - (* tpArr -> tpArr *)
-    simpl.
+  induction from as [|from1 IH1 from2 IH2]; intros [|to1 to2]; simpl.
+  - (* tpNat / tpNat: cast is the identity. *)
+    split; intros; assumption.
+  - (* tpNat / tpArr: cast_error in both directions. *)
+    split; intros _ _ _; simpl; (reflexivity || (intros; apply error_related)).
+  - (* tpArr / tpNat: cast_error in both directions. *)
+    split; intros _ _ _; simpl; (reflexivity || (intros; apply error_related)).
+  - (* tpArr / tpArr: when both type_eqb match, recurse; otherwise error. *)
     destruct (Contender.type_eqb from1 to1) eqn:E1;
-    destruct (Contender.type_eqb from2 to2) eqn:E2; simpl.
-    + destruct (IHfrom1 to1) as [IH1fw IH1bw].
-      destruct (IHfrom2 to2) as [IH2fw IH2bw].
-      split.
-      * intros f1 f2 Hf. simpl. intros x y Hxy.
-        destruct (Contender.cast_impl from1 to1) as [fw1 bw1] eqn:C1.
-        destruct (Contender.cast_impl from2 to2) as [fw2 bw2] eqn:C2.
-        simpl in *.
-        eapply IH2fw.
-        eapply Hf.
-        eapply IH1bw.
-        exact Hxy.
-      * intros g1 g2 Hg. simpl. intros x y Hxy.
-        destruct (Contender.cast_impl from1 to1) as [fw1 bw1] eqn:C1.
-        destruct (Contender.cast_impl from2 to2) as [fw2 bw2] eqn:C2.
-        simpl in *.
-        eapply IH2bw.
-        eapply Hg.
-        eapply IH1fw.
-        exact Hxy.
-    + split.
-      * intros f1 f2 Hf. simpl. intros x y Hxy.
-        exact (error_related to2).
-      * intros g1 g2 Hg. simpl. intros x y Hxy.
-        exact (error_related from2).
-    + split.
-      * intros f1 f2 Hf. simpl. intros x y Hxy.
-        exact (error_related to2).
-      * intros g1 g2 Hg. simpl. intros x y Hxy.
-        exact (error_related from2).
-    + split.
-      * intros f1 f2 Hf. simpl. intros x y Hxy.
-        exact (error_related to2).
-      * intros g1 g2 Hg. simpl. intros x y Hxy.
-        exact (error_related from2).
+    destruct (Contender.type_eqb from2 to2) eqn:E2; simpl;
+      try (split; intros _ _ _; simpl; intros; apply error_related).
+    destruct (IH1 to1) as [IH1fw IH1bw], (IH2 to2) as [IH2fw IH2bw].
+    destruct (Contender.cast_impl from1 to1) eqn:C1.
+    destruct (Contender.cast_impl from2 to2) eqn:C2.
+    split; intros f g Hfg x y Hxy; simpl in *.
+    + apply IH2fw. apply Hfg. apply IH1bw. exact Hxy.
+    + apply IH2bw. apply Hfg. apply IH1fw. exact Hxy.
 Qed.
 
-Lemma cast_impl_fw_related :
-  forall from to (v1 v2 : interp_type from),
-    RelVal from v1 v2 ->
-    RelVal to (fst (Contender.cast_impl from to) v1) (fst (Contender.cast_impl from to) v2).
-Proof.
-  intros from to.
-  exact (proj1 (cast_impl_related from to)).
-Qed.
-
-Lemma cast_impl_bw_related :
-  forall from to (u1 u2 : interp_type to),
-    RelVal to u1 u2 ->
-    RelVal from (snd (Contender.cast_impl from to) u1) (snd (Contender.cast_impl from to) u2).
-Proof.
-  intros from to.
-  exact (proj2 (cast_impl_related from to)).
-Qed.
-
-Lemma cast_related :
-  forall from to (v1 v2 : interp_type from),
+Lemma cast_related : forall from to v1 v2,
     RelVal from v1 v2 ->
     RelVal to (@cast from to v1) (@cast from to v2).
-Proof.
-  intros from to v1 v2 H.
-  unfold cast.
-  eapply cast_impl_fw_related; eassumption.
-Qed.
+Proof. intros; apply (proj1 (cast_impl_related _ _)); assumption. Qed.
 
 Local Transparent Contender.lookup.
 
@@ -624,72 +464,48 @@ Proof.
       rewrite (Contender_interp_term_tVar_None _ _ E1).
       rewrite (interp_term_tVar_None _ _ E2).
       exact RelPack_error.
-  - (* tLam *)
+  - (* tLam.  Build the [tpArr]-typed RelPack directly; the IH gives us
+       a related body for any related extension of the environment.
+       The [projT2 (existT _ ...)] dressing is needed because Coq picks
+       the value-side of [RelPack]'s existT in a form where [rewrite]
+       can match the inner [interp_term] call. *)
     exists (tpArr A B).
     exists (projT2 (existT _ (tpArr A B)
-                    (fun x' : interp_type A =>
-                       cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))))).
+              (fun x' : interp_type A =>
+                 cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))))).
     exists (projT2 (existT _ (tpArr A B)
-                    (fun x' : interp_type A =>
-                       cast B (projT2 (interp_term (existT _ A x' :: e2) (embed_term body)))))).
-    split; [reflexivity|].
-    split; [reflexivity|].
-    simpl.
-    intros x y Hxy.
-    specialize (IH (existT _ A x :: e1) (existT _ A y :: e2)).
+              (fun x' : interp_type A =>
+                 cast B (projT2 (interp_term (existT _ A x' :: e2) (embed_term body)))))).
+    repeat split. simpl. intros x y Hxy.
     assert (RelEnv (existT _ A x :: e1) (existT _ A y :: e2)) as Henv'.
-    { constructor.
-      - exists A, x, y. split; [reflexivity|]. split; [reflexivity|]. exact Hxy.
-      - exact Henv.
-    }
-    specialize (IH Henv').
-    destruct IH as [tpb [rb1 [rb2 [Eold [Enew Hrb]]]]].
-    rewrite Eold, Enew.
-    simpl.
-    apply cast_related.
-    exact Hrb.
-  - (* tApp *)
+    { constructor; [|exact Henv]. exists A, x, y; repeat split; exact Hxy. }
+    destruct (IH _ _ Henv') as [tpb [rb1 [rb2 [Eold [Enew Hrb]]]]].
+    rewrite Eold, Enew. simpl. apply cast_related, Hrb.
+  - (* tApp.  Both interp_term calls reduce to a [match] on the
+       argument-1 type; if it's [tpArr A B] we get a function we can
+       relate via the IH; otherwise both fall to [error]. *)
     cbn [Contender.interp_term interp_term embed_term].
-    specialize (IH1 e1 e2 Henv).
-    specialize (IH2 e1 e2 Henv).
-    destruct IH1 as [tp1 [v1 [v1' [Htp1 [Htp1' Hrel1]]]]].
-    destruct IH2 as [tp2 [v2 [v2' [Htp2 [Htp2' Hrel2]]]]].
-    rewrite Htp1, Htp1', Htp2, Htp2'.
-    simpl.
-    destruct tp1 as [|A B].
-    + (* tpNat: both error *)
-      exact RelPack_error.
-    + (* arrow *)
-      exists B.
-      exists (v1 (Contender.cast A v2)).
-      exists (v1' (cast A v2')).
-      split; [reflexivity|]. split; [reflexivity|].
-      eapply Hrel1.
-      eapply cast_related.
-      exact Hrel2.
+    destruct (IH1 _ _ Henv) as [tp1 [v1 [v1' [Htp1 [Htp1' Hrel1]]]]].
+    destruct (IH2 _ _ Henv) as [tp2 [v2 [v2' [Htp2 [Htp2' Hrel2]]]]].
+    rewrite Htp1, Htp1', Htp2, Htp2'. simpl.
+    destruct tp1 as [|A B]; [exact RelPack_error|].
+    exists B, (v1 (Contender.cast A v2)), (v1' (cast A v2')).
+    repeat split. apply Hrel1, cast_related, Hrel2.
   - (* tO *)
-    exists tpNat, 0, 0. split; [reflexivity|]. split; [reflexivity|]. reflexivity.
+    exists tpNat, 0, 0. repeat split.
   - (* tS *)
     exists (tpArr tpNat tpNat), S, S.
-    split; [reflexivity|]. split; [reflexivity|].
-    simpl. intros x y Hxy. subst. reflexivity.
-  - (* tNatRec *)
-    exists (tpArr R (tpArr (tpArr tpNat (tpArr R R)) (tpArr tpNat R))).
-    exists (@Nat.recursion (interp_type R)).
-    exists (@Nat.recursion (interp_type R)).
-    split; [reflexivity|]. split; [reflexivity|].
-    (* Nat.recursion respects the logical relation. *)
-    simpl.
-    intros base1 base2 Hbase.
-    intros step1 step2 Hstep.
-    intros n1 n2 Hn.
-    subst n2.
+    repeat split. simpl. intros x y Hxy. subst. reflexivity.
+  - (* tNatRec.  [Nat.recursion] respects the logical relation: equal
+       counters + related base/step give related accumulators. *)
+    exists (tpArr R (tpArr (tpArr tpNat (tpArr R R)) (tpArr tpNat R))),
+           (@Nat.recursion (interp_type R)),
+           (@Nat.recursion (interp_type R)).
+    repeat split. simpl.
+    intros base1 base2 Hbase step1 step2 Hstep n1 n2 Hn. subst n2.
     revert base1 base2 Hbase step1 step2 Hstep.
-    induction n1; intros; simpl.
-    + exact Hbase.
-    + eapply Hstep.
-      * reflexivity.
-      * apply IHn1; assumption.
+    induction n1; intros; simpl; [exact Hbase|].
+    apply Hstep; [reflexivity | apply IHn1; assumption].
 Qed.
 
 (* embed_eval needs to peek inside [Contender.eval] (which is otherwise
@@ -728,46 +544,38 @@ Local Transparent Contender.largest_STLCNatRec_nat_of_depth.
 Local Transparent Contender.largest_of_depth.
 Local Transparent Contender.eval.
 
+(* [contender_5 >= 1] because [tApp tS tO] is in [termsUpTo 42] and
+   evaluates to 1.  [Contender.lowerbound_maxBy] does the rest. *)
 Lemma contender_5_ge_1 : 1 <= Contender.contender_5.
 Proof.
-  unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth.
-  unfold Contender.largest_of_depth.
-  (* Witness term: S 0 = 1 is in termsUpTo 42. *)
-  pose (one := Contender.tApp Contender.tS Contender.tO).
-  assert (Hone_in : List.In one (Contender.termsUpTo 42)).
-  { apply (proj1 (Contender.termsUpTo_correct 42 one)).
-    subst one. cbv [Contender.term_depth Contender.nat_depth Contender.type_depth]. lia. }
-  assert (Hone_eval : Contender.eval one = 1).
-  { subst one. unfold Contender.eval. cbv. reflexivity. }
-  (* lowerbound_maxBy gives eval one <= eval (maxBy ... termsUpTo 42). *)
-  eapply Nat.le_trans. 1: exact (eq_ind_r (fun k => k <= _) (le_n 1) Hone_eval).
-  eapply Contender.lowerbound_maxBy with (x := one). 2: reflexivity.
-  exact Hone_in.
+  unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth,
+         Contender.largest_of_depth.
+  change 1 with (Contender.eval (Contender.tApp Contender.tS Contender.tO)).
+  apply Contender.lowerbound_maxBy
+    with (x := Contender.tApp Contender.tS Contender.tO);
+    [apply (proj1 (Contender.termsUpTo_correct 42 _)); cbv; lia | reflexivity].
 Qed.
 
+(* The maximizer term *t* whose eval realises [contender_5].  Either
+   [maxBy] returned a member of [termsUpTo 42] (depth bound is direct)
+   or it returned the initial best [tO] -- but that contradicts
+   [contender_5_ge_1]. *)
 Lemma exists_maximizer_42 :
   exists tstar : Contender.term,
     Contender.term_depth tstar <= 42 /\
     Contender.eval tstar = Contender.contender_5.
 Proof.
-  exists (Contender.largest_of_depth 42).
-  split.
-  - (* depth bound via maxBy_In + contender_5_ge_1 *)
-    pose proof (Contender.maxBy_In Contender.eval (Contender.termsUpTo 42) 0 Contender.tO eq_refl) as P.
-    destruct P as [Pin | Peq].
-    + apply (proj2 (Contender.termsUpTo_correct 42 _)) in Pin.
-      exact Pin.
-    + (* Peq: largest_of_depth 42 = tO.  But contender_5 = eval (largest_of_depth 42) >= 1
-         and eval tO = 0, contradiction. *)
-      exfalso.
-      pose proof contender_5_ge_1 as Hge.
-      unfold Contender.contender_5,
-             Contender.largest_STLCNatRec_nat_of_depth,
-             Contender.largest_of_depth in Hge.
-      rewrite Peq in Hge.
-      unfold Contender.eval in Hge. cbn in Hge. lia.
-  - unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth.
-    reflexivity.
+  exists (Contender.largest_of_depth 42); split;
+    [|unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth;
+      reflexivity].
+  destruct (Contender.maxBy_In Contender.eval (Contender.termsUpTo 42)
+                               0 Contender.tO eq_refl) as [Pin | Peq].
+  - apply (proj2 (Contender.termsUpTo_correct 42 _)) in Pin. exact Pin.
+  - (* Peq: maxBy ... = tO.  Then contender_5 = eval tO = 0, contradicting >= 1. *)
+    pose proof contender_5_ge_1 as Hge.
+    unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth,
+           Contender.largest_of_depth in Hge.
+    rewrite Peq in Hge. cbv in Hge. lia.
 Qed.
 
 Definition witness_grow (tstar : Contender.term) : term :=
@@ -793,34 +601,25 @@ Lemma witness_grow_eval :
     eval (witness_grow tstar) = G.grow (S Contender.contender_5).
 Proof.
   intros tstar Heq.
-  unfold witness_grow.
-  (* Get the exact nat-typed interpretation of the embedded maximizer. *)
-  assert (eval (embed_term tstar) = Contender.contender_5) as Hembed.
-  { rewrite embed_eval. exact Heq. }
-  assert (1 <= eval (embed_term tstar)) as Hpos.
-  { rewrite Hembed. exact contender_5_ge_1. }
-  (* Destruct the interp_term result.  The eqn:E equation lets us
-     compute what eval reduces to in each case. *)
-  destruct (interp_term [] (embed_term tstar)) as [tp res] eqn:E.
-  unfold eval in Hembed, Hpos. rewrite E in Hembed, Hpos.
-  destruct tp as [|A B].
-  - (* tpNat: Hembed says res = contender_5. *)
-    simpl in Hembed. subst res.
-    (* First: tS (embed tstar) evaluates to S contender_5. *)
-    assert (interp_term [] (tApp tS (embed_term tstar))
-            = existT _ tpNat (S Contender.contender_5)) as ES.
-    { eapply interp_tApp_nat.
-      - apply interp_tS.
-      - exact E. }
-    (* Second: tGrow applied to that. *)
-    assert (interp_term [] (tApp tGrow (tApp tS (embed_term tstar)))
-            = existT _ tpNat (G.grow (S Contender.contender_5))) as EG.
-    { eapply interp_tApp_nat.
-      - apply interp_tGrow.
-      - exact ES. }
-    unfold eval. rewrite EG. reflexivity.
-  - (* arrow type: eval = 0 contradicts contender_5 >= 1. *)
-    simpl in Hpos. lia.
+  (* The embedded maximizer is a closed term of type [tpNat] computing [contender_5]. *)
+  assert (Hembed : eval (embed_term tstar) = Contender.contender_5)
+    by (rewrite embed_eval; exact Heq).
+  unfold witness_grow, eval in *.
+  destruct (interp_term [] (embed_term tstar)) as [tp res] eqn:E;
+    destruct tp as [|A B]; simpl in Hembed.
+  - (* [tpNat]: peel off [tS] then [tGrow] using [interp_tApp_nat]. *)
+    subst res.
+    assert (ES :
+      interp_term [] (tApp tS (embed_term tstar))
+        = existT _ tpNat (S Contender.contender_5))
+      by (eapply interp_tApp_nat; [apply interp_tS|exact E]).
+    assert (EG :
+      interp_term [] (tApp tGrow (tApp tS (embed_term tstar)))
+        = existT _ tpNat (G.grow (S Contender.contender_5)))
+      by (eapply interp_tApp_nat; [apply interp_tGrow|exact ES]).
+    rewrite EG; reflexivity.
+  - (* Arrow type: [eval = 0] contradicts [contender_5 >= 1]. *)
+    pose proof contender_5_ge_1; lia.
 Qed.
 
 Theorem grow_lower_bound :
@@ -829,7 +628,7 @@ Proof.
   unfold contender_grow_6, largest_Grow_nat_of_depth, largest_of_depth.
   destruct exists_maximizer_42 as [tstar [Hdepth Heval]].
   rewrite <- (witness_grow_eval tstar Heval).
-  eapply lowerbound_maxBy with (x := witness_grow tstar). 2: reflexivity.
+  eapply Contender.lowerbound_maxBy with (x := witness_grow tstar). 2: reflexivity.
   apply (proj1 (termsUpTo_correct 44 (witness_grow tstar))).
   apply witness_grow_depth. exact Hdepth.
 Qed.
