@@ -74,17 +74,15 @@ Inductive term :=
 
 (* Depth accounting: re-use the exact measures from Contender's STLC+NatRec. *)
 
-Definition nat_depth := Contender.nat_depth.
-Definition type_depth := Contender.type_depth.
-
 Fixpoint term_depth (t : term) : nat :=
   match t with
-  | tVar x => S (nat_depth x)
-  | tLam A B body => S (max (max (type_depth A) (type_depth B)) (term_depth body))
+  | tVar x => S (Contender.nat_depth x)
+  | tLam A B body =>
+      S (max (max (Contender.type_depth A) (Contender.type_depth B)) (term_depth body))
   | tApp t1 t2 => S (max (term_depth t1) (term_depth t2))
   | tO => 1
   | tS => 1
-  | tNatRec R => S (type_depth R)
+  | tNatRec R => S (Contender.type_depth R)
   | tGrow => 1
   end.
 
@@ -126,49 +124,22 @@ Definition eval (t : term) : nat :=
   | tpArr _ _ => fun _ => 0
   end res.
 
-(* Simple reduction lemmas for the witness chain (no FunExt needed). *)
-
-Lemma interp_tS : forall e, interp_term e tS = existT _ (tpArr tpNat tpNat) S.
-Proof. intros. reflexivity. Qed.
-
-Lemma interp_tGrow : forall e, interp_term e tGrow = existT _ (tpArr tpNat tpNat) G.grow.
-Proof. intros. reflexivity. Qed.
-
-Lemma interp_tApp_nat :
-  forall e t1 t2 B (f : nat -> interp_type B) (a : nat),
-    interp_term e t1 = existT _ (tpArr tpNat B) f ->
-    interp_term e t2 = existT _ tpNat a ->
-    interp_term e (tApp t1 t2) = existT _ B (f a).
-Proof. intros * H1 H2; simpl; rewrite H1, H2; reflexivity. Qed.
-
 (* -------------------------------------------------------------------- *)
 (* Enumeration for L_Grow: copy Contender's depth-bounded generator and  *)
 (* add the new constant [tGrow].                                        *)
 (* -------------------------------------------------------------------- *)
 
-Definition typesUpTo : nat -> list type := Contender.typesUpTo.
-
-Lemma typesUpTo_correct : forall n t,
-    type_depth t <= n <-> List.In t (typesUpTo n).
-Proof. exact Contender.typesUpTo_correct. Qed.
-
-Definition natsUpTo : nat -> list nat := Contender.natsUpTo.
-
-Lemma natsUpTo_correct : forall n m,
-    nat_depth m <= n <-> List.In m (natsUpTo n).
-Proof. exact Contender.natsUpTo_correct. Qed.
-
 Fixpoint termsUpTo (n : nat) : list term :=
   match n with
   | O => []
   | S m =>
-    List.map tVar (natsUpTo m) ++
+    List.map tVar (Contender.natsUpTo m) ++
     List.map (fun '(A, B, body) => tLam A B body)
-             (list_prod (list_prod (typesUpTo m) (typesUpTo m)) (termsUpTo m)) ++
+             (list_prod (list_prod (Contender.typesUpTo m) (Contender.typesUpTo m)) (termsUpTo m)) ++
     List.map (fun '(t1, t2) => tApp t1 t2)
              (list_prod (termsUpTo m) (termsUpTo m)) ++
     [tO] ++ [tS] ++
-    List.map tNatRec (typesUpTo m) ++
+    List.map tNatRec (Contender.typesUpTo m) ++
     [tGrow]
   end.
 
@@ -178,8 +149,8 @@ Fixpoint termsUpTo (n : nat) : list term :=
 Ltac termsUpTo_solve_in IHn :=
   repeat first
     [ apply in_map | apply in_prod
-    | apply (proj1 (natsUpTo_correct _ _))
-    | apply (proj1 (typesUpTo_correct _ _))
+    | apply (proj1 (Contender.natsUpTo_correct _ _))
+    | apply (proj1 (Contender.typesUpTo_correct _ _))
     | apply (proj1 (IHn _))
     | lia].
 
@@ -188,8 +159,8 @@ Ltac termsUpTo_solve_in IHn :=
    [simpl; lia]. *)
 Ltac termsUpTo_depth_lia IHn :=
   repeat match goal with
-  | H : List.In _ (natsUpTo _)  |- _ => apply (proj2 (natsUpTo_correct  _ _)) in H
-  | H : List.In _ (typesUpTo _) |- _ => apply (proj2 (typesUpTo_correct _ _)) in H
+  | H : List.In _ (Contender.natsUpTo _)  |- _ => apply (proj2 (Contender.natsUpTo_correct  _ _)) in H
+  | H : List.In _ (Contender.typesUpTo _) |- _ => apply (proj2 (Contender.typesUpTo_correct _ _)) in H
   | H : List.In _ (termsUpTo _) |- _ => apply (proj2 (IHn _)) in H
   end;
   simpl; lia.
@@ -534,10 +505,12 @@ Proof.
   unfold witness_grow, eval in *.
   destruct (interp_term [] (embed_term tstar)) as [[|A B] res] eqn:E;
     simpl in Hembed.
-  - (* [tpNat]: chain [interp_tApp_nat] on [tS] then [tGrow]. *)
+  - (* [tpNat]: compute both nested [tApp]s by unfolding [interp_term],
+       rewriting the stuck subterm using [E], then [cbn]. *)
     subst res.
-    rewrite (interp_tApp_nat _ _ _ _ _ _ (interp_tGrow _)
-              (interp_tApp_nat _ _ _ _ _ _ (interp_tS _) E)).
+    cbn [interp_term].
+    rewrite E.
+    cbn [interp_term].
     reflexivity.
   - (* Arrow type: [eval = 0] contradicts [contender_5 >= 1]. *)
     pose proof contender_5_ge_1; lia.

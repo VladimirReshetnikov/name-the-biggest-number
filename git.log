@@ -1,4 +1,62 @@
-* commit 9045ca001ef0fe8d6361e2a3fcef51d4dcae856a (HEAD -> ideas, origin/ideas)
+* commit a7263023d98fc986505a3603297580290935ff43 (HEAD -> ideas, origin/ideas)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Fri May 1 11:32:10 2026 -0700
+| 
+|     Polish GrowEmbed.v further: tighter proofs, chained rewrite, tNatRec
+|     
+|     Another round of polishing on top of the existing GrowEmbed.v:
+|     
+|       - Compress trivial proofs to single-line [Proof. ... Qed.] form:
+|         [interp_tApp_nat], [error_related], [RelPack_intro],
+|         [RelPack_error].
+|     
+|       - Collapse repeated [Opaque ...] / [Local Transparent ...] blocks
+|         into single multi-argument invocations.
+|     
+|       - Simplify [witness_grow_eval]'s [tpNat] case from a two-step
+|         [assert ES; assert EG; rewrite EG] chain into a single nested
+|         [rewrite (interp_tApp_nat _ _ _ _ _ _ (interp_tGrow _)
+|                                   (interp_tApp_nat _ _ _ _ _ _
+|                                                    (interp_tS _) E))].
+|         Also fold the [destruct ... ; destruct tp] into a single nested
+|         intro pattern [as [[|A B] res] eqn:E].
+|     
+|       - Tighten [witness_grow_depth] to a single [intros ... destruct ...]
+|         chain with no intermediate line breaks.
+|     
+|       - Simplify [exists_maximizer_42] by hoisting the [unfold
+|         Contender.contender_5, ...] and [pose proof contender_5_ge_1]
+|         out so both the [Some] and [None] branches share them.
+|     
+|       - Tighten [tNatRec] case in [embed_interp_related] using
+|         [induction n1 in base1, ..., Hstep |- *] to avoid the
+|         [revert; ...; intros] dance.
+|     
+|       - Tighten [Forall2_nth_error] using [intros *].
+|     
+|     File goes from 623 -> 589 lines (-34, -5.5%).  [coqc -Q . ""
+|     sandbox/GrowEmbed.v] still emits [Closed under the global context]
+|     for [contender_grow_6], [BigGrow_lower_bound], and
+|     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
+|     no regressions.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  sandbox/GrowEmbed.v | 90 ++++++++++++++++-----------------------------------
+|  1 file changed, 28 insertions(+), 62 deletions(-)
+| 
+* commit 5ea3c65f70aef32480cbd301d919970b7d1a43d0
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Fri May 1 11:19:27 2026 -0700
+| 
+|     Polish GrowEmbed with change-based simplification
+| 
+|  IDEAS.md            | 10 ++++++++
+|  git.log             | 57 ++++++++++++++++++++++++++++++++++++++++++++-
+|  sandbox/GrowEmbed.v | 64 +++++++++++++++++++--------------------------------
+|  3 files changed, 90 insertions(+), 41 deletions(-)
+| 
+* commit 9045ca001ef0fe8d6361e2a3fcef51d4dcae856a
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Fri May 1 09:58:07 2026 -0700
 | 
