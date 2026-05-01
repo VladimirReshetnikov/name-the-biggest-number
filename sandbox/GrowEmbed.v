@@ -234,11 +234,7 @@ Fixpoint embed_term (t : Contender.term) : term :=
 
 Lemma term_depth_embed : forall t,
     term_depth (embed_term t) = Contender.term_depth t.
-Proof.
-  induction t; simpl; try reflexivity.
-  - now rewrite IHt.
-  - now rewrite IHt1, IHt2.
-Qed.
+Proof. induction t; simpl; congruence. Qed.
 
 Fixpoint RelVal (A : type) : interp_type A -> interp_type A -> Prop :=
   match A with
@@ -295,15 +291,13 @@ Lemma lookup_related :
 Proof.
   intros e1 e2 n Henv.
   pose proof (List.Forall2_length Henv) as Hlen.
-  unfold Contender.lookup. cbv zeta.
-  rewrite Hlen.
+  unfold Contender.lookup. cbv zeta. rewrite Hlen.
   destruct (length e2 <=? n) eqn:E; [exact I|].
   destruct (nth_error e1 (length e2 - S n)) as [p1|] eqn:E1.
   - eapply Forall2_nth_error in Henv as (p2 & E2 & HR);
       [rewrite E2; exact HR | exact E1].
   - apply Nat.leb_gt in E.
-    apply (proj1 (nth_error_None e1 (length e2 - S n))) in E1.
-    lia.
+    apply (proj1 (nth_error_None _ _)) in E1; lia.
 Qed.
 
 (* Past this point, treat lookup as opaque to keep simplification from
@@ -325,23 +319,23 @@ Lemma cast_impl_related : forall from to,
         RelVal from (snd (Contender.cast_impl from to) u1)
                     (snd (Contender.cast_impl from to) u2)).
 Proof.
-  induction from as [|from1 IH1 from2 IH2]; intros [|to1 to2]; simpl.
-  - (* tpNat / tpNat: cast is the identity. *)
-    split; intros; assumption.
-  - (* tpNat / tpArr: cast_error in both directions. *)
-    split; intros _ _ _; simpl; (reflexivity || (intros; apply error_related)).
-  - (* tpArr / tpNat: cast_error in both directions. *)
-    split; intros _ _ _; simpl; (reflexivity || (intros; apply error_related)).
-  - (* tpArr / tpArr: when both type_eqb match, recurse; otherwise error. *)
-    destruct (Contender.type_eqb from1 to1) eqn:E1;
-    destruct (Contender.type_eqb from2 to2) eqn:E2; simpl;
-      try (split; intros _ _ _; simpl; intros; apply error_related).
-    destruct (IH1 to1) as [IH1fw IH1bw], (IH2 to2) as [IH2fw IH2bw].
-    destruct (Contender.cast_impl from1 to1) eqn:C1.
-    destruct (Contender.cast_impl from2 to2) eqn:C2.
-    split; intros f g Hfg x y Hxy; simpl in *.
-    + apply IH2fw. apply Hfg. apply IH1bw. exact Hxy.
-    + apply IH2bw. apply Hfg. apply IH1fw. exact Hxy.
+  (* tpNat/tpNat: cast is the identity.  tpNat/tpArr and tpArr/tpNat both
+     fall to [error_related] in both directions.  Only tpArr/tpArr has a
+     non-trivial recursive argument. *)
+  induction from as [|from1 IH1 from2 IH2]; intros [|to1 to2]; simpl;
+    try (split; intros; assumption);
+    try (split; intros _ _ _; simpl;
+         (reflexivity || (intros; apply error_related))).
+  (* tpArr / tpArr: when both type_eqb match, recurse; otherwise error. *)
+  destruct (Contender.type_eqb from1 to1) eqn:E1;
+  destruct (Contender.type_eqb from2 to2) eqn:E2; simpl;
+    try (split; intros _ _ _; simpl; intros; apply error_related).
+  destruct (IH1 to1) as [IH1fw IH1bw], (IH2 to2) as [IH2fw IH2bw].
+  destruct (Contender.cast_impl from1 to1) eqn:C1.
+  destruct (Contender.cast_impl from2 to2) eqn:C2.
+  split; intros f g Hfg x y Hxy; simpl in *.
+  - apply IH2fw. apply Hfg. apply IH1bw. exact Hxy.
+  - apply IH2bw. apply Hfg. apply IH1fw. exact Hxy.
 Qed.
 
 Lemma cast_related : forall from to v1 v2,
@@ -506,12 +500,8 @@ Proof.
   destruct (interp_term [] (embed_term tstar)) as [[|A B] res] eqn:E;
     simpl in Hembed.
   - (* [tpNat]: compute both nested [tApp]s by unfolding [interp_term],
-       rewriting the stuck subterm using [E], then [cbn]. *)
-    subst res.
-    cbn [interp_term].
-    rewrite E.
-    cbn [interp_term].
-    reflexivity.
+       rewriting the stuck inner [interp_term] using [E], then [cbn]. *)
+    subst res. cbn [interp_term]; rewrite E; cbn [interp_term]; reflexivity.
   - (* Arrow type: [eval = 0] contradicts [contender_5 >= 1]. *)
     pose proof contender_5_ge_1; lia.
 Qed.
