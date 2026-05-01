@@ -1,4 +1,62 @@
-* commit a7263023d98fc986505a3603297580290935ff43 (HEAD -> ideas, origin/ideas)
+* commit a835138357630a91620e75ac08e61d448546ad75 (HEAD -> ideas, origin/ideas)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Fri May 1 12:31:58 2026 -0700
+| 
+|     Polish GrowEmbed.v further: term_depth_embed, cast_impl, lookup, witness_grow
+|     
+|     Another small round of polish on top of the existing GrowEmbed.v:
+|     
+|       - [term_depth_embed]: collapse the 6-line case-split proof into
+|         [induction t; simpl; congruence] - all six constructor cases now
+|         discharge uniformly.
+|     
+|       - [cast_impl_related]: merge the two identical error branches
+|         ([tpNat]/[tpArr] and [tpArr]/[tpNat]) into a single [try (split;
+|         intros _ _ _; simpl; (reflexivity || (intros; apply error_related)))]
+|         fall-through after the [tpNat]/[tpNat] identity case, leaving only
+|         the genuinely-distinct [tpArr]/[tpArr] case to handle by hand.
+|     
+|       - [lookup_related]: collapse the [unfold ...; cbv zeta; rewrite Hlen]
+|         setup onto one line, and merge the [apply nth_error_None] +
+|         [assert] + [lia] tail of the [None] branch into [apply ... in E1;
+|         lia] using two underscores for the implicit length arguments.
+|     
+|       - [witness_grow_eval] [tpNat] case: compress
+|         [subst res. cbn [...]. rewrite E. cbn [...]. reflexivity.] into a
+|         single semicolon-chained line.
+|     
+|     File goes from 562 -> 552 lines (-10).  [coqc -Q . ""
+|     sandbox/GrowEmbed.v] still emits [Closed under the global context]
+|     for [contender_grow_6], [BigGrow_lower_bound], and
+|     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
+|     no regressions.
+|     
+|     Tried and reverted:
+|       - Replacing the [change] block in [embed_interp_related]'s [tLam]
+|         case with [cbn [Contender.interp_term interp_term embed_term]]:
+|         the local [interp_term] Fixpoint's tLam branch uses [cast B] whose
+|         type-inference picks up the local [interp_type] alias for the
+|         binder, while [Contender.interp_term] uses [Contender.interp_type]
+|         directly.  The asymmetry breaks the later [rewrite Eold, Enew]
+|         even when [interp_type] is rebound as a [Notation] for the
+|         qualified name.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  sandbox/GrowEmbed.v | 54 +++++++++++++++++++++------------------------------
+|  1 file changed, 22 insertions(+), 32 deletions(-)
+| 
+* commit b68a072297c3540a108c62f171bcb35b2caa6337
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Fri May 1 12:19:56 2026 -0700
+| 
+|     GrowEmbed: shave wrappers, inline witness reductions
+| 
+|  git.log             | 60 ++++++++++++++++++++++++++++++++++++++++++++++++++-
+|  sandbox/GrowEmbed.v | 59 ++++++++++++++------------------------------------
+|  2 files changed, 75 insertions(+), 44 deletions(-)
+| 
+* commit a7263023d98fc986505a3603297580290935ff43
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Fri May 1 11:32:10 2026 -0700
 | 

@@ -151,31 +151,14 @@ Ltac termsUpTo_solve_in IHn :=
     [ apply in_map | apply in_prod
     | apply (proj1 (Contender.natsUpTo_correct _ _))
     | apply (proj1 (Contender.typesUpTo_correct _ _))
-    | apply (proj1 (IHn _))
+    | eapply IHn
     | lia].
 
-(* Backward helper: convert all [In _ (natsUpTo _ / typesUpTo _ / termsUpTo _)]
-   hypotheses into depth bounds via the correctness lemmas, then close by
-   [simpl; lia]. *)
-Ltac termsUpTo_depth_lia IHn :=
-  repeat match goal with
-  | H : List.In _ (Contender.natsUpTo _)  |- _ => apply (proj2 (Contender.natsUpTo_correct  _ _)) in H
-  | H : List.In _ (Contender.typesUpTo _) |- _ => apply (proj2 (Contender.typesUpTo_correct _ _)) in H
-  | H : List.In _ (termsUpTo _) |- _ => apply (proj2 (IHn _)) in H
-  end;
-  simpl; lia.
-
-Lemma termsUpTo_correct : forall n t,
-    term_depth t <= n <-> List.In t (termsUpTo n).
+Lemma termsUpTo_complete : forall n t,
+    term_depth t <= n -> List.In t (termsUpTo n).
 Proof.
-  (* The forward direction navigates to the correct ++ slot per constructor
-     and proves membership using [termsUpTo_solve_in IHn]; the backward
-     direction destructs the list-of-append-segments and reads off depth
-     bounds. *)
-  induction n; intros; split; intros.
-  - destruct t; simpl in *; lia.
-  - simpl in *. contradiction.
-  - destruct t; simpl in *.
+  induction n; intros t H; [destruct t; simpl in H; lia|].
+  destruct t; simpl in H.
     + do 0 (apply in_or_app; right). apply in_or_app; left.
       termsUpTo_solve_in IHn.
     + do 1 (apply in_or_app; right). apply in_or_app; left.
@@ -190,21 +173,6 @@ Proof.
       apply in_app_iff; left. termsUpTo_solve_in IHn.
     + do 3 (apply in_or_app; right). simpl. right. right.
       apply in_app_iff; right. simpl. auto.
-  - (* Backward: split [t] across the [++] segments, then for each segment
-       extract the pre-image (if any) of [List.map] / [list_prod] and use
-       [termsUpTo_depth_lia] to read off depth bounds via the correctness
-       lemmas of [natsUpTo] / [typesUpTo] and the IH. *)
-    simpl in *.
-    repeat ((simpl in H || apply in_app_iff in H || idtac); destruct H).
-    + apply in_map_iff in H as (x & ? & H); subst t. termsUpTo_depth_lia IHn.
-    + apply in_map_iff in H as ([[A B] body] & ? & H); subst t.
-      repeat (apply in_prod_iff in H; destruct H). termsUpTo_depth_lia IHn.
-    + apply in_map_iff in H as ([t1 t2] & ? & H); subst t.
-      repeat (apply in_prod_iff in H; destruct H). termsUpTo_depth_lia IHn.
-    + simpl. lia.
-    + simpl. lia.
-    + apply in_map_iff in H as (R & ? & H); subst t. termsUpTo_depth_lia IHn.
-    + simpl. lia.
 Qed.
 
 (* [maxBy] and its standard lemmas are polymorphic over the element
@@ -383,15 +351,15 @@ Proof.
     apply RelPack_intro. simpl. intros x y Hxy.
     assert (RelEnv (existT _ A x :: e1) (existT _ A y :: e2)) as Henv'.
     { constructor; [|exact Henv]. apply RelPack_intro. exact Hxy. }
-    destruct (IH _ _ Henv') as (tpb & rb1 & rb2 & Eold & Enew & Hrb).
-    rewrite Eold, Enew. simpl. apply cast_related, Hrb.
+    destruct (IH _ _ Henv') as (tpb & rb1 & rb2 & -> & -> & Hrb).
+    simpl. apply cast_related, Hrb.
   - (* tApp.  Both interp_term calls reduce to a [match] on the
        argument-1 type; if it's [tpArr A B] we get a function we can
        relate via the IH; otherwise both fall to [error]. *)
     cbn [Contender.interp_term interp_term embed_term].
-    destruct (IH1 _ _ Henv) as (tp1 & v1 & v1' & Htp1 & Htp1' & Hrel1).
-    destruct (IH2 _ _ Henv) as (tp2 & v2 & v2' & Htp2 & Htp2' & Hrel2).
-    rewrite Htp1, Htp1', Htp2, Htp2'. simpl.
+    destruct (IH1 _ _ Henv) as (tp1 & v1 & v1' & -> & -> & Hrel1).
+    destruct (IH2 _ _ Henv) as (tp2 & v2 & v2' & -> & -> & Hrel2).
+    simpl.
     destruct tp1 as [|A B]; [exact RelPack_error|].
     apply RelPack_intro. apply Hrel1, cast_related, Hrel2.
   - (* tO *)
@@ -513,7 +481,7 @@ Proof.
   destruct exists_maximizer_42 as (tstar & Hdepth & Heval).
   rewrite <- (witness_grow_eval tstar Heval).
   eapply Contender.lowerbound_maxBy with (x := witness_grow tstar). 2: reflexivity.
-  apply (proj1 (termsUpTo_correct 44 (witness_grow tstar))).
+  apply (termsUpTo_complete 44 (witness_grow tstar)).
   apply witness_grow_depth. exact Hdepth.
 Qed.
 
