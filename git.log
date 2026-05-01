@@ -1,4 +1,15 @@
-* commit f13c69101280b0b8a012a23efa38f7620e48d1e5 (HEAD -> ideas, origin/ideas)
+* commit a4ca22fffe2849f11d7cd0dac5f097fdeef00b6c (HEAD -> ideas, origin/ideas)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Fri May 1 09:32:24 2026 -0700
+| 
+|     Polish GrowEmbed.v: less boilerplate, no warnings
+| 
+|  IDEAS.md            |   7 +
+|  git.log             | 435 ++++++++++++++++++++++++++++++++++----------------
+|  sandbox/GrowEmbed.v |  45 +++---
+|  3 files changed, 330 insertions(+), 157 deletions(-)
+| 
+* commit f13c69101280b0b8a012a23efa38f7620e48d1e5
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Fri May 1 08:05:46 2026 -0700
 | 

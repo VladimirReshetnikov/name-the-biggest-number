@@ -1532,6 +1532,14 @@ Engineering issues discovered and resolved during the proof
    `From Stdlib Require ...` (removes Rocq 9 deprecation warnings), and
    deleted a couple of unused micro-lemmas (`cast_nat_id`, `interp_tO`).
 
+7. **Second polish pass (2026-05-01): paired lookup + relation constructor.**
+   Replaced separate `lookup_related_some` / `lookup_related_none` lemmas
+   with one `lookup_related` lemma whose conclusion directly mirrors the
+   two `lookup` results.  This made the `tVar` branch more symmetric and
+   removed arithmetic duplication.  Also reused `RelPack_intro` for the
+   `tApp`, constant, and `tNatRec` cases and reused `Contender.interp_tVar`
+   for the old-language `Some` reduction.
+
 The first issue in particular is worth recording for future sandbox
 work in this codebase, since the same pattern (destruct + rewrite
 inside an interp_term reduction) is likely to recur.

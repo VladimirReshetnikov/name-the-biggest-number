@@ -329,37 +329,28 @@ Proof.
     + eauto.
 Qed.
 
-Lemma lookup_related_some :
-  forall e1 e2 n p1,
-    RelEnv e1 e2 ->
-    Contender.lookup e1 n = Some p1 ->
-    exists p2, Contender.lookup e2 n = Some p2 /\ RelPack p1 p2.
-Proof.
-  intros e1 e2 n p1 Henv Hlk.
-  pose proof (List.Forall2_length Henv) as Hlen.
-  (* Expose lookup's if-branches via [unfold; cbv zeta]. *)
-  unfold Contender.lookup in *. cbv zeta in *.
-  destruct (length e1 <=? n) eqn:E.
-  - discriminate Hlk.
-  - eapply Forall2_nth_error in Henv as [p2 [H2 HR]]; [|exact Hlk].
-    exists p2. rewrite <- Hlen, E. split; [exact H2 | exact HR].
-Qed.
-
-Lemma lookup_related_none :
+(* Since [RelEnv] is [Forall2], both environments have the same length.
+   Contender's reverse-indexed [lookup] therefore either misses on both sides
+   or finds related entries at the same underlying [nth_error] index. *)
+Lemma lookup_related :
   forall e1 e2 n,
     RelEnv e1 e2 ->
-    Contender.lookup e1 n = None ->
-    Contender.lookup e2 n = None.
+    match Contender.lookup e1 n, Contender.lookup e2 n with
+    | Some p1, Some p2 => RelPack p1 p2
+    | None, None => True
+    | _, _ => False
+    end.
 Proof.
-  intros e1 e2 n Henv Hlk.
+  intros e1 e2 n Henv.
   pose proof (List.Forall2_length Henv) as Hlen.
-  unfold Contender.lookup in *. cbv zeta in *.
-  destruct (length e1 <=? n) eqn:E.
-  - rewrite <- Hlen, E. reflexivity.
-  - (* Impossible: if [length e1 > n] then the index is in-bounds. *)
-    apply Nat.leb_gt in E.
-    apply (proj1 (nth_error_None e1 (length e1 - S n))) in Hlk.
-    assert (length e1 - S n < length e1) by (apply Nat.sub_lt; lia).
+  unfold Contender.lookup. cbv zeta.
+  rewrite Hlen.
+  destruct (length e2 <=? n) eqn:E; [exact I|].
+  destruct (nth_error e1 (length e2 - S n)) as [p1|] eqn:E1.
+  - eapply Forall2_nth_error in Henv as (p2 & E2 & HR);
+      [rewrite E2; exact HR | exact E1].
+  - apply Nat.leb_gt in E.
+    apply (proj1 (nth_error_None e1 (length e2 - S n))) in E1.
     lia.
 Qed.
 
@@ -408,17 +399,10 @@ Proof. intros; apply (proj1 (cast_impl_related _ _)); assumption. Qed.
 
 Local Transparent Contender.lookup.
 
-(* Self-contained reduction lemmas for the tVar case.  By proving them
-   outside of the main induction, we avoid whatever interaction between
-   [destruct ... eqn:] and the [Opaque] pragmas above is making
-   in-place [rewrite] fail in the main proof. *)
-Lemma Contender_interp_term_tVar_Some : forall e x p,
-    Contender.lookup e x = Some p ->
-    Contender.interp_term e (Contender.tVar x) = p.
-Proof.
-  intros e x p H. simpl. rewrite H. reflexivity.
-Qed.
-
+(* Self-contained reduction lemmas for the tVar case.  [Contender.interp_tVar]
+   covers the old-language [Some] case; the local lemmas cover the remaining
+   reductions without relying on fragile rewriting under the surrounding
+   [match]. *)
 Lemma Contender_interp_term_tVar_None : forall e x,
     Contender.lookup e x = None ->
     Contender.interp_term e (Contender.tVar x)
@@ -455,17 +439,16 @@ Proof.
        [match Contender.lookup _ x with Some R => R | None => existT _ tpNat error end].
        [destruct (Contender.lookup e1 x) eqn:E1] substitutes the LHS
        match (so the goal's first conjunct becomes [p1 = ...]
-       directly).  The RHS still mentions [Contender.lookup e2 x],
-       which we substitute via [rewrite E2] using the
-       [lookup_related_*] lemmas. *)
+       directly).  The paired [lookup_related] lemma rules out the
+       impossible one-sided lookup cases. *)
     cbn [embed_term].
-    destruct (Contender.lookup e1 x) as [p1|] eqn:E1.
-    + destruct (lookup_related_some e1 e2 x p1 Henv E1) as [p2 [E2 HR]].
-      rewrite (Contender_interp_term_tVar_Some _ _ _ E1).
+    pose proof (lookup_related e1 e2 x Henv) as Hlk.
+    destruct (Contender.lookup e1 x) as [p1|] eqn:E1;
+      destruct (Contender.lookup e2 x) as [p2|] eqn:E2; simpl in Hlk; try contradiction.
+    + rewrite (Contender.interp_tVar _ _ _ E1).
       rewrite (interp_term_tVar_Some _ _ _ E2).
-      exact HR.
-    + pose proof (lookup_related_none e1 e2 x Henv E1) as E2.
-      rewrite (Contender_interp_term_tVar_None _ _ E1).
+      exact Hlk.
+    + rewrite (Contender_interp_term_tVar_None _ _ E1).
       rewrite (interp_term_tVar_None _ _ E2).
       exact RelPack_error.
   - (* tLam.  Build the [tpArr]-typed RelPack directly; the IH gives us
@@ -480,29 +463,24 @@ Proof.
     repeat split. simpl. intros x y Hxy.
     assert (RelEnv (existT _ A x :: e1) (existT _ A y :: e2)) as Henv'.
     { constructor; [|exact Henv]. apply RelPack_intro. exact Hxy. }
-    destruct (IH _ _ Henv') as [tpb [rb1 [rb2 [Eold [Enew Hrb]]]]].
+    destruct (IH _ _ Henv') as (tpb & rb1 & rb2 & Eold & Enew & Hrb).
     rewrite Eold, Enew. simpl. apply cast_related, Hrb.
   - (* tApp.  Both interp_term calls reduce to a [match] on the
        argument-1 type; if it's [tpArr A B] we get a function we can
        relate via the IH; otherwise both fall to [error]. *)
     cbn [Contender.interp_term interp_term embed_term].
-    destruct (IH1 _ _ Henv) as [tp1 [v1 [v1' [Htp1 [Htp1' Hrel1]]]]].
-    destruct (IH2 _ _ Henv) as [tp2 [v2 [v2' [Htp2 [Htp2' Hrel2]]]]].
+    destruct (IH1 _ _ Henv) as (tp1 & v1 & v1' & Htp1 & Htp1' & Hrel1).
+    destruct (IH2 _ _ Henv) as (tp2 & v2 & v2' & Htp2 & Htp2' & Hrel2).
     rewrite Htp1, Htp1', Htp2, Htp2'. simpl.
     destruct tp1 as [|A B]; [exact RelPack_error|].
-    exists B, (v1 (Contender.cast A v2)), (v1' (cast A v2')).
-    repeat split. apply Hrel1, cast_related, Hrel2.
+    apply RelPack_intro. apply Hrel1, cast_related, Hrel2.
   - (* tO *)
-    exists tpNat, 0, 0. repeat split.
+    apply RelPack_intro. reflexivity.
   - (* tS *)
-    exists (tpArr tpNat tpNat), S, S.
-    repeat split. simpl. intros x y Hxy. subst. reflexivity.
+    apply RelPack_intro. simpl. intros x y Hxy. subst. reflexivity.
   - (* tNatRec.  [Nat.recursion] respects the logical relation: equal
        counters + related base/step give related accumulators. *)
-    exists (tpArr R (tpArr (tpArr tpNat (tpArr R R)) (tpArr tpNat R))),
-           (@Nat.recursion (interp_type R)),
-           (@Nat.recursion (interp_type R)).
-    repeat split. simpl.
+    apply RelPack_intro. simpl.
     intros base1 base2 Hbase step1 step2 Hstep n1 n2 Hn. subst n2.
     revert base1 base2 Hbase step1 step2 Hstep.
     induction n1; intros; simpl; [exact Hbase|].
@@ -519,7 +497,7 @@ Lemma embed_eval : forall t,
 Proof.
   intro t.
   pose proof (embed_interp_related [] [] t (List.Forall2_nil _))
-    as [tp [v1 [v2 [Hp1 [Hp2 Hrel]]]]].
+    as (tp & v1 & v2 & Hp1 & Hp2 & Hrel).
   unfold eval, Contender.eval.
   replace (Contender.interp_term [] t)
     with (existT Contender.interp_type tp v1) by (symmetry; exact Hp1).
@@ -627,7 +605,7 @@ Theorem grow_lower_bound :
   G.grow (S Contender.contender_5) <= contender_grow_6.
 Proof.
   unfold contender_grow_6, largest_Grow_nat_of_depth, largest_of_depth.
-  destruct exists_maximizer_42 as [tstar [Hdepth Heval]].
+  destruct exists_maximizer_42 as (tstar & Hdepth & Heval).
   rewrite <- (witness_grow_eval tstar Heval).
   eapply Contender.lowerbound_maxBy with (x := witness_grow tstar). 2: reflexivity.
   apply (proj1 (termsUpTo_correct 44 (witness_grow tstar))).
