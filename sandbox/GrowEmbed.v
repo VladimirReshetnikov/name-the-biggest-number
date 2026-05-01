@@ -39,13 +39,9 @@ Require Import sandbox.Brouwer.
 (* Coq kernel conversion must never try to unfold depth-bounded search at a
    concrete depth like 42.  Keep Contender's max/search machinery opaque in
    this file.  (We only use its lemmas about these constants.) *)
-Opaque Contender.eval.
-Opaque Contender.maxBy.
-Opaque Contender.termsUpTo.
-Opaque Contender.typesUpTo.
-Opaque Contender.natsUpTo.
-Opaque Contender.largest_of_depth.
-Opaque Contender.largest_STLCNatRec_nat_of_depth.
+Opaque Contender.eval Contender.maxBy Contender.termsUpTo Contender.typesUpTo
+       Contender.natsUpTo Contender.largest_of_depth
+       Contender.largest_STLCNatRec_nat_of_depth.
 
 Module Type GrowSig.
   Parameter grow : nat -> nat.
@@ -143,12 +139,7 @@ Lemma interp_tApp_nat :
     interp_term e t1 = existT _ (tpArr tpNat B) f ->
     interp_term e t2 = existT _ tpNat a ->
     interp_term e (tApp t1 t2) = existT _ B (f a).
-Proof.
-  intros e t1 t2 B f a H1 H2.
-  simpl.
-  rewrite H1, H2.
-  reflexivity.
-Qed.
+Proof. intros * H1 H2; simpl; rewrite H1, H2; reflexivity. Qed.
 
 (* -------------------------------------------------------------------- *)
 (* Enumeration for L_Grow: copy Contender's depth-bounded generator and  *)
@@ -295,31 +286,19 @@ Lemma RelPack_intro :
   forall tp (v1 v2 : interp_type tp),
     RelVal tp v1 v2 ->
     RelPack (existT Contender.interp_type tp v1) (existT Contender.interp_type tp v2).
-Proof.
-  intros tp v1 v2 H.
-  exists tp, v1, v2.
-  repeat split; assumption.
-Qed.
+Proof. intros tp v1 v2 H; exists tp, v1, v2; repeat split; assumption. Qed.
 
 Definition RelEnv (e1 e2 : list pack) : Prop :=
   List.Forall2 RelPack e1 e2.
 
-Lemma error_related : forall tp,
-    RelVal tp (@error tp) (@error tp).
-Proof.
-  induction tp; simpl.
-  - reflexivity.
-  - intros x y _.
-    exact IHtp2.
-Qed.
+Lemma error_related : forall tp, RelVal tp (@error tp) (@error tp).
+Proof. induction tp; simpl; [reflexivity | intros _ _ _; exact IHtp2]. Qed.
 
 Lemma RelPack_error :
   RelPack
     (existT Contender.interp_type tpNat (@error tpNat))
     (existT Contender.interp_type tpNat (@error tpNat)).
-Proof.
-  apply RelPack_intro. reflexivity.
-Qed.
+Proof. apply RelPack_intro; reflexivity. Qed.
 
 Lemma Forall2_nth_error :
   forall {A B : Type} (R : A -> B -> Prop) l1 l2 n x,
@@ -327,8 +306,7 @@ Lemma Forall2_nth_error :
     nth_error l1 n = Some x ->
     exists y, nth_error l2 n = Some y /\ R x y.
 Proof.
-  intros A B R l1 l2 n x H. revert n x.
-  induction H; intros [|n] x0 Hnth; simpl in *;
+  intros * H; revert n x; induction H; intros [|n] x0 Hnth; simpl in *;
     [discriminate|discriminate|inversion Hnth; subst; eauto|eauto].
 Qed.
 
@@ -459,9 +437,8 @@ Proof.
        counters + related base/step give related accumulators. *)
     apply RelPack_intro. simpl.
     intros base1 base2 Hbase step1 step2 Hstep n1 n2 Hn. subst n2.
-    revert base1 base2 Hbase step1 step2 Hstep.
-    induction n1; intros; simpl; [exact Hbase|].
-    apply Hstep; [reflexivity | apply IHn1; assumption].
+    induction n1 in base1, base2, Hbase, step1, step2, Hstep |- *; simpl;
+      [exact Hbase | apply Hstep; [reflexivity | apply IHn1; assumption]].
 Qed.
 
 (* embed_eval needs to peek inside [Contender.eval] (which is otherwise
@@ -495,9 +472,8 @@ Definition contender_grow_6 : nat := largest_Grow_nat_of_depth 44.
    definitions (they need [largest_STLCNatRec_nat_of_depth = eval
    (largest_of_depth ...)] etc.).  Restore transparency just for them
    and re-mark Opaque afterwards. *)
-Local Transparent Contender.largest_STLCNatRec_nat_of_depth.
-Local Transparent Contender.largest_of_depth.
-Local Transparent Contender.eval.
+Local Transparent Contender.largest_STLCNatRec_nat_of_depth
+                  Contender.largest_of_depth Contender.eval.
 
 (* [contender_5 >= 1] because [tApp tS tO] is in [termsUpTo 42] and
    evaluates to 1.  [Contender.lowerbound_maxBy] does the rest. *)
@@ -520,16 +496,15 @@ Lemma exists_maximizer_42 :
     Contender.term_depth tstar <= 42 /\
     Contender.eval tstar = Contender.contender_5.
 Proof.
-  exists (Contender.largest_of_depth 42); split;
-    [|unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth;
-      reflexivity].
+  pose proof contender_5_ge_1 as Hge.
+  unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth,
+         Contender.largest_of_depth in *.
+  exists (Contender.maxBy Contender.eval 0 Contender.tO (Contender.termsUpTo 42));
+    split; [|reflexivity].
   destruct (Contender.maxBy_In Contender.eval (Contender.termsUpTo 42)
                                0 Contender.tO eq_refl) as [Pin | Peq].
   - apply (proj2 (Contender.termsUpTo_correct 42 _)) in Pin. exact Pin.
   - (* Peq: maxBy ... = tO.  Then contender_5 = eval tO = 0, contradicting >= 1. *)
-    pose proof contender_5_ge_1 as Hge.
-    unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth,
-           Contender.largest_of_depth in Hge.
     rewrite Peq in Hge. cbv in Hge. lia.
 Qed.
 
@@ -541,13 +516,10 @@ Lemma witness_grow_depth :
     Contender.term_depth tstar <= 42 ->
     term_depth (witness_grow tstar) <= 44.
 Proof.
-  intros tstar H.
-  unfold witness_grow.
-  simpl.
-  rewrite term_depth_embed.
-  (* simpl unfolded [Nat.max 1 X] into a [match X with 0 => 1 | S _ => S _]
-     case, which [lia] handles by destructing the depth. *)
-  destruct (Contender.term_depth tstar) as [|n]; simpl; lia.
+  intros tstar H. unfold witness_grow. simpl. rewrite term_depth_embed.
+  (* [simpl] unfolded [Nat.max 1 X] into a [match X with 0 | S _ end] case;
+     destructing the depth lets [lia] close both branches. *)
+  destruct (Contender.term_depth tstar); simpl; lia.
 Qed.
 
 Lemma witness_grow_eval :
@@ -560,19 +532,13 @@ Proof.
   assert (Hembed : eval (embed_term tstar) = Contender.contender_5)
     by (rewrite embed_eval; exact Heq).
   unfold witness_grow, eval in *.
-  destruct (interp_term [] (embed_term tstar)) as [tp res] eqn:E;
-    destruct tp as [|A B]; simpl in Hembed.
-  - (* [tpNat]: peel off [tS] then [tGrow] using [interp_tApp_nat]. *)
+  destruct (interp_term [] (embed_term tstar)) as [[|A B] res] eqn:E;
+    simpl in Hembed.
+  - (* [tpNat]: chain [interp_tApp_nat] on [tS] then [tGrow]. *)
     subst res.
-    assert (ES :
-      interp_term [] (tApp tS (embed_term tstar))
-        = existT _ tpNat (S Contender.contender_5))
-      by (eapply interp_tApp_nat; [apply interp_tS|exact E]).
-    assert (EG :
-      interp_term [] (tApp tGrow (tApp tS (embed_term tstar)))
-        = existT _ tpNat (G.grow (S Contender.contender_5)))
-      by (eapply interp_tApp_nat; [apply interp_tGrow|exact ES]).
-    rewrite EG; reflexivity.
+    rewrite (interp_tApp_nat _ _ _ _ _ _ (interp_tGrow _)
+              (interp_tApp_nat _ _ _ _ _ _ (interp_tS _) E)).
+    reflexivity.
   - (* Arrow type: [eval = 0] contradicts [contender_5 >= 1]. *)
     pose proof contender_5_ge_1; lia.
 Qed.
