@@ -583,6 +583,35 @@ contenders is enormously larger; sharper bounds would require extra
 properties of `BigGrow` (e.g. `BigGrow x >= 2x`, `BigGrow x >= x^2`,
 etc.) which are true but not currently proved.
 
+### 2026-04-30 sandbox update — higher Brouwer ordinals (epsilon_omega, zeta_0, Gamma_0)
+
+New experiment: `sandbox/BrouwerHigh.v`.
+
+Extends `sandbox/Brouwer.v` past `epsilon_0` with named Brouwer terms
+for `epsilon_1`, `epsilon_k` (any finite `k`), `epsilon_omega`,
+`zeta_0` (= `phi_2(0)`), `phi_2(a)` for any Brouwer `a`, and
+`Gamma_0`.  All as plain `Fixpoint` / `Definition`s, no axioms, no
+fuel.  Companion `BigGrow_eN`, `BigGrow_e_omega`, `BigGrow_zeta_0`,
+`BigGrow_Gamma_0` are total Coq functions `nat -> nat`, each strictly
+faster-growing than the previous (in the FGH ordering).
+
+Why this matters:
+
+* It demonstrates that the Brouwer-ordinal track scales smoothly past
+  `epsilon_0` with no new mechanism.  Each "next ordinal" is just
+  `Blim (fun n => ...)` applied to a bookkeeping function on Brouwer
+  terms; Coq's W-type guard accepts every recursive call as
+  structural.
+* It pre-positions stronger ordinals as alternative "engines" for any
+  future fresh-engine `contender_6`.  If the connector lemma is ever
+  proved at any specific finite ordinal `f_alpha(42) >=
+  contender_5`, swapping in `FGH Gamma_0` (or any of the higher
+  ordinals) gives a much larger contender for free at the same proof
+  cost.
+
+Compile time ~1 s.  `coqchk` accepts the module.  All nine
+`Print Assumptions` lines in the file report a closed global context.
+
 ### 2026-04-30 sandbox update — meta-reflection over `largest_RT_nat_of_depth` (Approach D.3)
 
 New experiment: `sandbox/ReflectRTower3.v`.
@@ -1078,6 +1107,181 @@ for Goodstein) and proving it terminates totally inside Coq is a
 substantial project on its own. There's a known Coq formalization of
 Goodstein by Castéran et al. (`Cantor` / `hydras`) which could be
 adapted but adds a large dependency.
+
+## Approach G — Conway chained-arrow notation
+
+Conway's chained-arrow notation `a -> b -> c -> ...` is a compact
+finitary recursion that surpasses tetration and pentation at chain
+length 4 onwards.  Definition:
+
+* `a -> b = a^b`.
+* `a -> b -> 1 = a^b`.
+* `a -> 1 -> c = a` (any c >= 1).
+* `a -> b -> c = a -> (a -> (b-1) -> c) -> (c-1)`.
+
+Termination by lex on `(c, b)`.  In Coq this is a `Fix` on the lex
+order, which is provable well-founded from the standard library's
+`lexprod`.  Three-entry chains saturate around `f_{omega+1}`;
+four-entry chains saturate around `f_{omega*2}`; in general `n`-entry
+chains saturate around `f_{omega*(n-2)}`.
+
+Pros: tiny code footprint, no ordinal data, no language extension.  A
+candidate `contender_6 := chain [n; n; n; n]` for some chosen `n`
+would be a pure-arithmetic engine.
+
+Cons: chained arrows still bottom out below `epsilon_0`, so the
+proof-theoretic-strength gap to a Brouwer-FGH candidate is
+fundamental.  Also: the connector to `contender_5` is essentially the
+same problem as for FGH at finite ordinals, so the work isn't
+"saved" by switching to chains.
+
+## Approach H — Veblen and beyond, via Brouwer notations
+
+The new `sandbox/BrouwerHigh.v` already exposes `epsilon_at`,
+`epsilon_omega`, `phi_2`, `zeta_0`, and `Gamma_0` as Brouwer terms.
+Each strictly extends Approach A's reach; e.g. `BigGrow_Gamma_0 :=
+FGH Gamma_0 : nat -> nat` is a total Coq function whose growth rate
+is the Feferman-Schutte fast-growing function `f_{Gamma_0}`.
+
+Open: extend `phi_2` to a full Veblen `phi : Brouwer -> Brouwer ->
+Brouwer` (parameterized by *both* the Veblen index and the argument).
+The Brouwer encoding is straightforward but non-trivial to keep
+structurally recursive: the natural recursion is on the *outer*
+Veblen index, with an inner sequence at each successor / limit case.
+
+Beyond `Gamma_0` the next landmarks are:
+
+* The small Veblen ordinal: a fixed point of the multivariate Veblen
+  hierarchy.  Definable in Brouwer with a generalized `phi_n`.
+* The large Veblen ordinal: a similar but more reflective
+  construction.
+* Bachmann-Howard ordinal: a fixed point of an ordinal collapsing
+  function.  Definable in Brouwer because every ordinal we're
+  describing is countable and has a primitive-recursive fundamental
+  sequence.
+
+Each gives a stronger `BigGrow := FGH ord : nat -> nat`.
+
+## Approach I — Combinatorial growth (TREE, SCG, WORM)
+
+Friedman's `TREE`, the Subcubic Graph numbers `SCG`, and the WORM
+function `Pi^1_1`-CA_0 strength.  All are total but the bound
+proof requires the corresponding combinatorial well-quasi-ordering
+theorem (Kruskal's tree theorem for `TREE`, a graph-minor-theorem
+analogue for `SCG`).
+
+Pros: dramatically stronger than `epsilon_0`.
+
+Cons: substantial encoding cost.  Needs at minimum:
+
+* An inductive type for finite labelled trees.
+* The "homeomorphic embedding" relation.
+* A definition of `TREE n` as the longest sequence of trees, each
+  with at most `i+1` nodes labelled by `n`-many labels, no tree
+  embedding into a later one.
+* Termination via Kruskal: provable but a real chunk of formalization.
+
+## Approach J — A fresh strict-bound connector lemma
+
+The cleanest possible `contender_6` is
+
+```coq
+Definition contender_6 : nat := BigGrow N.       (* for some specific N *)
+Theorem contender_5_lt_contender_6 : Contender.contender_5 < contender_6.
+```
+
+with the engine `BigGrow := FGH epsilon_0` borrowed from
+`sandbox/Brouwer.v`.  The DEFINITION mentions no part of `contender_5`
+-- this would clearly satisfy the don't-be-lazy rule.  The PROOF
+needs a connector:
+
+> **Connector:** for every closed STLC+NatRec term `t` of
+> `term_depth t <= 42`, `Contender.eval t <= F(42)` for some
+> specific Coq function `F` with `F(42) < FGH epsilon_0 N`.
+
+A natural choice: `F(d) := FGH (nat_to_B (d + c)) (d + c)` for some
+small constant `c`, which is `f_{omega}` truncated at index `d + c`
+and is provably below `f_{epsilon_0}(d + c)`.  Then `N = 43` (or
+slightly larger) suffices.
+
+The connector itself is a Tait/Girard-style reducibility argument:
+
+1. Define `Reducible (A : Contender.type) : Brouwer -> nat ->
+   interp_type A -> Prop` such that:
+
+   * `Reducible tpNat alpha n v <-> v <= FGH alpha n`.
+   * `Reducible (tpArr A B) alpha n f <-> forall n' v',
+     Reducible A alpha' n' v' -> Reducible B alpha'' n''
+     (f v')` -- with `(alpha', n') -> (alpha'', n'')` a
+     specific bookkeeping relation.
+
+2. Prove every closed `t : interp_type A` of depth `<= d`
+   satisfies `Reducible A (interp_type_to_ord A) (d + c) (eval t)`
+   for `c` a small fixed constant.
+
+3. Specialise to `A = tpNat`, `d = 42`: `Reducible tpNat
+   omega 42 (eval t) -> eval t <= FGH omega 42 = f_omega(42)`.
+
+4. Take the max over depth-42 terms: `contender_5 <= f_omega(42) =
+   FGH (nat_to_B 42) 42 < FGH epsilon_0 42 = BigGrow 42`.
+
+Estimated cost: 200-500 lines of Coq.  This is a substantial proof
+project but mostly mechanical; the difficulty is bookkeeping the
+ordinals and the inductive measure rather than discovering a new
+mathematical idea.
+
+Track 2 of the recommendations section is exactly this sub-track.
+
+## Approach K — A "depth-bounded max over Brouwer-FGH-typed terms"
+
+A genuinely new evaluation engine that *replaces* STLC+NatRec rather
+than extending it.
+
+Take a small total language whose "values" are Brouwer ordinals
+(rather than naturals), with primitives `Bz`, `Bsucc`, `Blim_const`
+(a constant Brouwer fundamental sequence), and a `tApp` that
+applies a sequence to a nat, plus a `tFGH : tpOrd -> tpNat -> tpNat`
+primitive interpreted as `FGH`.  Then take
+
+```coq
+contender_K := largest_K_nat_of_depth d
+```
+
+for some `d`.
+
+Pros: the engine *is* Brouwer-FGH directly, with no oracle at all.
+The contender's definition is "max over depth-`d` Brouwer-FGH
+terms".
+
+Cons: more substantial syntax / typing infrastructure than any
+existing sandbox file.  Also: the connector "what's the max value
+of any depth-`d` Brouwer-FGH term?" still has to be analysed, and is
+analogous to the proof-theoretic-ordinal-of-System-T problem, just
+in a different language.  The advantage is purely aesthetic: the
+language used in the contender's definition is no longer the same as
+the language `contender_5` uses.
+
+## Approach L — Iteration of a fresh combinator at runtime
+
+A "fresh combinator" is a Coq function with a non-trivial recursion
+that is not expressible in System T at any fixed depth.  The
+canonical example is `Brouwer.BigGrow`, but there are others:
+
+* The Goodstein function (Approach F).
+* The Hardy hierarchy at `epsilon_0`: `Hardy epsilon_0 : nat -> nat`.
+  Slow-growing sibling of FGH; provably equivalent to FGH "in the
+  limit" but smaller at small inputs.  Already defined in
+  `sandbox/Brouwer.v`.
+* `iter_pow2` etc., where the iteration is itself indexed by
+  Brouwer ordinals.
+
+Combining any two of these by composition gives candidate "fresh
+engine" contenders.  Example: `contender := Hardy epsilon_omega
+(BigGrow 42)`.  Engine: composition of two ordinal-indexed
+hierarchies, no STLC machinery.
+
+This is essentially Approach E with two layers, but the connector
+question is the same as Approach J.
 
 ## Recommendation / next concrete step
 
