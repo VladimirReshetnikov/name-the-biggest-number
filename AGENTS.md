@@ -281,6 +281,17 @@ the brainstorming thread does not get lost between sessions.
   context for it.  This bypasses the well-foundedness blocker that
   the CNF-based `sandbox/FGH.v` would have to solve.  Compile with
   `coqc -Q . "" sandbox\Brouwer.v`; standalone, ~1 s.
+- `sandbox/BigGrowPrevMax.v` — BigGrow + prevMax diagonalization (hybrid
+  of Approach E and the reflection-oracle pattern): extends the
+  `ReflectTowerNoAx`-style language with a primitive
+  `tBigGrow : Nat -> Nat` interpreted as `sandbox.Brouwer.BigGrow`
+  (i.e. `FGH epsilon_0`). Proves the generic strict step
+  `prevMax d < largest_BGPrev_nat_of_depth prevMax (d + 4)` via the
+  witness term `tBigGrow (S (tPrevMax d))`, and instantiates it at
+  `d = 42` to get `Contender.contender_5 < contender_bigGrowPrev` with a
+  witness at `term_depth = 46`. `Print Assumptions` reports a closed
+  global context. Compile with `coqc -Q . "" sandbox\BigGrowPrevMax.v`
+  after `Contender.vo` and `sandbox\Brouwer.vo`.
 - `sandbox/ReflectRTowerComputed.v` — computed-argument D.2 refinement
   ("Phase 2").  Imports `sandbox.ReflectRTowerSmall` and defines
   offset-aware NatRec arithmetic combinators (`double_at`, `pow2_at`)

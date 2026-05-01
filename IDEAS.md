@@ -509,6 +509,39 @@ The file also records small structural lemmas (`FGH_Bsucc`,
 that future contender work can build on without re-deriving the
 unfolding.
 
+### 2026-04-30 sandbox update — BigGrow + prevMax diagonalization (hybrid E/D)
+
+New experiment: `sandbox/BigGrowPrevMax.v`.
+
+This is a pragmatic workaround for the `BigGrow 42 > contender_5` meta-theorem:
+instead of trying to bound `contender_5` at a fixed small input, we *feed*
+`BigGrow` the previous max itself via a `tPrevMax` oracle.  The file extends the
+`ReflectTowerNoAx`-style language with a primitive
+
+```coq
+tBigGrow : Nat -> Nat
+```
+
+interpreted as `Brouwer.BigGrow := Brouwer.FGH Brouwer.epsilon_0`.
+
+The concrete witness term
+
+```coq
+tApp tBigGrow (tApp tS (tApp tPrevMax (natlit 42)))
+```
+
+has `term_depth = 46` and evaluates to `BigGrow (S contender_5)`, which is
+strictly larger than `contender_5` by `Brouwer.BigGrow_gt_S`.  The file proves
+the generic lemma `forall prevMax d, prevMax d < largest_BGPrev_nat_of_depth prevMax (d + 4)`
+and instantiates it to get
+
+```coq
+Theorem contender_5_lt_bigGrowPrev :
+  Contender.contender_5 < contender_bigGrowPrev.
+```
+
+with a closed global context (`Print Assumptions` reports none).
+
 ### 2026-04-30 sandbox update — meta-reflection over `largest_RT_nat_of_depth` (Approach D.3)
 
 New experiment: `sandbox/ReflectRTower3.v`.
@@ -1053,6 +1086,12 @@ State of play after the 2026-04-30 follow-up:
   The remaining work for Approach A / E is now a *connector* lemma --
   bounding STLC+NatRec evals at depth 42 by `f_alpha(42)` for some
   `alpha < epsilon_0` -- not a foundational well-foundedness proof.
+* **A hybrid "BigGrow + prevMax" diagonal step beats `contender_5` at depth 46.**
+  `sandbox/BigGrowPrevMax.v` extends the `ReflectTowerNoAx`-style language with
+  `tBigGrow : Nat -> Nat` interpreted as `Brouwer.BigGrow` and keeps the
+  `tPrevMax` oracle.  The witness `tBigGrow (S (tPrevMax 42))` evaluates to
+  `BigGrow (S contender_5) > contender_5` by `Brouwer.BigGrow_gt_S`, giving a
+  fully mechanical strict inequality with no proof-theory connector lemma.
 
 Three credible next concrete steps, ordered by ambition:
 

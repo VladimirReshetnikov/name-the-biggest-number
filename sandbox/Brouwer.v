@@ -179,6 +179,37 @@ Lemma Hardy_Blim : forall f n, Hardy (Blim f) n = Hardy (f n) n.
 Proof. intros. reflexivity. Qed.
 
 (* -------------------------------------------------------------------- *)
+(* Simple global growth facts.                                           *)
+(*                                                                       *)
+(* These are intentionally tiny but very useful in later "grow" /         *)
+(* diagonalization arguments: they let us use [FGH epsilon_0] as a         *)
+(* generic "always increases at least by 1 at positive inputs" function   *)
+(* without doing any proof-theory.                                        *)
+(* -------------------------------------------------------------------- *)
+
+Lemma Nat_iter_ge :
+  forall (f : nat -> nat) (k x : nat),
+    (forall n, n <= f n) ->
+    x <= Nat.iter k f x.
+Proof.
+  intros f k. induction k; intros x Hf; simpl.
+  - lia.
+  - eapply Nat.le_trans.
+    + apply IHk. exact Hf.
+    + apply Hf.
+Qed.
+
+Lemma FGH_ge : forall a n, n <= FGH a n.
+Proof.
+  induction a as [|a IHa|f IHf]; intro n; simpl.
+  - lia.
+  - (* successor case: iterate a non-decreasing function *)
+    apply Nat_iter_ge. exact IHa.
+  - (* limit case: pick the [n]-th fundamental-sequence element *)
+    apply (IHf n n).
+Qed.
+
+(* -------------------------------------------------------------------- *)
 (* Sanity checks at small ordinals.                                      *)
 (* -------------------------------------------------------------------- *)
 
@@ -246,6 +277,17 @@ Definition omega_to_4 : Brouwer := omega_tower 4.
 (* -------------------------------------------------------------------- *)
 
 Definition BigGrow (n : nat) : nat := FGH epsilon_0 n.
+
+Lemma BigGrow_ge : forall n, n <= BigGrow n.
+Proof. intro n. unfold BigGrow. apply FGH_ge. Qed.
+
+Lemma BigGrow_gt_S : forall n, n < BigGrow (S n).
+Proof.
+  intro n.
+  eapply Nat.lt_le_trans with (m := S n).
+  - lia.
+  - apply BigGrow_ge.
+Qed.
 
 (* A few small computed values of BigGrow for sanity.  These are tractable
    only because [n] is tiny:
