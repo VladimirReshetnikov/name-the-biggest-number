@@ -120,7 +120,7 @@
 \begin{abstract}
 \noindent
 This article is a self-contained tutorial on the construction of
-\texttt{contender\_6}, a new entry to the Coq-formalised
+\texttt{contender\_6}, a new entry to the Coq-formalized
 \emph{name-the-biggest-number} contest of
 \texttt{github.com/codyroux/name-the-biggest-number}.  The previous
 contender, \texttt{contender\_5}, is the largest natural number that any
@@ -131,7 +131,7 @@ semantics is the function $f_{\varepsilon_0}$ from the fast-growing
 hierarchy, and define \texttt{contender\_6} as the analogous depth-bounded
 maximum at depth $44$ in the extended language.  The proof of strict
 inequality $\texttt{contender\_5} < \texttt{contender\_6}$ proceeds by
-embedding the previous contender's hidden maximiser term into the new
+embedding the previous contender's hidden maximizer term into the new
 language, using $\texttt{tGrow}$ as one extra application layer to break
 through System~T's $\varepsilon_0$ ceiling.
 
@@ -143,7 +143,7 @@ language $\mathcal{L}_{\textrm{Grow}}$ and its denotational
 semantics; (5)~a Tait-style logical relation that proves the embedding
 preserves evaluation \emph{without} function extensionality; and (6)~the
 final witness term and the chain of inequalities.  Every step is
-accompanied by the corresponding Rocq/Coq formalisation, taken
+accompanied by the corresponding Rocq/Coq formalization, taken
 verbatim from the inlined \texttt{Contender.v}.
 \end{abstract}
 
@@ -166,7 +166,7 @@ exponential, primitive recursion beats tower, the Ackermann function
 beats primitive recursion, and so on, climbing through the ordinals of
 proof theory.
 
-The Coq repository \texttt{codyroux/name-the-biggest-number} formalises
+The Coq repository \texttt{codyroux/name-the-biggest-number} formalizes
 this game in a small but precise way:
 
 \begin{itemize}[leftmargin=2em]
@@ -213,7 +213,7 @@ Contender~5 is the bound
   \max\;\bigl\{\,\eval(t)\;:\;t \text{ a closed System~T term},\ \depth(t)\leq 42\,\bigr\}
 \]
 
-formalised by enumerating the finite set of System~T abstract syntax
+formalized by enumerating the finite set of System~T abstract syntax
 trees of depth $\leq 42$, evaluating each one, and taking the maximum
 via a polymorphic \texttt{maxBy} combinator.  System~T is
 $\lambda$-calculus with a single base type \texttt{Nat}, function types,
@@ -300,7 +300,7 @@ The construction is sketched in three lines:
         the maximum of $\eval(t)$ over closed
         $\mathcal{L}_{\textrm{Grow}}$ terms of depth at most $44$.
   \item For the proof, retrieve the \emph{existential} witness
-        $t^\star$ realising \texttt{contender\_5} (a closed
+        $t^\star$ realizing \texttt{contender\_5} (a closed
         $\depth(t^\star)\leq42$ System~T term with
         $\eval(t^\star)=\texttt{contender\_5}$, guaranteed to exist by
         \texttt{maxBy\_In}), embed it into
@@ -313,7 +313,7 @@ The key observation is that the \emph{definition} of
 \texttt{contender\_6} mentions only the depth-bounded enumerator,
 \texttt{maxBy}, and \texttt{eval} of the new language -- no
 \texttt{contender\_5} machinery whatsoever.  The proof is allowed to
-use the existential maximiser, because the maintainer's rule prohibits
+use the existential maximizer, because the maintainer's rule prohibits
 laziness in \emph{definitions}, not in \emph{proofs}.
 
 % =======================================================================
@@ -436,7 +436,7 @@ So
 This is the proof-theoretic ordinal of Peano arithmetic, hence the
 natural ceiling for any system at most as strong as PA.  Crucially for
 us, $\varepsilon_0$ is \emph{above} the ordinal $\omega^\omega$, which is
-itself above any ordinal expressible in System~T's normalisation.
+itself above any ordinal expressible in System~T's normalization.
 
 % =======================================================================
 \section{The fast-growing hierarchy and \texttt{BigGrow}}
@@ -715,7 +715,7 @@ The first inequality is one line, by \texttt{BigGrow\_gt\_S}.  The
 second is the heart of the proof; it splits into three sub-claims,
 each treated in its own section below.
 
-\paragraph{(A) Existential maximiser.}
+\paragraph{(A) Existential maximizer.}
 There is a closed System~T term $t^\star$ with $\depth(t^\star) \leq 42$
 and $\eval(t^\star) = \texttt{contender\_5}$.  This is the lemma
 \texttt{exists\_maximizer\_42}.
@@ -749,7 +749,7 @@ hence the strict inequality.
 We treat each of (A), (B), (C) in turn.
 
 % =======================================================================
-\section{(A)~The existential maximiser}
+\section{(A)~The existential maximizer}
 % =======================================================================
 
 The first ingredient is the inhabited witness theorem:
@@ -882,7 +882,7 @@ Fixpoint RelVal (A : type) : interp_type A -> interp_type A -> Prop :=
 At \texttt{tpNat}, $\texttt{RelVal}\,x\,y \iff x=y$.  At
 $\texttt{tpArr}\,A\,B$, two functions are related iff they map related
 arguments to related results.  This is exactly Tait's
-\emph{computability predicate}, which gives strong normalisation for
+\emph{computability predicate}, which gives strong normalization for
 System~T; we will use it as an extensional substitute for equality.
 
 The relation lifts to packs (a pack-level relation that asserts
@@ -1027,7 +1027,7 @@ the job.
 \subsection{From the relation to actual equality}
 
 Because $\texttt{RelVal}\,\texttt{tpNat}\,x\,y$ is just $x=y$, the
-fundamental theorem specialised to closed terms gives us \emph{exact}
+fundamental theorem specialized to closed terms gives us \emph{exact}
 equality of the natural number outputs:
 
 \begin{lstlisting}
@@ -1070,7 +1070,7 @@ invariant.
 
 \subsection{Construction}
 
-Given a System~T term $t^\star$ -- the existential maximiser of (A) --
+Given a System~T term $t^\star$ -- the existential maximizer of (A) --
 the witness is
 
 \[
@@ -1227,7 +1227,7 @@ Proof. exact BigGrowEmbed.contender_5_lt_contender_grow_6. Qed.
 \end{lstlisting}
 
 The functor structure is bookkeeping: the entire proof goes through
-abstractly over $G$, and the \texttt{BigGrow} specialisation is two
+abstractly over $G$, and the \texttt{BigGrow} specialization is two
 lines of glue.
 
 % =======================================================================
@@ -1258,7 +1258,7 @@ shared because it is a generic combinator -- it cares only about a
 key function and a list, not what those things are.
 
 The \emph{proof} of strict inequality, by contrast, freely uses the
-existential maximiser of \texttt{contender\_5} (via
+existential maximizer of \texttt{contender\_5} (via
 \texttt{maxBy\_In}), as well as Contender's \texttt{interp\_term},
 \texttt{eval}, \texttt{cast\_impl}, and \texttt{lookup}.  This is
 exactly the ``definitional cleanliness, proof witness reuse'' design
