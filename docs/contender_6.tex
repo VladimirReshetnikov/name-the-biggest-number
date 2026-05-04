@@ -2,8 +2,14 @@
 
 % --- Math, symbols, theorem environments --------------------------------
 \usepackage{amsmath,amssymb,amsthm,mathtools}
-\providecommand{\llbracket}{[\!\![}
-\providecommand{\rrbracket}{]\!\!]}
+% Define [[ ]] as composite glyphs with a small *positive* gap between
+% the two halves, so they are clearly readable as double brackets at
+% any zoom level (unlike the negative-thin-space version, which can
+% read as bold-single-brackets at small sizes).  We avoid [stmaryrd]
+% because its [stmary10] font is not bundled with [lualatex] by
+% default.
+\providecommand{\llbracket}{\mathopen{[\mkern-2.5mu[}}
+\providecommand{\rrbracket}{\mathclose{]\mkern-2.5mu]}}
 
 % --- Layout, typography -------------------------------------------------
 \usepackage[a4paper,margin=1in]{geometry}
