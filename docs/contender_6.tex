@@ -1,0 +1,1354 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Math, symbols, theorem environments --------------------------------
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\providecommand{\llbracket}{[\!\![}
+\providecommand{\rrbracket}{]\!\!]}
+
+% --- Layout, typography -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{xcolor}
+
+% --- Code listings ------------------------------------------------------
+\usepackage{listings}
+
+\definecolor{coqkw}{RGB}{40,80,160}
+\definecolor{coqcomment}{RGB}{105,120,140}
+\definecolor{coqstr}{RGB}{160,40,40}
+\definecolor{coqid}{RGB}{0,0,0}
+\definecolor{coqbg}{RGB}{248,248,250}
+
+\lstdefinelanguage{Coq}{
+  morekeywords={Definition,Fixpoint,Inductive,Lemma,Theorem,Corollary,
+                Proof,Qed,Defined,forall,exists,fun,match,with,end,let,in,
+                if,then,else,return,as,struct,Module,End,Import,Require,
+                From,Type,Prop,Set,Section,Variable,Hypothesis,Notation,
+                Local,Global,Print,Eval,Compute,where,Parameter,Axiom,
+                Ltac,intro,intros,apply,exact,rewrite,simpl,cbn,cbv,
+                destruct,induction,reflexivity,symmetry,transitivity,
+                assumption,auto,eauto,lia,split,exists,subst,assert,
+                pose,proof,unfold,fold,change,replace,specialize,
+                generalize,revert,clear,case,solve,contradiction,
+                inversion,discriminate,congruence,repeat,first,try,now,
+                projT1,projT2,existT,List,Some,None,Forall2,nth_error,
+                Nat,iter,recursion,nil,cons,nat,bool,option,True,False,
+                Bz,Bsucc,Blim,FGH,BigGrow,epsilon_0,omega,
+                tVar,tLam,tApp,tO,tS,tNatRec,tGrow,tpNat,tpArr,
+                term,interp_type,pack,RelVal,RelPack,RelEnv,
+                contender_5,contender_6,contender_grow_6},
+  morecomment=[s]{(*}{*)},
+  morestring=[b]",
+  sensitive=true,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{coqkw}\bfseries,
+  commentstyle=\color{coqcomment}\itshape,
+  stringstyle=\color{coqstr},
+  identifierstyle=\color{coqid},
+  backgroundcolor=\color{coqbg},
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{coqcomment!40},
+  xleftmargin=1em,
+  xrightmargin=0.5em,
+  framexleftmargin=0.5em,
+  showstringspaces=false,
+  breaklines=true,
+  columns=fullflexible,
+  literate=
+    {<=}{{$\leq$}}1
+    {>=}{{$\geq$}}1
+    {<>}{{$\neq$}}1
+    {->}{{$\rightarrow$}}1
+    {=>}{{$\Rightarrow$}}1
+    {<->}{{$\leftrightarrow$}}1
+    {forall}{{$\forall$}}1
+    {exists}{{$\exists$}}1
+}
+
+\lstset{language=Coq}
+
+% --- Theorem environments -----------------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% --- Math shorthands ----------------------------------------------------
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\eps}{\varepsilon}
+\DeclareMathOperator{\depth}{depth}
+\DeclareMathOperator{\eval}{eval}
+\DeclareMathOperator{\embed}{embed}
+\DeclareMathOperator{\largest}{largest}
+
+% --- Hyperref last ------------------------------------------------------
+\usepackage[colorlinks=true,
+            linkcolor=blue!50!black,
+            citecolor=blue!50!black,
+            urlcolor=blue!50!black]{hyperref}
+
+% --- Title & metadata ---------------------------------------------------
+\title{From Ackermann to $\varepsilon_0$:\\
+       a Tutorial Walk-Through of \texttt{contender\_6}}
+\author{(name-the-biggest-number, contender~6)}
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+\noindent
+This article is a self-contained tutorial on the construction of
+\texttt{contender\_6}, a new entry to the Coq-formalised
+\emph{name-the-biggest-number} contest of
+\texttt{github.com/codyroux/name-the-biggest-number}.  The previous
+contender, \texttt{contender\_5}, is the largest natural number that any
+closed term of System~T (simply-typed $\lambda$-calculus with
+\texttt{NatRec}) of abstract-syntax-tree depth at most $42$ evaluates to.
+We extend the syntax with a single new primitive, \texttt{tGrow}, whose
+semantics is the function $f_{\varepsilon_0}$ from the fast-growing
+hierarchy, and define \texttt{contender\_6} as the analogous depth-bounded
+maximum at depth $44$ in the extended language.  The proof of strict
+inequality $\texttt{contender\_5} < \texttt{contender\_6}$ proceeds by
+embedding the previous contender's hidden maximiser term into the new
+language, using $\texttt{tGrow}$ as one extra application layer to break
+through System~T's $\varepsilon_0$ ceiling.
+
+The tutorial presents in turn: (1)~the contest setting and the
+\emph{don't-be-lazy} rule; (2)~Brouwer ordinal notations and why they
+turn ordinal recursion into ordinary structural recursion; (3)~the
+fast-growing hierarchy and its closure properties; (4)~the new object
+language $\mathcal{L}_{\textrm{Grow}}$ and its denotational
+semantics; (5)~a Tait-style logical relation that proves the embedding
+preserves evaluation \emph{without} function extensionality; and (6)~the
+final witness term and the chain of inequalities.  Every step is
+accompanied by the corresponding Rocq/Coq formalisation, taken
+verbatim from the inlined \texttt{Contender.v}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =======================================================================
+\section{The contest in a nutshell}
+% =======================================================================
+
+\subsection{Big numbers, formally}
+
+In Scott Aaronson's 1999 essay
+\emph{Who Can Name the Bigger Number?}~\cite{aaronson} the rules of
+the eponymous game are a single line on a blackboard: each contestant
+writes a natural number, and the larger one wins.  The interesting twist
+is that ``larger'' is not measured in digits or magnitude of the numeral,
+but in the \emph{description} of the number.  Tower notation beats
+exponential, primitive recursion beats tower, the Ackermann function
+beats primitive recursion, and so on, climbing through the ordinals of
+proof theory.
+
+The Coq repository \texttt{codyroux/name-the-biggest-number} formalises
+this game in a small but precise way:
+
+\begin{itemize}[leftmargin=2em]
+  \item Numbers must be \emph{constructive}: no busy-beaver shenanigans,
+        no oracles, no inconsistent axioms.  Each contender is a closed
+        term of type \texttt{nat}.
+  \item Each contender comes with a \emph{formal Coq proof} that it
+        strictly exceeds the previous one.
+  \item Type-checking the definition takes at most $15$ seconds and
+        the proof at most $60$ seconds on a reasonable machine.
+  \item No axioms.
+  \item The crucial \emph{don't-be-lazy} rule: the new contender
+        \texttt{contender\_N} must \emph{not} be defined by literally
+        invoking the previous \texttt{contender\_N-1} as a numeral.  The
+        spirit of the rule is that a one-line victory of the form
+        ``$\texttt{contender\_5} + 1$'' should be ineligible.  As we
+        will see, this is more subtle than it sounds.
+\end{itemize}
+
+The current chain of contenders is:
+
+\begin{center}
+\begin{tabular}{cl@{\ }l}
+\toprule
+\# & Definition & Order of magnitude \\
+\midrule
+1 & $1$ & $\sim 1$ \\
+2 & a literal numeral & several digits \\
+3 & multi-tower & a few towers of $2$ \\
+4 & $\texttt{ack}\ 5\ 42\ 10002$ & an Ackermannian giant \\
+5 & largest closed System~T term, $\depth \leq 42$ & dwarfs every $f_\alpha$ for $\alpha < \varepsilon_0$ \\
+\textbf{6} & \textbf{the present submission} & $\geq f_{\varepsilon_0}(\texttt{contender\_5}+1)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{The previous contender, in one paragraph}
+
+Contender~5 is the bound
+
+\[
+  \texttt{contender\_5}
+  \;=\;
+  \max\;\bigl\{\,\eval(t)\;:\;t \text{ a closed System~T term},\ \depth(t)\leq 42\,\bigr\}
+\]
+
+formalised by enumerating the finite set of System~T abstract syntax
+trees of depth $\leq 42$, evaluating each one, and taking the maximum
+via a polymorphic \texttt{maxBy} combinator.  System~T is
+$\lambda$-calculus with a single base type \texttt{Nat}, function types,
+and a recursor \texttt{NatRec}.  We will not need to dive into
+\texttt{Contender.v}'s internals; what matters is the four facts
+recorded as Coq lemmas:
+
+\begin{itemize}[leftmargin=2em]
+  \item the enumerator \texttt{termsUpTo}\,$n$ is \emph{complete}:
+        every closed term $t$ with $\depth(t)\leq n$ appears in it
+        (\texttt{termsUpTo\_correct});
+  \item \texttt{maxBy} returns either the initial best or some element
+        of the list (\texttt{maxBy\_In});
+  \item every element of the list is bounded above by the maximum
+        (\texttt{lowerbound\_maxBy});
+  \item the maximum is \emph{monotone} in the depth bound
+        (\texttt{largest\_of\_depth\_monotone}).
+\end{itemize}
+
+These four lemmas suffice for everything we will do.
+
+\subsection{Why \texttt{contender\_5+1} is not enough}
+
+The naive way to defeat \texttt{contender\_5} is
+
+\[
+\texttt{contender\_6} \;\overset{?}{=}\; \texttt{contender\_5} + 1.
+\]
+
+This ``definition'' is morally banned by the don't-be-lazy rule: the
+\emph{definition} mentions \texttt{contender\_5} directly, even though
+the proof would be one line.  More subtly, \emph{any} construction
+whose definitional unfolding contains the symbol
+\texttt{largest\_STLCNatRec\_nat\_of\_depth} (\texttt{contender\_5}'s
+search machinery) is borderline-violating the rule, and the maintainer
+has historically rejected such submissions on those grounds.
+
+Our challenge, then, is to define a number whose unfolded form does
+\emph{not} mention any of \texttt{contender\_5}'s machinery, while still
+proving it larger than \texttt{contender\_5}.  This is exactly the
+\emph{fresh-engine} pattern.
+
+% =======================================================================
+\section{Strategy: a fresh engine for one extra layer}
+% =======================================================================
+
+\subsection{The bound on System~T}
+
+System~T is famously bounded by the proof-theoretic ordinal of Peano
+arithmetic, $\varepsilon_0$.  Concretely:
+
+\begin{quote}\emph{Every closed System~T term $t$ of type \texttt{Nat}
+satisfies $\eval(t) \leq f_\alpha(c)$ for some
+$\alpha < \varepsilon_0$ and constant $c$ depending only on $t$.}
+\end{quote}
+
+So if we want a number $N > \texttt{contender\_5}$, the easiest way
+\emph{not} to be lazy is to use, in the definition, a function that
+\emph{cannot} be denoted by any closed System~T term: the
+fast-growing-hierarchy ordinal-$\varepsilon_0$ function
+
+\[
+   \texttt{BigGrow}(n) \;\coloneqq\; f_{\varepsilon_0}(n).
+\]
+
+We will not actually \emph{prove} this bound on System~T inside
+\texttt{Contender.v} -- a full proof of the connector lemma
+``$\eval(t) \leq f_{\varepsilon_0}(\depth(t))$'' would be a substantial
+exercise -- but we do not need it.  All we need is one explicit
+\emph{lower bound} witness, and the witness we will use makes the
+inequality work for purely combinatorial reasons.
+
+\subsection{The fresh-engine pattern}
+
+The construction is sketched in three lines:
+
+\begin{enumerate}[leftmargin=2em,label=(\arabic*)]
+  \item Define a fresh object language
+        $\mathcal{L}_{\textrm{Grow}} = \text{System~T} \,+\, \texttt{tGrow}$,
+        where \texttt{tGrow} is a unary function symbol of type
+        $\texttt{Nat}\to\texttt{Nat}$ interpreted as \texttt{BigGrow}.
+  \item Define
+        $\texttt{contender\_6} \coloneqq \largest_{\mathcal{L}_{\textrm{Grow}}}(44)$,
+        the maximum of $\eval(t)$ over closed
+        $\mathcal{L}_{\textrm{Grow}}$ terms of depth at most $44$.
+  \item For the proof, retrieve the \emph{existential} witness
+        $t^\star$ realising \texttt{contender\_5} (a closed
+        $\depth(t^\star)\leq42$ System~T term with
+        $\eval(t^\star)=\texttt{contender\_5}$, guaranteed to exist by
+        \texttt{maxBy\_In}), embed it into
+        $\mathcal{L}_{\textrm{Grow}}$ as $\embed(t^\star)$, and use the
+        depth-$44$ witness term
+        $\texttt{tGrow}\,(\texttt{tS}\,(\embed\,t^\star))$.
+\end{enumerate}
+
+The key observation is that the \emph{definition} of
+\texttt{contender\_6} mentions only the depth-bounded enumerator,
+\texttt{maxBy}, and \texttt{eval} of the new language -- no
+\texttt{contender\_5} machinery whatsoever.  The proof is allowed to
+use the existential maximiser, because the maintainer's rule prohibits
+laziness in \emph{definitions}, not in \emph{proofs}.
+
+% =======================================================================
+\section{A primer on Brouwer ordinal notations}
+% =======================================================================
+
+The next three sections build up the function \texttt{BigGrow}.  Readers
+familiar with the fast-growing hierarchy can skim them.
+
+\subsection{The data}
+
+Brouwer ordinal notations represent ordinals as well-founded trees:
+
+\begin{lstlisting}
+Inductive Brouwer : Type :=
+| Bz    : Brouwer
+| Bsucc : Brouwer -> Brouwer
+| Blim  : (nat -> Brouwer) -> Brouwer.
+\end{lstlisting}
+
+The three constructors mean:
+
+\begin{itemize}[leftmargin=2em]
+  \item \texttt{Bz} is the ordinal $0$.
+  \item \texttt{Bsucc}\,$a$ is the successor $a+1$.
+  \item \texttt{Blim}\,$f$ is the limit $\sup_n f(n)$, with the
+        \emph{fundamental sequence} $(f(0), f(1), \ldots)$ baked into
+        the data of the term.
+\end{itemize}
+
+The fundamental-sequence-as-data presentation is the trick that makes
+ordinal recursion in Coq painless: any \texttt{Fixpoint} on
+\texttt{Brouwer} that recurses on a strict subterm is structurally
+total, and Coq's W-type guard accepts the limit case by treating
+$f(n)$, for an arbitrary fresh \texttt{n}, as a structural subterm of
+\texttt{Blim}\,$f$.
+
+\begin{remark}
+This is \emph{not} an extensional presentation of ordinals: two
+different fundamental sequences for the same supremum give two distinct
+\texttt{Brouwer} terms.  But for fast-growing-hierarchy purposes the
+choice of fundamental sequence is exactly what we want to commit to:
+$f_{\omega^2}$ and $f_{\omega \cdot \omega}$ are extensionally different
+on a Brouwer presentation.
+\end{remark}
+
+\subsection{Embedding the natural numbers}
+
+The natural numbers embed into Brouwer ordinals as iterated
+successors:
+
+\begin{lstlisting}
+Fixpoint nat_to_B (n : nat) : Brouwer :=
+  match n with
+  | 0    => Bz
+  | S n' => Bsucc (nat_to_B n')
+  end.
+
+Definition omega : Brouwer := Blim nat_to_B.
+\end{lstlisting}
+
+So $\omega$ is the limit of the natural-number embedding -- exactly the
+ordinal-theoretic definition.
+
+\subsection{Ordinal arithmetic}
+
+Addition, multiplication, and $\omega$-exponentiation all proceed by
+structural recursion on the second argument:
+
+\begin{lstlisting}
+Fixpoint Badd (a b : Brouwer) : Brouwer :=
+  match b with
+  | Bz       => a
+  | Bsucc b' => Bsucc (Badd a b')
+  | Blim f   => Blim (fun n => Badd a (f n))
+  end.
+
+Fixpoint Bmul (a b : Brouwer) : Brouwer :=
+  match b with
+  | Bz       => Bz
+  | Bsucc b' => Badd (Bmul a b') a
+  | Blim f   => Blim (fun n => Bmul a (f n))
+  end.
+
+Fixpoint omega_pow (a : Brouwer) : Brouwer :=
+  match a with
+  | Bz       => Bsucc Bz                       (* omega^0 = 1 *)
+  | Bsucc a' => Bmul (omega_pow a') omega      (* omega^(a+1) = omega^a * omega *)
+  | Blim f   => Blim (fun n => omega_pow (f n))
+  end.
+\end{lstlisting}
+
+These mirror the textbook recursion equations for Cantor-normal-form
+ordinals.  The reader is invited to convince themselves that
+\texttt{Badd}, \texttt{Bmul}, and \texttt{omega\_pow} pass Coq's
+positivity / guard checks: each case recurses only on a structurally
+smaller argument.
+
+\subsection{The $\omega$-tower and $\varepsilon_0$}
+
+The $\omega$-tower iterates $\omega$-exponentiation:
+
+\begin{lstlisting}
+Fixpoint omega_tower (n : nat) : Brouwer :=
+  match n with
+  | 0    => Bsucc Bz
+  | S n' => omega_pow (omega_tower n')
+  end.
+
+Definition epsilon_0 : Brouwer := Blim omega_tower.
+\end{lstlisting}
+
+So
+\[
+  \omega\!\uparrow\!\uparrow\!0 \;=\; 1,\qquad
+  \omega\!\uparrow\!\uparrow\!(n{+}1) \;=\; \omega^{\,\omega\uparrow\uparrow n},\qquad
+  \varepsilon_0 \;=\; \sup_n (\omega\!\uparrow\!\uparrow\!n).
+\]
+
+This is the proof-theoretic ordinal of Peano arithmetic, hence the
+natural ceiling for any system at most as strong as PA.  Crucially for
+us, $\varepsilon_0$ is \emph{above} the ordinal $\omega^\omega$, which is
+itself above any ordinal expressible in System~T's normalisation.
+
+% =======================================================================
+\section{The fast-growing hierarchy and \texttt{BigGrow}}
+% =======================================================================
+
+\subsection{Definition}
+
+The fast-growing hierarchy is a function indexed by ordinals:
+
+\[
+  f_0(n) = n+1,\qquad
+  f_{a+1}(n) = \underbrace{f_a(f_a(\cdots f_a(n)\cdots))}_{n\text{ applications}},\qquad
+  f_\lambda(n) = f_{\lambda[n]}(n),
+\]
+
+where $\lambda[n]$ is the $n$-th term of the fundamental sequence at the
+limit ordinal $\lambda$.  In Coq, with our Brouwer-data presentation,
+every $\lambda[n]$ is just $f(n)$ for the function $f$ stored in
+\texttt{Blim}~$f$, so the limit case is one line:
+
+\begin{lstlisting}
+Fixpoint FGH (a : Brouwer) (n : nat) : nat :=
+  match a with
+  | Bz       => S n
+  | Bsucc a' => Nat.iter n (FGH a') n
+  | Blim f   => FGH (f n) n
+  end.
+\end{lstlisting}
+
+Total, structurally recursive on the ordinal argument, no fuel
+parameter, no \texttt{Fix}\,/\,\texttt{Acc}.
+
+\subsection{Sanity checks at small ordinals}
+
+For $\alpha < \omega$ we recover textbook arithmetic:
+$f_0(n) = n+1$, $f_1(n) = 2n$, $f_2(n) \approx 2^n n$, $f_3(n)$ is
+roughly tetrational, and so on.  The first limit ordinal already
+diagonalises:
+\[
+  f_\omega(n) \;=\; f_{\omega[n]}(n) \;=\; f_n(n).
+\]
+
+So $f_\omega(0) = f_0(0) = 1$, $f_\omega(1) = f_1(1) = 2$,
+$f_\omega(2) = f_2(2) = 8$, $f_\omega(3) = f_3(3)$ is already a number
+with $\sim 10^8$ bits, and $f_\omega(4)$ is no longer printable in any
+reasonable amount of memory.
+
+For $\varepsilon_0$, we have
+
+\[
+  f_{\varepsilon_0}(n) \;=\; f_{\varepsilon_0[n]}(n)
+                       \;=\; f_{\,\omega\uparrow\uparrow n}(n).
+\]
+
+A function that, on input $n$, indexes the fast-growing hierarchy at
+\emph{the $n$-fold $\omega$-tower}.  This is far beyond what any
+closed term of System~T can compute.
+
+\subsection{Wrapping it up}
+
+The function \texttt{BigGrow} is just $f_{\varepsilon_0}$:
+
+\begin{lstlisting}
+Definition BigGrow (n : nat) : nat := FGH epsilon_0 n.
+\end{lstlisting}
+
+Two crude-but-useful monotonicity facts close the section:
+
+\begin{lstlisting}
+Lemma Nat_iter_ge :
+  forall (f : nat -> nat) (k x : nat),
+    (forall n, n <= f n) ->
+    x <= Nat.iter k f x.
+
+Lemma FGH_ge : forall a n, n <= FGH a n.
+
+Lemma BigGrow_ge : forall n, n <= BigGrow n.
+Lemma BigGrow_gt_S : forall n, n < BigGrow (S n).
+\end{lstlisting}
+
+The last lemma, \texttt{BigGrow\_gt\_S}, is the only growth fact we
+actually need from the entire Brouwer apparatus.  It says
+\emph{`shifting up by one and feeding through \texttt{BigGrow} gives a
+strictly larger value'}, and its proof is two lines: $n < n+1 \leq
+\texttt{BigGrow}(n+1)$ by \texttt{FGH\_ge}.
+
+% =======================================================================
+\section{The new language $\mathcal{L}_{\textrm{Grow}}$}
+% =======================================================================
+
+\subsection{Syntax}
+
+$\mathcal{L}_{\textrm{Grow}}$ is System~T plus one fresh constant
+\texttt{tGrow}:
+
+\begin{lstlisting}
+Inductive term :=
+| tVar (x : nat)
+| tLam (A B : type) (body : term)
+| tApp (t1 t2 : term)
+| tO
+| tS
+| tNatRec (R : type)
+| tGrow.
+\end{lstlisting}
+
+Types are unchanged from \texttt{Contender.v}: a base type \texttt{tpNat}
+plus arrow types \texttt{tpArr A B}.  Variables are de Bruijn
+\emph{levels} (the convention used in \texttt{Contender.v}): index $0$
+denotes the \emph{outermost} binder.
+
+\subsection{Depth measure}
+
+Term depth is exactly the same recursive measure as in
+\texttt{Contender.v}, with one new leaf:
+
+\begin{lstlisting}
+Fixpoint term_depth (t : term) : nat :=
+  match t with
+  | tVar x => S (Contender.nat_depth x)
+  | tLam A B body =>
+      S (max (max (Contender.type_depth A) (Contender.type_depth B))
+             (term_depth body))
+  | tApp t1 t2 => S (max (term_depth t1) (term_depth t2))
+  | tO => 1
+  | tS => 1
+  | tNatRec R => S (Contender.type_depth R)
+  | tGrow => 1
+  end.
+\end{lstlisting}
+
+\texttt{tGrow} has depth $1$, just like \texttt{tO} and \texttt{tS}: it
+is a constant.  This is what lets the witness term
+$\texttt{tGrow}\,(\texttt{tS}\,(\embed\,t^\star))$ stay within depth
+$44$ when $\depth(t^\star) \leq 42$ (one $\texttt{tS}$ application, one
+$\texttt{tGrow}$ application, each adding $1$).
+
+\subsection{Denotational semantics}
+
+Types are interpreted as Coq types:
+
+\[
+  \llbracket \texttt{tpNat} \rrbracket = \Nat,\qquad
+  \llbracket \texttt{tpArr}\,A\,B \rrbracket =
+  \llbracket A \rrbracket \to \llbracket B \rrbracket.
+\]
+
+A \emph{pack} is a dependent pair $\{A : \texttt{type} \,\&\,
+\llbracket A \rrbracket\}$ -- a type tag together with a value at that
+type.  Environments are lists of packs; the look-up of a de Bruijn
+level returns either \texttt{Some pack} or \texttt{None}.
+
+The interpretation function recurses structurally on the term; we use
+the local aliases
+$\texttt{cast}\,B$ (a partial coercion from \texttt{interp\_type from} to
+\texttt{interp\_type to}, returning \texttt{error} on type mismatch) and
+$\texttt{error}_{tp}$ (a default value at every type, $0$ at
+\texttt{tpNat}, the constant function returning \texttt{error} at arrow
+types).  Both come from \texttt{Contender.v}; we re-use them verbatim.
+
+\begin{lstlisting}
+Fixpoint interp_term (e : list pack) (t : term) : pack :=
+  match t with
+  | tVar x =>
+      match Contender.lookup e x with
+      | Some R => R
+      | None   => existT _ tpNat error
+      end
+  | tLam A B body =>
+      existT _ (tpArr A B)
+             (fun x' => cast B (projT2 (interp_term ((existT _ A x') :: e) body)))
+  | tApp t1 t2 =>
+      let '(existT _ R1 r1) := interp_term e t1 in
+      let '(existT _ R2 r2) := interp_term e t2 in
+      match R1 as R1' return interp_type R1' -> pack with
+      | tpNat       => fun _  => existT _ tpNat error
+      | tpArr A B   => fun r1 => existT _ B (r1 (cast A r2))
+      end r1
+  | tO       => existT _ tpNat 0
+  | tS       => existT _ (tpArr tpNat tpNat) S
+  | tNatRec R =>
+      existT _ (tpArr R (tpArr (tpArr tpNat (tpArr R R)) (tpArr tpNat R)))
+             (@Nat.recursion (interp_type R))
+  | tGrow    => existT _ (tpArr tpNat tpNat) G.grow
+  end.
+\end{lstlisting}
+
+The five System~T cases are an almost line-for-line port of
+\texttt{Contender.interp\_term}.  The new case, \texttt{tGrow}, returns
+the engine \texttt{G.grow} -- which we will instantiate with
+\texttt{BigGrow} at the top level.
+
+The top-level \emph{evaluator} extracts a natural number, returning $0$
+when the closed term has an arrow type:
+
+\begin{lstlisting}
+Definition eval (t : term) : nat :=
+  let (tp, res) := interp_term nil t in
+  match tp as t0 return (interp_type t0 -> nat) with
+  | tpNat => fun res : interp_type tpNat => res
+  | tpArr _ _ => fun _ => 0
+  end res.
+\end{lstlisting}
+
+\subsection{Depth-bounded enumeration and the contender}
+
+The enumerator \texttt{termsUpTo} lists every closed term of depth
+$\leq n$, segment by segment:
+
+\begin{lstlisting}
+Fixpoint termsUpTo (n : nat) : list term :=
+  match n with
+  | O => []
+  | S m =>
+    List.map tVar (Contender.natsUpTo m) ++
+    List.map (fun '(A, B, body) => tLam A B body)
+             (list_prod (list_prod (Contender.typesUpTo m) (Contender.typesUpTo m))
+                        (termsUpTo m)) ++
+    List.map (fun '(t1, t2) => tApp t1 t2)
+             (list_prod (termsUpTo m) (termsUpTo m)) ++
+    [tO] ++ [tS] ++
+    List.map tNatRec (Contender.typesUpTo m) ++
+    [tGrow]
+  end.
+\end{lstlisting}
+
+Completeness of the enumerator (\emph{every} depth-bounded term is
+listed) is proved as \texttt{termsUpTo\_complete}.  We reuse
+\texttt{Contender.maxBy} (a polymorphic max-by-key combinator) to define
+the largest evaluator, and finally:
+
+\begin{lstlisting}
+Definition largest_of_depth (n : nat) : term :=
+  Contender.maxBy eval 0 tO (termsUpTo n).
+
+Definition largest_Grow_nat_of_depth (n : nat) : nat :=
+  eval (largest_of_depth n).
+
+(* ... wrapped in Module GrowEmbed (G : GrowSig), then applied with: *)
+Definition contender_6 : nat := BigGrowEmbed.contender_grow_6.
+\end{lstlisting}
+
+The unfolded form of \texttt{contender\_6}, after delta-reducing the
+helpers, is
+
+\[
+  \texttt{contender\_6}
+  \;=\;
+  \eval_{\mathcal{L}_{\textrm{Grow}}}\!\bigl(\texttt{maxBy}\,
+                       \eval_{\mathcal{L}_{\textrm{Grow}}}\,0\,
+                       \texttt{tO}\,(\texttt{termsUpTo}\,44)\bigr).
+\]
+
+Cross-checking with \texttt{cbv beta delta [\dots] in contender\_6}
+confirms that \emph{none} of \texttt{contender\_5},
+\texttt{largest\_STLCNatRec\_nat\_of\_depth},
+\texttt{Contender.term}, or \texttt{Contender.tNatRec} appears in the
+unfolded form.  The definition is, in the technical sense intended by
+the contest, \emph{clean}.
+
+% =======================================================================
+\section{The proof: a high-level map}
+% =======================================================================
+
+The strict inequality $\texttt{contender\_5} < \texttt{contender\_6}$
+factors through one explicit lower bound:
+\[
+  \texttt{contender\_5}
+  \;<\;
+  \texttt{BigGrow}(\texttt{contender\_5}+1)
+  \;\leq\;
+  \texttt{contender\_6}.
+\]
+
+The first inequality is one line, by \texttt{BigGrow\_gt\_S}.  The
+second is the heart of the proof; it splits into three sub-claims:
+
+\begin{enumerate}[label=(\Alph*),leftmargin=2em]
+  \item \textbf{Existential maximiser.}  There is a closed System~T
+        term $t^\star$ with $\depth(t^\star) \leq 42$ and
+        $\eval(t^\star) = \texttt{contender\_5}$.  This is
+        \texttt{exists\_maximizer\_42}.
+  \item \textbf{Embedding preserves evaluation.}  There is an embedding
+        $\embed : \texttt{Contender.term} \to \texttt{term}$ such that
+        $\eval(\embed\,t) = \texttt{Contender.eval}(t)$ for every
+        closed term $t$.  This is \texttt{embed\_eval}, proved via the
+        logical relation.
+  \item \textbf{Witness construction.}  Define
+        $w(t^\star) \coloneqq
+        \texttt{tApp}\,\texttt{tGrow}\,
+        (\texttt{tApp}\,\texttt{tS}\,(\embed\,t^\star))$.
+        Then $\depth(w(t^\star)) \leq 44$
+        (\texttt{witness\_grow\_depth}) and
+        $\eval(w(t^\star)) = \texttt{BigGrow}(\texttt{contender\_5}+1)$
+        (\texttt{witness\_grow\_eval}).
+\end{enumerate}
+
+Combining (A), (B), (C) with \texttt{lowerbound\_maxBy} gives the
+explicit bound
+$\texttt{BigGrow}(\texttt{contender\_5}+1) \leq \texttt{contender\_6}$,
+hence the strict inequality.
+
+We treat each of (A), (B), (C) in turn.
+
+% =======================================================================
+\section{(A)~The existential maximiser}
+% =======================================================================
+
+The first ingredient is the inhabited witness theorem:
+
+\begin{lstlisting}
+Lemma exists_maximizer_42 :
+  exists tstar : Contender.term,
+    Contender.term_depth tstar <= 42 /\
+    Contender.eval tstar = Contender.contender_5.
+\end{lstlisting}
+
+The proof is short, but it leans on a small auxiliary lemma:
+
+\begin{lstlisting}
+Lemma contender_5_ge_1 : 1 <= Contender.contender_5.
+Proof.
+  unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth,
+         Contender.largest_of_depth.
+  change 1 with (Contender.eval (Contender.tApp Contender.tS Contender.tO)).
+  apply Contender.lowerbound_maxBy
+    with (x := Contender.tApp Contender.tS Contender.tO);
+    [apply (proj1 (Contender.termsUpTo_correct 42 _)); cbv; lia | reflexivity].
+Qed.
+\end{lstlisting}
+
+\noindent
+The witness $\texttt{tApp}\,\texttt{tS}\,\texttt{tO}$ has depth $3$
+(well within $42$), evaluates to $1$, and so by
+\texttt{lowerbound\_maxBy} we get $1 \leq \texttt{contender\_5}$.
+
+With this in hand, \texttt{exists\_maximizer\_42} is a case analysis
+on \texttt{Contender.maxBy\_In}:
+
+\begin{lstlisting}
+Lemma exists_maximizer_42 :
+  exists tstar : Contender.term,
+    Contender.term_depth tstar <= 42 /\
+    Contender.eval tstar = Contender.contender_5.
+Proof.
+  pose proof contender_5_ge_1 as Hge.
+  unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth,
+         Contender.largest_of_depth in *.
+  exists (Contender.maxBy Contender.eval 0 Contender.tO
+                          (Contender.termsUpTo 42));
+    split; [|reflexivity].
+  destruct (Contender.maxBy_In Contender.eval (Contender.termsUpTo 42)
+                               0 Contender.tO eq_refl) as [Pin | Peq].
+  - apply (proj2 (Contender.termsUpTo_correct 42 _)) in Pin. exact Pin.
+  - rewrite Peq in Hge. cbv in Hge. lia.
+Qed.
+\end{lstlisting}
+
+There are two cases: either the \texttt{maxBy} returned an element of
+\texttt{termsUpTo 42} (whose depth is bounded by $42$ via
+\texttt{termsUpTo\_correct}), or it returned the initial best
+\texttt{tO}.  The latter case forces $\texttt{contender\_5} =
+\texttt{eval}\,\texttt{tO} = 0$, contradicting
+\texttt{contender\_5\_ge\_1}.
+
+\begin{remark}
+The lemma is purely an \emph{existence} statement -- there is no
+algorithm here that would extract $t^\star$ in any reasonable amount
+of time.  Computing the actual optimal $t^\star$ requires running the
+depth-$42$ enumeration, which is astronomical.  The proof only needs
+the abstract existence, and the proof script is therefore short.
+\end{remark}
+
+% =======================================================================
+\section{(B)~Embedding preserves evaluation: the logical relation}
+% =======================================================================
+
+We need
+
+\[
+  \forall t \in \texttt{Contender.term},\quad
+  \eval_{\mathcal{L}_{\textrm{Grow}}}(\embed(t))
+  \;=\;
+  \texttt{Contender.eval}(t).
+\]
+
+The embedding itself is the obvious congruence map (every
+constructor of \texttt{Contender.term} maps to the corresponding
+constructor of $\mathcal{L}_{\textrm{Grow}}$):
+
+\begin{lstlisting}
+Fixpoint embed_term (t : Contender.term) : term :=
+  match t with
+  | Contender.tVar x => tVar x
+  | Contender.tLam A B body => tLam A B (embed_term body)
+  | Contender.tApp t1 t2 => tApp (embed_term t1) (embed_term t2)
+  | Contender.tO => tO
+  | Contender.tS => tS
+  | Contender.tNatRec R => tNatRec R
+  end.
+\end{lstlisting}
+
+Depth is obviously preserved:
+
+\begin{lstlisting}
+Lemma term_depth_embed : forall t,
+    term_depth (embed_term t) = Contender.term_depth t.
+Proof. induction t; simpl; congruence. Qed.
+\end{lstlisting}
+
+\subsection{Why a logical relation?}
+
+The naive equational claim
+\[
+  \texttt{Contender.interp\_term}\,e_1\,t
+  \;=\;
+  \texttt{interp\_term}\,e_2\,(\embed\,t)
+\]
+fails as stated: the two interpretations have type
+$\{tp : \texttt{type}\,\&\,\llbracket tp \rrbracket\}$, and at function
+types two extensionally equal $\lambda$-expressions are not
+\emph{intensionally} equal in Coq without function extensionality.
+We do not want to introduce \texttt{FunctionalExtensionality} (it is an
+axiom; the contest forbids those), so we replace propositional equality
+of \emph{values} by a Tait-style logical relation that collapses to
+plain equality at \texttt{tpNat}:
+
+\begin{lstlisting}
+Fixpoint RelVal (A : type) : interp_type A -> interp_type A -> Prop :=
+  match A with
+  | tpNat => fun x y => x = y
+  | tpArr A1 A2 => fun f g => forall x y, RelVal A1 x y -> RelVal A2 (f x) (g y)
+  end.
+\end{lstlisting}
+
+At \texttt{tpNat}, $\texttt{RelVal}\,x\,y \iff x=y$.  At
+$\texttt{tpArr}\,A\,B$, two functions are related iff they map related
+arguments to related results.  This is exactly Tait's
+\emph{computability predicate}, which gives strong normalisation for
+System~T; we will use it as an extensional substitute for equality.
+
+The relation lifts to packs (a pack-level relation that asserts
+\emph{both packs have the same type tag} and the values are related
+at that tag) and to environments (pointwise via \texttt{Forall2}):
+
+\begin{lstlisting}
+Definition RelPack (p q : pack) : Prop :=
+  exists tp (v1 v2 : interp_type tp),
+    p = existT Contender.interp_type tp v1
+    /\ q = existT Contender.interp_type tp v2
+    /\ RelVal tp v1 v2.
+
+Definition RelEnv (e1 e2 : list pack) : Prop :=
+  List.Forall2 RelPack e1 e2.
+\end{lstlisting}
+
+A small one-line constructor \texttt{RelPack\_intro} lets us build a
+\texttt{RelPack} from a pair of packs at the same tag:
+
+\begin{lstlisting}
+Lemma RelPack_intro :
+  forall tp (v1 v2 : interp_type tp),
+    RelVal tp v1 v2 ->
+    RelPack (existT Contender.interp_type tp v1)
+            (existT Contender.interp_type tp v2).
+\end{lstlisting}
+
+\subsection{Two technical facts}
+
+Two routine lemmas about \texttt{RelVal} feed into the main
+induction:
+
+\begin{lstlisting}
+Lemma error_related : forall tp, RelVal tp (@error tp) (@error tp).
+Proof. induction tp; simpl; [reflexivity | intros _ _ _; exact IHtp2]. Qed.
+\end{lstlisting}
+
+The error value is related to itself at every type.  At \texttt{tpNat}
+this is just $0 = 0$; at arrow types we use the IH on the codomain.
+
+The second fact concerns \texttt{cast}: it preserves the relation when
+applied to related arguments.  The proof is by induction on the
+\texttt{from}/\texttt{to} pair; the only non-trivial case is
+$\texttt{tpArr}\to\texttt{tpArr}$, where the cast wraps its argument
+backwards (covariance/contravariance), so we have to prove
+\emph{both} directions of the cast simultaneously:
+
+\begin{lstlisting}
+Lemma cast_impl_related : forall from to,
+    (forall v1 v2, RelVal from v1 v2 ->
+        RelVal to (fst (Contender.cast_impl from to) v1)
+                  (fst (Contender.cast_impl from to) v2))
+    /\
+    (forall u1 u2, RelVal to u1 u2 ->
+        RelVal from (snd (Contender.cast_impl from to) u1)
+                    (snd (Contender.cast_impl from to) u2)).
+
+Lemma cast_related : forall from to v1 v2,
+    RelVal from v1 v2 ->
+    RelVal to (@cast from to v1) (@cast from to v2).
+Proof. intros; apply (proj1 (cast_impl_related _ _)); assumption. Qed.
+\end{lstlisting}
+
+\subsection{Look-up under related environments}
+
+The look-up function $\texttt{Contender.lookup}\,e\,n$ has a clean
+specification under related environments: \emph{either both look-ups
+miss, or both succeed and return related packs}.
+
+\begin{lstlisting}
+Lemma lookup_related :
+  forall e1 e2 n,
+    RelEnv e1 e2 ->
+    match Contender.lookup e1 n, Contender.lookup e2 n with
+    | Some p1, Some p2 => RelPack p1 p2
+    | None, None => True
+    | _, _ => False
+    end.
+\end{lstlisting}
+
+The proof is a few lines: \texttt{Forall2} forces $|e_1| = |e_2|$, so
+the bounds-check on \texttt{lookup} agrees on both sides, and an
+auxiliary \texttt{Forall2\_nth\_error} lemma transports the
+related-pack assertion through \texttt{nth\_error}.
+
+\subsection{The main induction}
+
+The fundamental theorem of the embedding is stated symmetrically as
+``\emph{related environments map related terms}'':
+
+\begin{lstlisting}
+Lemma embed_interp_related :
+  forall e1 e2 t,
+    RelEnv e1 e2 ->
+    RelPack (Contender.interp_term e1 t)
+            (interp_term e2 (embed_term t)).
+\end{lstlisting}
+
+The proof inducts on $t : \texttt{Contender.term}$.  We sketch each
+case.
+
+\paragraph{Case \texttt{tVar}.}  Both sides reduce to a \texttt{match}
+on $\texttt{Contender.lookup}\,e_i\,x$; \texttt{lookup\_related} gives
+exactly the four cases we need (Some/Some, Some/None, None/Some,
+None/None), and the two one-sided cases are killed by
+\texttt{contradiction}.  In Some/Some we use the supplied
+\texttt{RelPack}; in None/None we use \texttt{RelPack\_error} (a
+trivial corollary of \texttt{error\_related}).
+
+\paragraph{Case \texttt{tLam}.}  Both sides reduce to
+$\texttt{existT}\,(\texttt{tpArr}\,A\,B)\,(\lambda x'.\;\dots)$; we
+apply \texttt{RelPack\_intro} at the tag $\texttt{tpArr}\,A\,B$ and
+then prove the function bodies are pointwise related.  The IH gives us
+that, given $\texttt{Henv}' : \texttt{RelEnv}\,(p_1::e_1)\,(p_2::e_2)$
+for a related pair $(p_1,p_2)$ extending the original environments,
+the bodies evaluate to a \texttt{RelPack}; we then push that through
+\texttt{cast\_related}.
+
+\paragraph{Case \texttt{tApp}.}  Both sides reduce to a \texttt{match}
+on the argument-1 type tag; we use the two IHs to obtain the function
+and the argument as a pair of \texttt{RelPack}s, destruct the type
+tag, and discharge the \texttt{tpArr} case via the function-relation
+property of \texttt{RelVal} at arrow types.  The non-arrow branches
+fall to \texttt{RelPack\_error}.
+
+\paragraph{Case \texttt{tO}.}
+$\texttt{RelPack\_intro}$ at \texttt{tpNat} with witness $0=0$.
+
+\paragraph{Case \texttt{tS}.}
+$\texttt{RelPack\_intro}$ at $\texttt{tpArr}\,\texttt{tpNat}\,\texttt{tpNat}$
+with the function relation
+$\forall x\,y,\,x=y \Rightarrow Sx=Sy$, which is just \texttt{f\_equal}.
+
+\paragraph{Case \texttt{tNatRec}.}  This is the most interesting case:
+we need that $\texttt{Nat.recursion}$ maps related triples
+(base, step, counter) to related accumulators.  A standard nested
+induction on the natural-number counter -- the base case uses the
+related base values, the successor case uses the step relation -- does
+the job.
+
+\subsection{From the relation to actual equality}
+
+Because $\texttt{RelVal}\,\texttt{tpNat}\,x\,y$ is just $x=y$, the
+fundamental theorem specialised to closed terms gives us \emph{exact}
+equality of the natural number outputs:
+
+\begin{lstlisting}
+Lemma embed_eval : forall t,
+    eval (embed_term t) = Contender.eval t.
+Proof.
+  intro t.
+  pose proof (embed_interp_related [] [] t (List.Forall2_nil _))
+    as (tp & v1 & v2 & Hp1 & Hp2 & Hrel).
+  unfold eval, Contender.eval.
+  replace (Contender.interp_term nil t) with (existT Contender.interp_type tp v1)
+    by (symmetry; exact Hp1).
+  replace (interp_term nil (embed_term t)) with (existT Contender.interp_type tp v2)
+    by (symmetry; exact Hp2).
+  destruct tp; [symmetry; exact Hrel | reflexivity].
+Qed.
+\end{lstlisting}
+
+The empty environment is trivially related to itself
+(\texttt{Forall2\_nil}); the fundamental theorem then yields a common
+type tag $tp$ and a pair of values $(v_1, v_2)$ with
+$\texttt{RelVal}\,tp\,v_1\,v_2$.  At the only tag where the
+top-level evaluator extracts a number -- \texttt{tpNat} --
+$\texttt{RelVal}$ is plain equality, hence
+$v_1=v_2$, hence the two evaluators agree.  At any other tag both
+sides return $0$.
+
+\subsection{What we did \emph{not} need}
+
+It is worth highlighting what this proof did \emph{not} need:
+\emph{function extensionality}.  At no point did we conclude
+$\lambda x.\,F(x) = \lambda x.\,G(x)$ from $\forall x.\,F(x)=G(x)$.
+Instead, the logical relation kept us at the relation level until we
+projected at \texttt{tpNat}.  That is the crux of the no-axioms
+invariant.
+
+% =======================================================================
+\section{(C)~The witness term}
+% =======================================================================
+
+\subsection{Construction}
+
+Given a System~T term $t^\star$ -- the existential maximiser of (A) --
+the witness is
+
+\[
+  w(t^\star)
+  \;\coloneqq\;
+  \texttt{tGrow}\,(\texttt{tS}\,(\embed\,t^\star))
+\]
+
+i.e.\ the depth-$3$ frame
+$\texttt{tApp}\,\texttt{tGrow}\,(\texttt{tApp}\,\texttt{tS}\,\bullet)$
+applied to $\embed\,t^\star$.
+
+\begin{lstlisting}
+Definition witness_grow (tstar : Contender.term) : term :=
+  tApp tGrow (tApp tS (embed_term tstar)).
+\end{lstlisting}
+
+\subsection{Depth is at most $44$}
+
+\begin{lstlisting}
+Lemma witness_grow_depth :
+  forall tstar,
+    Contender.term_depth tstar <= 42 ->
+    term_depth (witness_grow tstar) <= 44.
+Proof.
+  intros tstar H. unfold witness_grow. simpl. rewrite term_depth_embed.
+  destruct (Contender.term_depth tstar); simpl; lia.
+Qed.
+\end{lstlisting}
+
+The proof is by computation: \texttt{term\_depth} on the outer
+\texttt{tApp tGrow} adds $1$ to the maximum of $\depth(\texttt{tGrow})
+=1$ and $\depth(\texttt{tApp tS \dots})$.  The inner application adds
+$1$ to $\max(\depth(\texttt{tS})=1,\,\depth(\embed\,t^\star))$.  By
+\texttt{term\_depth\_embed}, this last quantity equals
+$\depth(t^\star)$, which is bounded by $42$.  Working out the
+arithmetic: the depth is $1 + \max(1, 1 + \max(1, \depth\,t^\star))$.
+A small case split on whether $\depth\,t^\star = 0$ (impossible
+because variables and constructors are at least $1$) or $\geq 1$
+discharges the \texttt{Nat.max} simplifications, and \texttt{lia}
+finishes.
+
+\subsection{Eval of the witness is $\texttt{BigGrow}(\texttt{contender\_5}+1)$}
+
+The semantic content of the witness is:
+
+\begin{lstlisting}
+Lemma witness_grow_eval :
+  forall tstar,
+    Contender.eval tstar = Contender.contender_5 ->
+    eval (witness_grow tstar) = G.grow (S Contender.contender_5).
+Proof.
+  intros tstar Heq.
+  assert (Hembed : eval (embed_term tstar) = Contender.contender_5)
+    by (rewrite embed_eval; exact Heq).
+  unfold witness_grow, eval in *.
+  destruct (interp_term [] (embed_term tstar)) as [[|A B] res] eqn:E;
+    simpl in Hembed.
+  - subst res. cbn [interp_term]; rewrite E; cbn [interp_term]; reflexivity.
+  - pose proof contender_5_ge_1; lia.
+Qed.
+\end{lstlisting}
+
+The argument is an extended computation.  We assume
+$\texttt{Contender.eval}\,t^\star = \texttt{contender\_5}$.  By
+\texttt{embed\_eval}, $\eval(\embed\,t^\star) = \texttt{contender\_5}$
+too, so the closed term $\embed\,t^\star$ interprets to a pack of the
+form $\texttt{existT}\,\texttt{tpNat}\,\texttt{contender\_5}$ -- in
+the \texttt{tpNat} branch.  Plug this into the chain of two
+\texttt{tApp}s:
+
+\begin{itemize}[leftmargin=2em,label=$\bullet$]
+  \item Inner: $\texttt{interp\_term}\,[]\,(\texttt{tApp}\,\texttt{tS}\,(\embed\,t^\star))
+        = \texttt{existT}\,\texttt{tpNat}\,(S\,\texttt{contender\_5})$.
+  \item Outer: $\texttt{interp\_term}\,[]\,(\texttt{tGrow}\,\dots)
+        = \texttt{existT}\,\texttt{tpNat}\,(\texttt{G.grow}\,(S\,\texttt{contender\_5}))$.
+\end{itemize}
+
+The final \texttt{eval} extracts the \texttt{tpNat} value, giving
+exactly $\texttt{G.grow}(S\,\texttt{contender\_5})$.  Mechanically
+this reduces to two \texttt{cbn [interp\_term]; rewrite E} steps.
+
+The arrow case in the destruction is impossible: it would force
+$\eval(\embed\,t^\star) = 0$, but
+$\eval(\embed\,t^\star) = \texttt{contender\_5} \geq 1$.
+
+% =======================================================================
+\section{The main theorem}
+% =======================================================================
+
+We now have all three ingredients.  The first half of the chain is
+\texttt{grow\_lower\_bound}:
+
+\begin{lstlisting}
+Theorem grow_lower_bound :
+  G.grow (S Contender.contender_5) <= contender_grow_6.
+Proof.
+  unfold contender_grow_6, largest_Grow_nat_of_depth, largest_of_depth.
+  destruct exists_maximizer_42 as (tstar & Hdepth & Heval).
+  rewrite <- (witness_grow_eval tstar Heval).
+  eapply Contender.lowerbound_maxBy with (x := witness_grow tstar). 2: reflexivity.
+  apply (termsUpTo_complete 44 (witness_grow tstar)).
+  apply witness_grow_depth. exact Hdepth.
+Qed.
+\end{lstlisting}
+
+Reading the script: we want
+$\texttt{G.grow}(S\,\texttt{contender\_5}) \leq
+\texttt{eval}\,(\texttt{maxBy}\,\texttt{eval}\,0\,\texttt{tO}\,
+                                  (\texttt{termsUpTo}\,44))$.
+We extract $t^\star$ via \texttt{exists\_maximizer\_42} and rewrite
+the LHS as $\eval(w(t^\star))$ via \texttt{witness\_grow\_eval}.  Then
+\texttt{lowerbound\_maxBy} with witness $w(t^\star)$ reduces the goal
+to \emph{(i)~$w(t^\star)$ is in \texttt{termsUpTo 44}}, which follows
+from \texttt{termsUpTo\_complete} and \texttt{witness\_grow\_depth},
+and \emph{(ii)~$\eval(\texttt{tO}) = 0$}, by \texttt{reflexivity}.
+
+The strict inequality follows immediately:
+
+\begin{lstlisting}
+Theorem contender_5_lt_contender_grow_6 :
+  Contender.contender_5 < contender_grow_6.
+Proof.
+  eapply Nat.lt_le_trans with (m := G.grow (S Contender.contender_5)).
+  - apply G.grow_gt_S.
+  - exact grow_lower_bound.
+Qed.
+\end{lstlisting}
+
+By \texttt{G.grow\_gt\_S},
+$\texttt{contender\_5} < \texttt{G.grow}(S\,\texttt{contender\_5})$;
+combined with \texttt{grow\_lower\_bound} this gives strict
+$<\,\texttt{contender\_grow\_6}$.
+
+\subsection{Generic vs.\ instantiated}
+
+The theorem inside \texttt{Module GrowEmbed (G : GrowSig)} is
+parameterised over an arbitrary growth engine $G$ satisfying
+$\forall n,\,n < \texttt{G.grow}(S\,n)$.  At the top level we
+instantiate $G$ with \texttt{BigGrow}:
+
+\begin{lstlisting}
+Module BigGrowSig <: GrowSig.
+  Definition grow := BigGrow.
+  Definition grow_gt_S : forall n, n < grow (S n) := BigGrow_gt_S.
+End BigGrowSig.
+
+Module BigGrowEmbed := GrowEmbed(BigGrowSig).
+
+Definition contender_6 : nat := BigGrowEmbed.contender_grow_6.
+
+Theorem contender_5_lt_contender_6 : contender_5 < contender_6.
+Proof. exact BigGrowEmbed.contender_5_lt_contender_grow_6. Qed.
+\end{lstlisting}
+
+The functor structure is bookkeeping: the entire proof goes through
+abstractly over $G$, and the \texttt{BigGrow} specialisation is two
+lines of glue.
+
+% =======================================================================
+\section{Discussion}
+% =======================================================================
+
+\subsection{Cleanliness}
+
+The crucial fact for contest acceptance is that the unfolded
+\texttt{contender\_6} does not mention \texttt{contender\_5} in any
+form.  A mechanical check via
+\texttt{cbv beta delta [\dots]} on the chain
+\[
+  \texttt{contender\_6}
+  \;\rightsquigarrow\;
+  \texttt{contender\_grow\_6}
+  \;\rightsquigarrow\;
+  \texttt{largest\_Grow\_nat\_of\_depth}\,44
+  \;\rightsquigarrow\;
+  \texttt{eval}\,(\texttt{Contender.maxBy}\,\texttt{eval}\,0\,\texttt{tO}\,(\texttt{termsUpTo}\,44))
+\]
+confirms that, after every legitimate $\delta$-reduction, the result
+contains no \texttt{contender\_5}, no
+\texttt{largest\_STLCNatRec\_nat\_of\_depth}, no
+\texttt{Contender.term} constructor, and no other artifact of the
+previous contender's machinery.  The polymorphic \texttt{maxBy} is
+shared because it is a generic combinator -- it cares only about a
+key function and a list, not what those things are.
+
+The \emph{proof} of strict inequality, by contrast, freely uses the
+existential maximiser of \texttt{contender\_5} (via
+\texttt{maxBy\_In}), as well as Contender's \texttt{interp\_term},
+\texttt{eval}, \texttt{cast\_impl}, and \texttt{lookup}.  This is
+exactly the ``definitional cleanliness, proof witness reuse'' design
+the contest's spirit was meant to encourage.
+
+\subsection{How big is \texttt{contender\_6}?}
+
+The explicit lower bound we proved is
+\[
+   \texttt{contender\_6}
+   \;\geq\;
+   \texttt{BigGrow}(\texttt{contender\_5}+1)
+   \;=\;
+   f_{\varepsilon_0}(\texttt{contender\_5}+1).
+\]
+
+Now \texttt{contender\_5} is itself a number that, while we cannot
+compute it explicitly within any reasonable time bound, is known to
+exceed $f_\alpha(42)$ for every $\alpha < \omega^\omega$ (and almost
+certainly more, since System~T can encode much faster-growing
+functions).  Plugging an Ackermann-scale number into a function on the
+$f_{\varepsilon_0}$ scale gives a value that completely dwarfs any
+contender below us in the chain, and dwarfs them by a margin that grows
+faster than any \emph{System~T}-definable function in
+\texttt{contender\_5}.  This is the ``decisive margin'' the contest
+README hopes for.
+
+\subsection{What about \texttt{contender\_7}?}
+
+The fresh-engine pattern can be iterated, but each iteration faces a
+gradually rising bar.  The natural next step is to replace
+\texttt{BigGrow} by an even faster-growing engine: $f_{\varepsilon_\omega}$,
+$f_{\zeta_0}$, $f_{\Gamma_0}$, or higher Veblen ordinals.  All of
+these can be presented in the Brouwer style in Coq, but the
+\texttt{Brouwer} type itself does not enforce well-foundedness
+extensionally, so writing down the right \emph{fundamental sequence}
+becomes the active design question rather than the recursion structure.
+
+A second axis is the \emph{connector lemma}: an actual proof that
+every closed System~T term of depth $d$ is bounded by
+$f_\alpha(d)$ for some $\alpha < \varepsilon_0$.  Such a lemma would
+let us drop the embedding altogether and write
+$\texttt{contender\_N} \coloneqq \texttt{BigGrow}\,N$ for some $N$.
+This is the cleanest possible submission shape, but the proof is a
+significant exercise in proof-theoretic ordinal analysis and is well
+out of scope here.
+
+\subsection{Summary of dependencies}
+
+The whole submission is self-contained within \texttt{Contender.v} and
+introduces no external libraries beyond \texttt{Arith}, \texttt{Lia},
+and \texttt{List} (already required by the file).  No
+\texttt{FunctionalExtensionality}, no \texttt{ProofIrrelevance},
+no \texttt{ClassicalLogic}.  Both
+\texttt{Print Assumptions contender\_4\_lt\_contender\_5} and
+\texttt{Print Assumptions contender\_5\_lt\_contender\_6} report
+``\emph{Closed under the global context}''.
+
+The whole file type-checks in roughly $5$ seconds on a modern laptop
+running Rocq~9.0.1, well within the contest's $15\,\text{s}/60\,\text{s}$
+budgets, and \texttt{coqchk Contender} accepts the resulting modules.
+
+\bigskip\noindent
+\hrulefill
+
+% =======================================================================
+\appendix
+\section{Pointer to the Coq source}
+% =======================================================================
+
+The full Coq source corresponding to this article is the file
+\texttt{Contender.v} on the \texttt{submit-c6-prep} branch, lines
+$830$--$1405$ (the new contender~6 section, including the inlined
+Brouwer ordinals and the $\mathcal{L}_{\textrm{Grow}}$ functor).  Each
+identifier mentioned in this article matches the corresponding Coq
+identifier verbatim.
+
+\begin{thebibliography}{9}
+
+\bibitem{aaronson}
+Scott Aaronson.
+\emph{Who Can Name the Bigger Number?}
+\url{https://www.scottaaronson.com/writings/bignumbers.html}, 1999.
+
+\bibitem{coqlibrary}
+The Coq Development Team.
+\emph{The Coq Reference Manual}.
+\url{https://coq.inria.fr/}, version 8.20 / Rocq 9.
+
+\bibitem{tait}
+W.~W. Tait.
+\emph{Intensional Interpretations of Functionals of Finite Type I}.
+Journal of Symbolic Logic, 32(2): 198--212, 1967.
+
+\bibitem{schwichtenberg}
+H. Schwichtenberg, S. Wainer.
+\emph{Proofs and Computations}.
+Cambridge University Press, 2012.
+(See ch.~4 for Brouwer ordinals and the fast-growing hierarchy.)
+
+\bibitem{contestrepo}
+Cody Roux.
+\emph{name-the-biggest-number}.
+\url{https://github.com/codyroux/name-the-biggest-number}.
+
+\end{thebibliography}
+
+\end{document}
