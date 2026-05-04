@@ -723,14 +723,17 @@ second is the heart of the proof; it splits into three sub-claims:
         $\eval(\embed\,t) = \texttt{Contender.eval}(t)$ for every
         closed term $t$.  This is \texttt{embed\_eval}, proved via the
         logical relation.
-  \item \textbf{Witness construction.}  Define
-        $w(t^\star) \coloneqq
-        \texttt{tApp}\,\texttt{tGrow}\,
-        (\texttt{tApp}\,\texttt{tS}\,(\embed\,t^\star))$.
-        Then $\depth(w(t^\star)) \leq 44$
-        (\texttt{witness\_grow\_depth}) and
-        $\eval(w(t^\star)) = \texttt{BigGrow}(\texttt{contender\_5}+1)$
-        (\texttt{witness\_grow\_eval}).
+  \item \textbf{Witness construction.}  Set
+        \[
+          w(t^\star) \;\coloneqq\;
+          \texttt{tApp}\;\texttt{tGrow}\;\bigl(\texttt{tApp}\;\texttt{tS}\;
+                                              (\embed\,t^\star)\bigr).
+        \]
+        Two further lemmas pin down the size and value of this witness:
+        \texttt{witness\_grow\_depth} establishes
+        $\depth(w(t^\star)) \leq 44$, and \texttt{witness\_grow\_eval}
+        establishes
+        $\eval(w(t^\star)) = \texttt{BigGrow}(\texttt{contender\_5}+1)$.
 \end{enumerate}
 
 Combining (A), (B), (C) with \texttt{lowerbound\_maxBy} gives the
