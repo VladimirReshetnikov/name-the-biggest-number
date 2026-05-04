@@ -711,31 +711,35 @@ factors through one explicit lower bound:
 \]
 
 The first inequality is one line, by \texttt{BigGrow\_gt\_S}.  The
-second is the heart of the proof; it splits into three sub-claims:
+second is the heart of the proof; it splits into three sub-claims,
+each treated in its own section below.
 
-\begin{enumerate}[label=(\Alph*),leftmargin=2em]
-  \item \textbf{Existential maximiser.}  There is a closed System~T
-        term $t^\star$ with $\depth(t^\star) \leq 42$ and
-        $\eval(t^\star) = \texttt{contender\_5}$.  This is
-        \texttt{exists\_maximizer\_42}.
-  \item \textbf{Embedding preserves evaluation.}  There is an embedding
-        $\embed : \texttt{Contender.term} \to \texttt{term}$ such that
-        $\eval(\embed\,t) = \texttt{Contender.eval}(t)$ for every
-        closed term $t$.  This is \texttt{embed\_eval}, proved via the
-        logical relation.
-  \item \textbf{Witness construction.}  Set
-        \[
-          w(t^\star) \;\coloneqq\;
-          \texttt{tApp}\;\texttt{tGrow}\;\bigl(\texttt{tApp}\;\texttt{tS}\;
-                                              (\embed\,t^\star)\bigr).
-        \]
-        Two further lemmas pin down the size and value of this witness:
-        \texttt{witness\_grow\_depth} establishes
-        $\depth(w(t^\star)) \leq 44$, and \texttt{witness\_grow\_eval}
-        establishes
-        $\eval(w(t^\star)) = \texttt{BigGrow}(\texttt{contender\_5}+1)$.
-\end{enumerate}
+\paragraph{(A) Existential maximiser.}
+There is a closed System~T term $t^\star$ with $\depth(t^\star) \leq 42$
+and $\eval(t^\star) = \texttt{contender\_5}$.  This is the lemma
+\texttt{exists\_maximizer\_42}.
 
+\paragraph{(B) Embedding preserves evaluation.}
+There is an embedding
+$\embed : \texttt{Contender.term} \to \texttt{term}$ such that
+$\eval(\embed\,t) = \texttt{Contender.eval}(t)$ for every closed
+term $t$.  This is the lemma \texttt{embed\_eval}, proved via the
+logical relation.
+
+\paragraph{(C) Witness construction.}
+Set
+\[
+  w(t^\star) \;\coloneqq\;
+  \texttt{tApp}\;\texttt{tGrow}\;\bigl(\texttt{tApp}\;\texttt{tS}\;
+                                      (\embed\,t^\star)\bigr).
+\]
+Two further lemmas pin down the size and value of this witness:
+\texttt{witness\_grow\_depth} establishes
+$\depth(w(t^\star)) \leq 44$, and \texttt{witness\_grow\_eval}
+establishes
+$\eval(w(t^\star)) = \texttt{BigGrow}(\texttt{contender\_5}+1)$.
+
+\medskip\noindent
 Combining (A), (B), (C) with \texttt{lowerbound\_maxBy} gives the
 explicit bound
 $\texttt{BigGrow}(\texttt{contender\_5}+1) \leq \texttt{contender\_6}$,
