@@ -34,12 +34,14 @@
                 if,then,else,return,as,struct,Module,End,Import,Require,
                 From,Type,Prop,Set,Section,Variable,Hypothesis,Notation,
                 Local,Global,Print,Eval,Compute,Time,where,Parameter,Axiom,
-                Ltac,intro,intros,apply,eapply,exact,rewrite,simpl,cbn,cbv,
+                Ltac,intro,intros,apply,eapply,exact,rewrite,erewrite,
+                simpl,cbn,cbv,beta,delta,iota,zeta,eta,
                 destruct,induction,reflexivity,symmetry,transitivity,
                 assumption,auto,eauto,lia,split,exists,subst,assert,by,
                 pose,proof,unfold,fold,change,replace,specialize,
                 generalize,revert,clear,case,solve,contradiction,
                 inversion,discriminate,congruence,repeat,first,try,now,
+                progress,context,goal,at,
                 projT1,projT2,existT,List,Some,None,Forall2,nth_error,
                 Nat,iter,recursion,nil,cons,nat,bool,option,True,False,
                 Bz,Bsucc,Blim,FGH,BigGrow,epsilon_0,omega,
@@ -70,9 +72,10 @@
     {<=}{{$\leq$}}2
     {>=}{{$\geq$}}2
     {<>}{{$\neq$}}2
-    {<-}{{$\leftarrow$}}2
+    {<-}{{$\leftarrow\,$}}2
     {->}{{$\rightarrow$}}2
     {=>}{{$\Rightarrow$}}2
+    {|-}{{$\vdash$}}2
     {/\\}{{$\land$}}2
     {\\/}{{$\lor$}}2
     {Contender.}{{\textcolor{gray!55}{Contender.}}}{10}
