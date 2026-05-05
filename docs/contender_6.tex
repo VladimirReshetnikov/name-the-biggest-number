@@ -43,7 +43,7 @@
                 inversion,discriminate,congruence,repeat,first,try,now,
                 progress,context,goal,at,
                 projT1,projT2,existT,List,In,Some,None,Forall2,nth_error,
-                Nat,iter,recursion,nil,cons,nat,bool,option,True,False,
+                Nat,iter,recursion,nil,cons,nat,list,max,bool,option,True,False,
                 Bz,Bsucc,Blim,FGH,BigGrow,epsilon_0,omega,
                 tVar,tLam,tApp,tO,tS,tNatRec,tGrow,tpNat,tpArr,
                 term,interp_type,pack,RelVal,RelPack,RelEnv,
@@ -606,11 +606,16 @@ Definition contender_5 : nat :=
 To prove $\texttt{contender\_4} < \texttt{contender\_5}$, the
 critical step is showing that \texttt{contender\_4} itself is the
 eval of \emph{some} closed System~T term of depth at most $42$.  We
-cannot just unfold \texttt{ack\,5\,42\,10002} into a numeral; that
-would produce a term whose AST has tens of thousands of nodes, far
-beyond any depth budget.  Instead, the repository reifies the
-\emph{Coq function} \texttt{ack} into a System~T term whose
-\texttt{interp\_term} is provably equal to it.
+cannot just unfold \texttt{ack\,5\,42\,10002} into a numeral and
+write that as $\texttt{tS}\,(\texttt{tS}\,(\cdots\,\texttt{tO}))$
+in the object language; the resulting AST would have one node per
+unit in the value, and \texttt{ack\,5\,42\,10002} is astronomically
+larger than any quantity that could fit in a finite depth budget --
+or, for that matter, in the observable universe.  Instead, the
+repository reifies the \emph{Coq function} \texttt{ack} into a
+System~T term whose \texttt{interp\_term} is provably equal to it,
+exploiting the fact that nested \texttt{Nat.recursion}s let a
+shallow tree denote a very large number.
 
 The recipe proceeds in three layers.  First, define a System~T-friendly
 copy of each arithmetic operation as a Coq function written
