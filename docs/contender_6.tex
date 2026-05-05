@@ -194,9 +194,9 @@ The current chain of contenders is:
 \toprule
 \# & Definition & Order of magnitude \\
 \midrule
-1 & $1$ & $\sim 1$ \\
-2 & a literal numeral & several digits \\
-3 & multi-tower & a few towers of $2$ \\
+1 & $42$ & a two-digit literal \\
+2 & a tower of $42$\,\textasciicircum\,$\cdots$\,\textasciicircum\,$42$ & several thousand $42$s tall \\
+3 & $\texttt{tower\_of\_power}\ 10000$ & a $42$-tower of height $10001$ \\
 4 & $\texttt{ack}\ 5\ 42\ 10002$ & an Ackermannian giant \\
 5 & largest closed System~T term, $\depth \leq 42$ & dwarfs every $f_\alpha$ for $\alpha < \varepsilon_0$ \\
 \textbf{6} & \textbf{the present submission} & $\geq f_{\varepsilon_0}(\texttt{contender\_5}+1)$ \\
@@ -204,39 +204,582 @@ The current chain of contenders is:
 \end{tabular}
 \end{center}
 
-\subsection{The previous contender, in one paragraph}
+% =======================================================================
+\section{The chain of previous contenders}
+\label{sec:previous-contenders}
+% =======================================================================
 
-Contender~5 is the bound
+We now walk through \texttt{contender\_1}--\texttt{contender\_5} in
+detail, showing the actual definition of each one and the structure
+of the proof of strict inequality $\texttt{contender\_{N-1}} <
+\texttt{contender\_N}$.  The five steps span six order-of-magnitude
+regimes -- literals, towers of exponents, primitive recursion on
+towers, the Ackermann hierarchy, and finally a depth-bounded enumeration
+of closed System~T terms.  A reader already familiar with the upstream
+chain can safely skip to \S\ref{sec:why-c5-plus-1}.
 
-\[
-  \texttt{contender\_5}
-  \;=\;
-  \max\;\bigl\{\,\eval(t)\;:\;t \text{ a closed System~T term},\ \depth(t)\leq 42\,\bigr\}
-\]
+The first four contenders are kept in the file \texttt{Graveyard.v}
+of the upstream repository; \texttt{contender\_4} and
+\texttt{contender\_5} together with the proof
+$\texttt{contender\_4} < \texttt{contender\_5}$ live in
+\texttt{Contender.v}.  Both files are axiom-free; we quote each
+definition and the proof structure verbatim.
 
-formalized by enumerating the finite set of System~T abstract syntax
-trees of depth $\leq 42$, evaluating each one, and taking the maximum
-via a polymorphic \texttt{maxBy} combinator.  System~T is
-$\lambda$-calculus with a single base type \texttt{Nat}, function types,
-and a recursor \texttt{NatRec}.  We will not need to dive into
-\texttt{Contender.v}'s internals; what matters is the four facts
-recorded as Coq lemmas:
+\subsection{\texttt{contender\_1} = 42}
+
+The chain bottoms out at a literal, after a degenerate
+\texttt{contender\_0} = 0:
+
+\begin{lstlisting}
+Definition contender_0 : nat := 0.
+Definition contender_1 : nat := 42.
+
+Theorem contender_0_lt_contender_1 : contender_0 < contender_1.
+Proof. unfold contender_0, contender_1. auto with arith. Qed.
+\end{lstlisting}
+
+The proof is a one-liner: \texttt{auto with arith} closes
+$0 < 42$ on its own.  This contender is the bottom of the well; it
+exists mostly as a pedagogical anchor.
+
+\subsection{\texttt{contender\_2}: a tower of 42's}
+
+\texttt{contender\_2} is a \emph{literal} numeric expression: a
+right-associated chain of $42$\,\textasciicircum$42$
+\,\textasciicircum$\cdots$\,\textasciicircum$42$ of several thousand
+levels, parsed by Coq into one giant \texttt{nat} term:
+
+\begin{lstlisting}
+Time Definition contender_2 : nat :=
+  42^42^42^42^...^42.   (* thousands of 42s *)
+\end{lstlisting}
+
+The proof of strict inequality is a tactic that repeatedly applies
+the monotonicity of $a^b$ in $b$:
+
+\begin{lstlisting}
+Theorem contender_1_lt_contender_2 : contender_1 < contender_2.
+Proof.
+  Time cbv delta [contender_1 contender_2];
+  repeat match goal with
+         | _ => progress eapply Nat.pow_lt_mono_r; [solve [lia]|]
+         | |- ?x < ?y =>
+           match y with
+           | context[x ^ x] =>
+             progress erewrite <-Nat.pow_1_r at 1
+           end
+         | _ => progress eapply Nat.pow_gt_1; [solve [lia]|]
+         | _ => progress eapply Nat.pow_nonzero; solve [lia]
+         end.
+Time Qed.
+\end{lstlisting}
+
+The author's own comment records that the \texttt{Definition} took
+$\sim 2$\,seconds and the proof script roughly $50$\,seconds -- well
+within today's $15\,\text{s}/60\,\text{s}$ budget but not by much.
+The \texttt{Time} markers are a reminder that the upstream rules
+\emph{are} measured, not aspirational.
+
+\subsection{\texttt{contender\_3}: \texttt{tower\_of\_power}\,10000}
+
+The third contender introduces the first explicit recursion in the
+chain.  Define a tetration-like family of natural numbers:
+
+\begin{lstlisting}
+Definition tower_of_power (n : nat) : nat :=
+  Nat.recursion 42 (fun _ k => 42 ^ k) n.
+
+Definition contender_3 := tower_of_power 10000.
+\end{lstlisting}
+
+Here \texttt{Nat.recursion} is the standard library's primitive recursor
+\texttt{nat\_rect} specialised to a non-dependent codomain.  Unrolling:
+$\texttt{tower\_of\_power}\;0 = 42$,
+$\texttt{tower\_of\_power}\;(n{+}1) = 42^{\,\texttt{tower\_of\_power}\;n}$,
+so $\texttt{contender\_3}$ is a tower of $42$ ten thousand and one
+levels tall -- vastly more than the few-thousand-tall
+\texttt{contender\_2}.
+
+The proof relies on a custom Ltac \texttt{reify\_tower} that
+matches the iterated \texttt{42\textasciicircum} pattern in
+\texttt{contender\_2} and rewrites it as
+$\texttt{tower\_of\_power}\,k$ for the appropriate $k$, after which a
+monotonicity lemma about \texttt{tower\_of\_power} closes the goal:
+
+\begin{lstlisting}
+Lemma fund_lemma : forall n m,
+  n < m -> tower_of_power n < tower_of_power m.
+
+Theorem contender_2_lt_contender_3 : contender_2 < contender_3.
+Proof.
+  unfold contender_2.
+  Time reify_goal.
+  unfold contender_3.
+  apply fund_lemma.
+  compute; lia.
+Qed.
+\end{lstlisting}
+
+\noindent
+The \texttt{reify\_goal} step is the interesting one: it turns the
+explicit literal-tower \texttt{contender\_2} into the symbolic form
+$\texttt{tower\_of\_power}\,k$, which \texttt{fund\_lemma} can compare
+to \texttt{tower\_of\_power}\,10000.
+
+\subsection{\texttt{contender\_4} = ack 5 42 10002}
+
+The fourth contender takes the Ackermann jump.  The Ackermann function
+in this repository is defined slightly non-standardly to make the
+proof of $\texttt{contender\_3} < \texttt{contender\_4}$ tractable:
+
+\begin{lstlisting}
+Fixpoint iter (f : nat -> nat) (b : nat) :=
+  match b with
+  | 0 => 1
+  | S b' => f (iter f b')
+  end.
+
+Fixpoint ack (n a b : nat) :=
+  match n with
+  | 0 => S b
+  | 1 => a + b
+  | S n' => iter (ack n' a) b
+  end.
+
+Definition contender_4 := ack 5 42 10002.
+\end{lstlisting}
+
+So $\texttt{ack}\,0 = $ successor, $\texttt{ack}\,1 = $ addition,
+$\texttt{ack}\,2 = $ multiplication$+1$,
+$\texttt{ack}\,3 \approx $ exponentiation,
+$\texttt{ack}\,4 \approx $ tetration, and
+$\texttt{ack}\,5 \approx $ pentation -- one full hierarchy step
+above what \texttt{tower\_of\_power} can express.
+
+The proof of $\texttt{contender\_3} < \texttt{contender\_4}$ chains a
+sequence of bounds:
+
+\begin{lstlisting}
+Lemma ack_3 : forall a b, a ^ b <= ack 3 a b.
+
+Lemma ack_4 : forall b, tower_of_power b <= ack 4 42 (S b).
+
+Theorem contender_3_lt_contender_4 :
+  contender_3 < contender_4.
+\end{lstlisting}
+
+\noindent
+\texttt{ack\_3} bounds exponentiation by $\texttt{ack}\,3$ (i.e.\ proves
+$\texttt{ack}\,3$ dominates $a^b$ as a function of $b$);
+\texttt{ack\_4} promotes this to bound the entire
+$\texttt{tower\_of\_power}$ tower by $\texttt{ack}\,4\,42$;
+the final theorem combines $\texttt{ack\_4}$ with the structural
+monotonicity of $\texttt{ack}$ in its third argument
+(\texttt{mon\_ack\_in\_b}) to bridge from $\texttt{ack}\,4\,42\,k$ to
+$\texttt{ack}\,5\,42\,(k{+}2)$.  The actual proof script is about
+twenty lines of moderate complexity.
+
+\subsection{\texttt{contender\_5}: the largest System~T term of depth at most 42}
+
+The fifth contender is the qualitative leap that motivates this whole
+article.  Instead of naming a specific large number, it names
+\emph{the largest number that any closed System~T term of depth at
+most $42$ evaluates to}.
+
+\subsubsection{The System~T object language}
+
+The repository defines a small dependently-evaluated object language:
+simply-typed lambda calculus with a base type \texttt{tpNat} and a
+\texttt{NatRec} primitive.  The types are
+
+\begin{lstlisting}
+Inductive type :=
+| tpNat : type
+| tpArr : type -> type -> type.
+\end{lstlisting}
+
+interpreted as Coq types via a small \texttt{Fixpoint}:
+
+\begin{lstlisting}
+Fixpoint interp_type (tp : type) : Type :=
+  match tp with
+  | tpNat       => nat
+  | tpArr t1 t2 => interp_type t1 -> interp_type t2
+  end.
+\end{lstlisting}
+
+Terms are de~Bruijn-indexed, with the slightly unusual convention
+that index $0$ is the \emph{outermost} binder (a reversed-de~Bruijn
+or de~Bruijn-\emph{level} convention):
+
+\begin{lstlisting}
+Inductive term :=
+| tVar    (x : nat)
+| tLam    (A B : type) (body : term)
+| tApp    (t1 t2 : term)
+| tO
+| tS
+| tNatRec (R : type).
+\end{lstlisting}
+
+The interpreter \texttt{interp\_term} maps a term and an environment
+of values to a dependent pair of a type tag and a value:
+
+\begin{lstlisting}
+Definition interp_term :
+    forall (e : list {tp : type & interp_type tp})
+           (t : term),
+      {tp : type & interp_type tp}.
+\end{lstlisting}
+
+For \texttt{tApp}, the type tag of the function is destructed; if
+it is not \texttt{tpArr}, a default \texttt{error} value is returned.
+For \texttt{tNatRec}, the term reifies Coq's \texttt{Nat.recursion}
+at the requested return type.  The full body uses \texttt{refine}
+plus a small \texttt{cast\_impl} coercion that reconciles
+``the function expected an argument of type $A$, but its actual
+argument has type $A'$'' situations -- if the type tags do not match,
+the coercion falls through to \texttt{error}.
+
+The top-level evaluator extracts a \texttt{nat} from a closed
+\texttt{tpNat}-typed result and returns $0$ otherwise:
+
+\begin{lstlisting}
+Definition eval (t : term) : nat :=
+  let (tp, res) := interp_term nil t in
+  match tp as t0 return interp_type t0 -> nat with
+  | tpNat       => fun n => n
+  | tpArr _ _   => fun _ => 0
+  end res.
+\end{lstlisting}
+
+\subsubsection{Term depth and the depth-bounded enumerator}
+
+Term depth is the abstract-syntax-tree depth, with a special
+treatment of variable indices and types that lets the
+finite-enumeration argument go through:
+
+\begin{lstlisting}
+Definition nat_depth (n : nat) := S n.
+
+Fixpoint type_depth (t : type) : nat :=
+  match t with
+  | tpNat       => 1
+  | tpArr t1 t2 => S (max (type_depth t1) (type_depth t2))
+  end.
+
+Fixpoint term_depth (t : term) : nat :=
+  match t with
+  | tVar x        => S (nat_depth x)
+  | tLam A B body => S (max (max (type_depth A)
+                                 (type_depth B))
+                            (term_depth body))
+  | tApp t1 t2    => S (max (term_depth t1) (term_depth t2))
+  | tO            => 1
+  | tS            => 1
+  | tNatRec R     => S (type_depth R)
+  end.
+\end{lstlisting}
+
+Crucially, \texttt{nat\_depth}\,$n$ is \emph{not} bounded by any
+constant; it is just $n+1$.  So for any depth bound $d$, only finitely
+many natural numbers $n$ have $\texttt{nat\_depth}\,n \leq d$ -- namely
+$\{0, 1, \ldots, d-1\}$.  Similarly only finitely many types have
+\texttt{type\_depth}\,$t \leq d$, and only finitely many closed terms
+have $\texttt{term\_depth}\,t \leq d$.
+
+The repository realizes ``finitely many'' as concrete enumeration
+functions:
+
+\begin{lstlisting}
+Fixpoint natsUpTo (n : nat) : list nat :=
+  match n with
+  | 0    => []
+  | S m  => m :: natsUpTo m
+  end.
+
+Fixpoint typesUpTo (n : nat) : list type :=
+  match n with
+  | 0    => []
+  | S m  =>
+    let r := typesUpTo m in
+    tpNat :: List.map (fun '(t1, t2) => tpArr t1 t2)
+                      (list_prod r r)
+  end.
+
+Fixpoint termsUpTo (n : nat) : list term :=
+  match n with
+  | 0    => []
+  | S m  =>
+    List.map tVar (natsUpTo m) ++
+    List.map (fun '(A, B, body) => tLam A B body)
+             (list_prod (list_prod (typesUpTo m) (typesUpTo m))
+                        (termsUpTo m)) ++
+    List.map (fun '(t1, t2) => tApp t1 t2)
+             (list_prod (termsUpTo m) (termsUpTo m)) ++
+    [tO] ++ [tS] ++
+    List.map tNatRec (typesUpTo m)
+  end.
+\end{lstlisting}
+
+\noindent
+The three correctness lemmas characterize each enumerator as
+``everything of depth at most $n$ appears in the list, and nothing
+else does'':
+
+\begin{lstlisting}
+Lemma natsUpTo_correct  : forall n m, nat_depth m  <= n <-> In m (natsUpTo n).
+Lemma typesUpTo_correct : forall n t, type_depth t <= n <-> In t (typesUpTo n).
+Lemma termsUpTo_correct : forall n t, term_depth t <= n <-> In t (termsUpTo n).
+\end{lstlisting}
+
+\noindent
+The proof of \texttt{termsUpTo\_correct} is a routine induction with
+seven cases (one per term constructor); each case navigates to the
+right \texttt{++} segment and proves membership via repeated
+\texttt{in\_map} / \texttt{in\_prod} reductions plus an appeal to
+\texttt{natsUpTo\_correct} or \texttt{typesUpTo\_correct} or the IH.
+
+\subsubsection{\texttt{maxBy}: argmax over a list}
+
+The maximum-eval combinator is polymorphic over the element type:
+
+\begin{lstlisting}
+Fixpoint maxBy {T : Type}
+               (f : T -> nat) (currentMax : nat)
+               (currentBest : T) (l : list T) : T :=
+  match l with
+  | nil       => currentBest
+  | cons h t  =>
+    if currentMax <? f h
+    then maxBy f (f h) h t
+    else maxBy f currentMax currentBest t
+  end.
+\end{lstlisting}
+
+\noindent
+At each step \texttt{maxBy} either keeps the current best (if no
+element of the list exceeds it) or upgrades to a new best.  The three
+key properties are recorded as Coq lemmas:
+
+\begin{lstlisting}
+Lemma maxBy_In : forall f l currentMax currentBest,
+    currentMax = f currentBest ->
+    In (maxBy f currentMax currentBest l) l \/
+    maxBy f currentMax currentBest l = currentBest.
+
+Lemma maxBy_at_least_currentMax : forall f l currentMax currentBest,
+    f currentBest = currentMax ->
+    currentMax <= f (maxBy f currentMax currentBest l).
+
+Lemma lowerbound_maxBy : forall f x l currentMax currentBest,
+    In x l ->
+    f currentBest = currentMax ->
+    f x <= f (maxBy f currentMax currentBest l).
+\end{lstlisting}
+
+\noindent
+\texttt{maxBy\_In} is the dichotomy ``the result is either an element
+of the list, or the initial best''; \texttt{maxBy\_at\_least\_currentMax}
+says the final $f$-value is at least the initial $f$-value;
+\texttt{lowerbound\_maxBy} extends this to: every element of the list
+is bounded above by the final $f$-value.
+
+The number we are after is the eval of the depth-$42$ argmax:
+
+\begin{lstlisting}
+Definition largest_of_depth (n : nat) : term :=
+  maxBy eval 0 tO (termsUpTo n).
+
+Definition largest_STLCNatRec_nat_of_depth (n : nat) : nat :=
+  eval (largest_of_depth n).
+
+Definition contender_5 : nat :=
+  largest_STLCNatRec_nat_of_depth 42.
+\end{lstlisting}
+
+\subsubsection{Reification: from \texttt{ack 5 42 10002} to a System~T term}
+
+To prove $\texttt{contender\_4} < \texttt{contender\_5}$, the
+critical step is showing that \texttt{contender\_4} itself is the
+eval of \emph{some} closed System~T term of depth at most $42$.  We
+cannot just unfold \texttt{ack\,5\,42\,10002} into a numeral; that
+would produce a term whose AST has tens of thousands of nodes, far
+beyond any depth budget.  Instead, the repository reifies the
+\emph{Coq function} \texttt{ack} into a System~T term whose
+\texttt{interp\_term} is provably equal to it.
+
+The recipe proceeds in three layers.  First, define a System~T-friendly
+copy of each arithmetic operation as a Coq function written
+exclusively in terms of \texttt{Nat.recursion}, and prove it equal to
+the standard library version:
+
+\begin{lstlisting}
+Definition iter' (f : nat -> nat) : nat -> nat :=
+  Nat.recursion 1 (fun pred rec => f rec).
+Lemma iter'_equiv : forall f b, iter' f b = iter f b.
+
+Definition add' : nat -> nat -> nat :=
+  Nat.recursion (fun m => m)
+                (fun pred rec m => S (rec m)).
+Lemma add'_equiv : forall n m, add' n m = Nat.add n m.
+
+Definition mul' : nat -> nat -> nat :=
+  Nat.recursion (fun m => 0)
+                (fun pred rec m => add' m (rec m)).
+Lemma mul'_equiv : forall n m, mul' n m = Nat.mul n m.
+
+Definition pow' (n : nat) : nat -> nat :=
+  Nat.recursion 1 (fun pred rec => mul' n rec).
+Lemma pow'_equiv : forall n m, pow' n m = Nat.pow n m.
+
+Definition ack' (n : nat) : nat -> nat -> nat := ...
+Lemma ack'_equiv : forall n a b, ack' n a b = ack n a b.
+\end{lstlisting}
+
+\noindent
+The key feature of these primed definitions is that they are
+\emph{written} as nested \texttt{Nat.recursion}s and ordinary
+$\lambda$-abstractions -- precisely the operations that System~T can
+faithfully express.
+
+Second, an existential witness lemma promises that \texttt{ack'}
+\emph{can} be obtained as the interpretation of some closed System~T
+term, and a custom Ltac \texttt{t} (defined elsewhere in the file)
+repeatedly applies \texttt{interp\_tApp}, \texttt{interp\_tLam}, etc.\
+to assemble that term:
+
+\begin{lstlisting}
+Lemma ack'_reification_helper : exists res,
+    interp_term nil res
+    = existT _ (tpArr tpNat (tpArr tpNat (tpArr tpNat tpNat))) ack'.
+Proof.
+  eexists.
+  unfold ack'.
+  repeat t.
+  all: reflexivity.
+Defined.
+
+Definition ack_reified : term.
+  let r := eval unfold ack'_reification_helper
+                   in ack'_reification_helper in
+  match r with
+  | ex_intro _ ?x _ => exact x
+  end.
+Defined.
+\end{lstlisting}
+
+\noindent
+The point of the \texttt{Defined.} (rather than \texttt{Qed.}) is
+that the existential witness must be reduce-able by Coq's kernel: we
+will need its concrete \texttt{term} value when computing
+$\texttt{term\_depth}\,(\texttt{ack\_reified})$.
+
+Third, the same trick is repeated for \texttt{contender\_4} itself,
+yielding a closed System~T term \texttt{contender\_4''\_reified}
+whose \texttt{eval} is \texttt{contender\_4}:
+
+\begin{lstlisting}
+Definition contender_4'' : nat. ...
+
+Lemma contender_4''_equiv : contender_4'' = contender_4.
+
+Definition contender_4''_reified : term. ...
+
+Lemma eval_contender_4''_reified :
+  eval contender_4''_reified = contender_4''.
+\end{lstlisting}
+
+The depth of \texttt{contender\_4''\_reified} can be computed by
+\texttt{cbv}; running this in the file shows it to be a small
+constant well below $42$.  Concretely, \texttt{Eval cbv in
+(term\_depth contender\_4''\_reified)} prints a number around the
+$30$s, and that is what gives the proof its room to breathe.
+
+\subsubsection{The proof \texttt{contender\_4 < contender\_5}}
+
+With the reification in hand, the actual proof is a clean four-step
+inequality:
+
+\begin{lstlisting}
+Theorem contender_4_lt_contender_5 : contender_4 < contender_5.
+Proof.
+  rewrite <- contender_4''_equiv.
+  rewrite <- eval_contender_4''_reified.
+  unfold contender_5, largest_STLCNatRec_nat_of_depth.
+  eapply Nat.le_lt_trans.
+  - eapply upperbound_eval.
+  - eapply largest_of_depth_strictly_monotone.
+    cbv. lia.
+Qed.
+\end{lstlisting}
+
+\noindent
+Reading the script:
+
+\begin{enumerate}[label=(\arabic*),leftmargin=2em]
+  \item \texttt{rewrite <- contender\_4''\_equiv} replaces the goal
+        \[ \texttt{contender\_4} < \texttt{contender\_5} \]
+        by
+        \[ \texttt{contender\_4''} < \texttt{contender\_5}. \]
+  \item \texttt{rewrite <- eval\_contender\_4''\_reified} replaces
+        \texttt{contender\_4''} on the LHS by
+        \[ \eval(\texttt{contender\_4''\_reified}). \]
+  \item \texttt{unfold} on the RHS exposes
+        $\eval(\texttt{largest\_of\_depth}\,42)$.
+  \item Two helper lemmas finish the job.
+        \texttt{upperbound\_eval} states ``every closed term's eval
+        is bounded by the eval of the depth-bounded argmax at
+        \emph{the term's own depth}'':
+        \begin{lstlisting}
+Lemma upperbound_eval : forall t,
+    eval t <= eval (largest_of_depth (term_depth t)).
+        \end{lstlisting}
+        Applying it gives
+        $\eval(\texttt{contender\_4''\_reified}) \leq
+         \eval(\texttt{largest\_of\_depth}\,(\texttt{term\_depth}
+                                          \,\texttt{contender\_4''\_reified}))$.
+        And \texttt{largest\_of\_depth\_strictly\_monotone} states
+        that the argmax strictly grows with depth (whenever both
+        depths are positive):
+        \begin{lstlisting}
+Lemma largest_of_depth_strictly_monotone : forall n1 n2,
+    0 < n1 < n2 ->
+    eval (largest_of_depth n1) < eval (largest_of_depth n2).
+        \end{lstlisting}
+        The final \texttt{cbv. lia} reduces the literal depth of
+        \texttt{contender\_4''\_reified} to a concrete numeral
+        (somewhere in the $30$s) and discharges
+        $0 < \text{that} < 42$ by \texttt{lia}.
+\end{enumerate}
+
+\paragraph{Recapping the four lemmas of the previous chain.}
+For our own proof of $\texttt{contender\_5} < \texttt{contender\_6}$,
+we will need exactly four facts from the inherited machinery:
 
 \begin{itemize}[leftmargin=2em]
-  \item the enumerator \texttt{termsUpTo}\,$n$ is \emph{complete}:
-        every closed term $t$ with $\depth(t)\leq n$ appears in it
-        (\texttt{termsUpTo\_correct});
-  \item \texttt{maxBy} returns either the initial best or some element
-        of the list (\texttt{maxBy\_In});
-  \item every element of the list is bounded above by the maximum
-        (\texttt{lowerbound\_maxBy});
-  \item the maximum is \emph{monotone} in the depth bound
-        (\texttt{largest\_of\_depth\_monotone}).
+  \item \texttt{termsUpTo\_correct} -- every closed term $t$ with
+        $\depth(t)\leq n$ appears in $\texttt{termsUpTo}\,n$;
+  \item \texttt{maxBy\_In} -- \texttt{maxBy} returns either the initial
+        best or some element of the list;
+  \item \texttt{lowerbound\_maxBy} -- every element of the list is
+        bounded above by the maximum;
+  \item \texttt{largest\_of\_depth\_monotone} -- the maximum is monotone
+        in the depth bound.
 \end{itemize}
 
-These four lemmas suffice for everything we will do.
+\noindent
+These four lemmas plus the \texttt{interp\_term}/\texttt{eval}
+infrastructure are everything we will need.  The reification,
+\texttt{ack\_reified}, and \texttt{contender\_4''\_reified} are
+spectator citizens: they are invoked only inside the
+$\texttt{contender\_4} < \texttt{contender\_5}$ proof, never
+re-imported by us.
 
-\subsection{Why \texttt{contender\_5+1} is not enough}
+% =======================================================================
+\section{Why \texttt{contender\_5+1} is not enough}
+\label{sec:why-c5-plus-1}
+% =======================================================================
 
 The naive way to defeat \texttt{contender\_5} is
 
