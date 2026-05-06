@@ -10,13 +10,20 @@
 \usepackage{fontspec}
 \setmainfont{TeX Gyre Pagella}
 \setmonofont{Monaspace Xenon}[
-  Scale=0.92,
+  Scale=0.875,
   Ligatures=NoCommon,
   BoldFont={Monaspace Xenon SemiBold},
   ItalicFont={Monaspace Xenon Italic},
   BoldItalicFont={Monaspace Xenon SemiBold Italic},
 ]
-\usepackage[scaled=1.1]{newpxmath}      % Palatino-flavoured math symbols
+% Sans-serif Monaspace variant used for math operator names
+% (\eval, \depth, \embed, \largest).  Distinct from both the Pagella
+% prose and the Xenon listings.
+\newfontfamily{\monoargon}{Monaspace Argon}[
+  Scale=0.875,
+  Ligatures=NoCommon,
+]
+\usepackage{newpxmath}                  % Palatino-flavoured math symbols
 \linespread{1.05}                       % Pagella benefits from a touch more leading
 % Define [[ ]] as composite glyphs with a small *positive* gap between
 % the two halves, so they are clearly readable as double brackets at
@@ -118,10 +125,11 @@
 % --- Math shorthands ----------------------------------------------------
 \newcommand{\Nat}{\mathbb{N}}
 \newcommand{\eps}{\varepsilon}
-\DeclareMathOperator{\depth}{depth}
-\DeclareMathOperator{\eval}{eval}
-\DeclareMathOperator{\embed}{embed}
-\DeclareMathOperator{\largest}{largest}
+\newcommand{\opname}[1]{\mathop{\text{\monoargon #1}}\nolimits}
+\newcommand{\depth}{\opname{depth}}
+\newcommand{\eval}{\opname{eval}}
+\newcommand{\embed}{\opname{embed}}
+\newcommand{\largest}{\opname{largest}}
 
 % --- Hyperref last ------------------------------------------------------
 \usepackage[colorlinks=true,
