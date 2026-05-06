@@ -2,6 +2,16 @@
 
 % --- Math, symbols, theorem environments --------------------------------
 \usepackage{amsmath,amssymb,amsthm,mathtools}
+
+% --- Fonts --------------------------------------------------------------
+% TeX Gyre Pagella (Palatino clone) for body text;
+% Inconsolata for monospace, scaled to harmonize with Pagella;
+% Pagella math companion via newpxmath (Palatino-flavoured math).
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Pagella}
+\setmonofont{Inconsolatazi4}[Scale=0.85]
+\usepackage[scaled=1]{newpxmath}        % Palatino-flavoured math symbols
+\linespread{1.05}                       % Pagella benefits from a touch more leading
 % Define [[ ]] as composite glyphs with a small *positive* gap between
 % the two halves, so they are clearly readable as double brackets at
 % any zoom level (unlike the negative-thin-space version, which can
