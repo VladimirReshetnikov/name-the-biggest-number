@@ -45,7 +45,10 @@
 % --- Code listings ------------------------------------------------------
 \usepackage{listings}
 
-\definecolor{coqkw}{RGB}{40,80,160}
+% Keyword color: dark navy at lightness comparable to the planned
+% constructor color (~#700000), so blue keywords and red constructors
+% read as paired peers rather than one dominating the other.
+\definecolor{coqkw}{HTML}{15336E}
 \definecolor{coqcomment}{RGB}{105,120,140}
 \definecolor{coqstr}{RGB}{160,40,40}
 \definecolor{coqid}{RGB}{0,0,0}
@@ -76,7 +79,7 @@
   morestring=[b]",
   sensitive=true,
   alsoletter={'},
-  basicstyle=\ttfamily,
+  basicstyle=\ttfamily\fontsize{10.5pt}{12.6pt}\selectfont,
   keywordstyle=\color{coqkw},
   commentstyle=\color{coqcomment}\itshape,
   stringstyle=\color{coqstr},

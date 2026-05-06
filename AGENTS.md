@@ -297,6 +297,18 @@ be prepended manually.
   `C:\Users\vresh\AppData\Local\Programs\MiKTeX\miktex\bin\x64`.
   Package auto-install is enabled; current shells may need that bin
   directory prepended to `PATH`.
+- **Monaspace fonts** (GitHub Next, v1.400) — five family variants
+  (Argon, Krypton, Neon, Radon, Xenon) installed both as static OTFs
+  and as variable TTFs. Static face files live under
+  `C:\Users\vresh\AppData\Local\Programs\MiKTeX\fonts\opentype\public\monaspace-{argon,krypton,neon,radon,xenon}\`;
+  variable face files (`Monaspace <Family> Var.ttf`) live under
+  `C:\Users\vresh\AppData\Local\Programs\MiKTeX\fonts\truetype\public\monaspace-{...}-var\`.
+  Variable axes are `wght` 200–800, `wdth` 100–125, `slnt` -11–0; fontspec
+  exposes them via `Variable={Weight=...,Width=...,Slant=...}` (newer
+  fontspec) or `RawFeature={axis={wght=...,wdth=...}}`. After unzipping
+  fresh fonts, run `initexmf --update-fndb` to refresh MiKTeX.
+- **TeX Gyre Pagella + math** — installed via MiKTeX package manager:
+  `mpm.exe --install=tex-gyre tex-gyre-math`.
 
 ### Agent / AI
 
