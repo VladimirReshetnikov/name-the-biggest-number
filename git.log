@@ -1,4 +1,40 @@
-* commit 4a684c7e19ef54005861895f056af7f39eee72cf (HEAD -> submit-c6-prep)
+* commit 588b68610bd5bed852e3ff896cd56bcfba8eebcb (HEAD -> submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Tue May 5 22:37:33 2026 -0700
+| 
+|     docs: typeset math operators in Monaspace Argon
+|     
+|     Math operators \eval, \depth, \embed, \largest used to render in
+|     Pagella roman via \DeclareMathOperator, which made them visually
+|     indistinguishable from prose and slightly small.  scaled=1.1 on
+|     newpxmath did not help because that scaling only affects math symbol
+|     fonts, not the upright operator-name font.
+|     
+|     Switch to Monaspace Argon (sans-serif Monaspace variant) wired up via
+|     a small \opname helper.  Argon's monospaced metrics line up with the
+|     Xenon listings while the sans terminals visually flag these names as
+|     functions, not identifiers -- useful because they are *not* always
+|     literal Coq names (e.g. \depth corresponds to term_depth).
+|     
+|     Also drop Monaspace Xenon's Scale from 0.92 to 0.875.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  docs/contender_6.tex | 20 ++++++++++++++------
+|  1 file changed, 14 insertions(+), 6 deletions(-)
+| 
+* commit 6aaf0f4310d854ae8277a40575d77edada9a9287 (origin/submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Tue May 5 22:05:20 2026 -0700
+| 
+|     chore: refresh git.log
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  git.log | 992 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+|  1 file changed, 991 insertions(+), 1 deletion(-)
+| 
+* commit 4a684c7e19ef54005861895f056af7f39eee72cf
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Tue May 5 22:05:13 2026 -0700
 | 
@@ -18,7 +54,7 @@
 |  docs/contender_6.tex | 4 ++--
 |  1 file changed, 2 insertions(+), 2 deletions(-)
 | 
-* commit b131132f14d8e7382cd9a48379e22a47f35b311f (origin/submit-c6-prep)
+* commit b131132f14d8e7382cd9a48379e22a47f35b311f
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Tue May 5 20:55:49 2026 -0700
 | 
