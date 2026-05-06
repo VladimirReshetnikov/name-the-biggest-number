@@ -45,10 +45,11 @@
 % --- Code listings ------------------------------------------------------
 \usepackage{listings}
 
-% Keyword color: dark navy at lightness comparable to the planned
-% constructor color (~#700000), so blue keywords and red constructors
-% read as paired peers rather than one dominating the other.
-\definecolor{coqkw}{HTML}{15336E}
+% Keyword and constructor colors are matched in HSL: both at S=75%,
+% L=22% with hues 180 degrees apart (217 navy vs 0 dark red).  Reads
+% as a paired blue/red peer relationship at regular weight.
+\definecolor{coqkw}{HTML}{0E2D62}     % vernacular, tactics, reserved
+\definecolor{coqcons}{HTML}{620E0E}   % data constructors of inductive types
 \definecolor{coqcomment}{RGB}{105,120,140}
 \definecolor{coqstr}{RGB}{160,40,40}
 \definecolor{coqid}{RGB}{0,0,0}
@@ -69,18 +70,25 @@
                 generalize,revert,clear,case,solve,contradiction,
                 inversion,discriminate,congruence,repeat,first,try,now,
                 progress,context,goal,at,all,
-                projT1,projT2,existT,ex_intro,List,In,Some,None,Forall2,nth_error,
-                Nat,iter,recursion,nil,cons,nat,list,max,bool,option,True,False,
-                Bz,Bsucc,Blim,FGH,BigGrow,epsilon_0,omega,
-                tVar,tLam,tApp,tO,tS,tNatRec,tGrow,tpNat,tpArr,
-                term,interp_type,pack,RelVal,RelPack,RelEnv,
+                projT1,projT2,List,In,Forall2,nth_error,
+                Nat,iter,recursion,nat,list,max,bool,option,
+                FGH,BigGrow,epsilon_0,omega,
+                term,interp_type,
                 contender_5,contender_6,contender_grow_6},
+  % Class 2: data constructors of inductive types (user-defined and stdlib).
+  morekeywords=[2]{Bz,Bsucc,Blim,
+                   tVar,tLam,tApp,tO,tS,tNatRec,tGrow,
+                   tpNat,tpArr,
+                   pack,RelVal,RelPack,RelEnv,
+                   Some,None,nil,cons,True,False,
+                   existT,ex_intro},
   morecomment=[s]{(*}{*)},
   morestring=[b]",
   sensitive=true,
   alsoletter={'},
   basicstyle=\ttfamily\fontsize{10.5pt}{12.6pt}\selectfont,
   keywordstyle=\color{coqkw},
+  keywordstyle=[2]\color{coqcons},
   commentstyle=\color{coqcomment}\itshape,
   stringstyle=\color{coqstr},
   identifierstyle=\color{coqid},
