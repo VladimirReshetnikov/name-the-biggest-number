@@ -1,4 +1,38 @@
-* commit 734aa204c0af533a2bed3bbaeda4ae4f4c9ef1e0 (HEAD -> submit-c6-prep)
+* commit d1c13c5e23f019260321b16d6666261b674c4c32 (HEAD -> submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Wed May 6 07:24:44 2026 -0700
+| 
+|     docs: separate constructor color (#620E0E) from keyword color (#0E2D62)
+|     
+|     Both colors are HSL-matched at S=75 L=22 with hues 180 deg apart
+|     (217 navy vs 0 dark red), so they read as paired peers rather than
+|     one dominating.
+|     
+|     The 26 names that are *constructors* of inductive types -- Bz/Bsucc/
+|     Blim, the term and type ctors (tVar, tLam, tApp, tO, tS, tNatRec,
+|     tGrow, tpNat, tpArr), the logical-relation ctors (pack, RelVal,
+|     RelPack, RelEnv), and the stdlib ctors (Some, None, nil, cons, True,
+|     False, existT, ex_intro) -- move to a new listings keyword class
+|     [2] and pick up the dark red.  Type names, namespaces, definitions,
+|     and tactics stay navy.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  docs/contender_6.tex | 26 +++++++++++++++++---------
+|  1 file changed, 17 insertions(+), 9 deletions(-)
+| 
+* commit 86f4d022f94bf45512ad319725b5715c57814dc2 (origin/submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Wed May 6 07:08:07 2026 -0700
+| 
+|     chore: refresh git.log
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  git.log | 45 +++++++++++++++++++++++++++++++++++++++++++--
+|  1 file changed, 43 insertions(+), 2 deletions(-)
+| 
+* commit 734aa204c0af533a2bed3bbaeda4ae4f4c9ef1e0
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Wed May 6 07:07:56 2026 -0700
 | 
@@ -28,7 +62,7 @@
 |  docs/contender_6.tex |  7 +++++--
 |  2 files changed, 17 insertions(+), 2 deletions(-)
 | 
-* commit 1c4fcfce20602a6d3a74389a134539400d0aab9a (origin/submit-c6-prep)
+* commit 1c4fcfce20602a6d3a74389a134539400d0aab9a
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Tue May 5 22:37:39 2026 -0700
 | 
