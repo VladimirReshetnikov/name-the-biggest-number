@@ -1,4 +1,45 @@
-* commit 588b68610bd5bed852e3ff896cd56bcfba8eebcb (HEAD -> submit-c6-prep)
+* commit 734aa204c0af533a2bed3bbaeda4ae4f4c9ef1e0 (HEAD -> submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Wed May 6 07:07:56 2026 -0700
+| 
+|     docs: shrink listings & darken keyword color; install Monaspace family
+|     
+|     Listings now use \fontsize{10.5pt}{12.6pt}\selectfont so they sit
+|     between the previous \normalsize (which overflowed margins on long
+|     lines) and \small (which felt cramped relative to the Pagella body).
+|     Visually, code blocks read at ~9.2 pt mono after Scale=0.875, leaving
+|     inline \texttt{} runs in surrounding prose at the slightly larger
+|     ~9.6 pt for emphasis.
+|     
+|     Keyword color moves from #2850A0 to a darker #15336E navy.  At regular
+|     weight the brighter blue read as washy; the darker hue holds up at
+|     weight 400 and is also lightness-matched to the planned ~#700000
+|     constructor color, so the two will pair as peers.
+|     
+|     AGENTS.md records the now-installed Monaspace fonts -- all five
+|     families (Argon, Krypton, Neon, Radon, Xenon) as static OTFs *and*
+|     variable TTFs (axes wght 200-800, wdth 100-125, slnt -11..0).  Future
+|     sessions can swap in any width/weight slider via fontspec's Variable=
+|     or RawFeature=axis= without re-installing.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  AGENTS.md            | 12 ++++++++++++
+|  docs/contender_6.tex |  7 +++++--
+|  2 files changed, 17 insertions(+), 2 deletions(-)
+| 
+* commit 1c4fcfce20602a6d3a74389a134539400d0aab9a (origin/submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Tue May 5 22:37:39 2026 -0700
+| 
+|     chore: refresh git.log
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  git.log | 40 ++++++++++++++++++++++++++++++++++++++--
+|  1 file changed, 38 insertions(+), 2 deletions(-)
+| 
+* commit 588b68610bd5bed852e3ff896cd56bcfba8eebcb
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Tue May 5 22:37:33 2026 -0700
 | 
@@ -23,7 +64,7 @@
 |  docs/contender_6.tex | 20 ++++++++++++++------
 |  1 file changed, 14 insertions(+), 6 deletions(-)
 | 
-* commit 6aaf0f4310d854ae8277a40575d77edada9a9287 (origin/submit-c6-prep)
+* commit 6aaf0f4310d854ae8277a40575d77edada9a9287
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Tue May 5 22:05:20 2026 -0700
 | 
