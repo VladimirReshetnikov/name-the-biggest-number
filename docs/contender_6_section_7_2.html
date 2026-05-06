@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>contender_6 -- Section 7.2 Depth measure (HTML preview)</title>
+
+<!--
+  Standalone HTML preview of the "Depth measure" subsection of
+  docs/contender_6.tex, intended for color/font experimentation in a
+  browser without a full LuaLaTeX compile cycle.
+
+  The CSS below is organized into three blocks - FONT FACES, COLOR
+  TOKENS, and LAYOUT - each with comments mapping back to the LaTeX
+  setup so you can find the corresponding knob.
+-->
+
+<style>
+/* ============================================================
+ * FONT FACES
+ *
+ * The PDF uses three font families:
+ *   1. TeX Gyre Pagella  -- prose body and section headings
+ *                           (Palatino-clone serif).
+ *   2. Monaspace Xenon   -- inline \texttt{} runs and Coq listings
+ *                           (slab-serif monospace).
+ *   3. Monaspace Argon   -- math operator names (\depth, \eval,
+ *                           \embed, \largest); the sans-serif
+ *                           Monaspace variant, which contrasts with
+ *                           the slab Xenon listings.
+ *
+ * Pagella is loaded from the system font stack; if a Palatino-clone
+ * is installed locally (TeX Gyre Pagella, Palatino Linotype, URW
+ * Palladio L, Book Antiqua) the browser will use it.  The Monaspace
+ * webfonts are pulled from a jsdelivr mirror of the upstream
+ * githubnext/monaspace v1.400 release so this single file stays
+ * truly self-contained.
+ * ============================================================ */
+
+@font-face {
+  font-family: "Monaspace Xenon";
+  font-weight: 400;
+  font-style: normal;
+  src: url("https://cdn.jsdelivr.net/gh/githubnext/monaspace@v1.400/fonts/Web%20Fonts/Static%20Web%20Fonts/Monaspace%20Xenon/MonaspaceXenon-Regular.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Monaspace Xenon";
+  font-weight: 400;
+  font-style: italic;
+  src: url("https://cdn.jsdelivr.net/gh/githubnext/monaspace@v1.400/fonts/Web%20Fonts/Static%20Web%20Fonts/Monaspace%20Xenon/MonaspaceXenon-Italic.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Monaspace Xenon";
+  font-weight: 600;
+  font-style: normal;
+  src: url("https://cdn.jsdelivr.net/gh/githubnext/monaspace@v1.400/fonts/Web%20Fonts/Static%20Web%20Fonts/Monaspace%20Xenon/MonaspaceXenon-SemiBold.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Monaspace Argon";
+  font-weight: 400;
+  font-style: normal;
+  src: url("https://cdn.jsdelivr.net/gh/githubnext/monaspace@v1.400/fonts/Web%20Fonts/Static%20Web%20Fonts/Monaspace%20Argon/MonaspaceArgon-Regular.woff2") format("woff2");
+  font-display: swap;
+}
+
+/* ============================================================
+ * COLOR TOKENS  (edit these to experiment!)
+ *
+ * Each variable mirrors a \definecolor{...} from the LaTeX file
+ * docs/contender_6.tex.  The lstlisting class names (.kw, .num,
+ * .com, .str, .ns) further down map to the same listings classes.
+ *
+ *   --coq-kw        navy       Coq keywords / vernacular / tactics:
+ *                              Fixpoint, match, end, nat, term, S,
+ *                              tVar, tApp, tNatRec, ...
+ *                              (LaTeX: \definecolor{coqkw}{HTML}{0E2D62})
+ *
+ *   --coq-num       dark olive Numeric literals 0..9 inside listings.
+ *                              Picked to disambiguate digit "1" from
+ *                              letter "l" in Monaspace Xenon.
+ *                              (LaTeX: \definecolor{coqnum}{HTML}{404D1A})
+ *
+ *   --coq-id        black      Plain identifiers: term_depth, body,
+ *                              t1, x, ...
+ *
+ *   --coq-comment   muted blue Italic comments  (* ... *)  inside
+ *                              listings.
+ *                              (LaTeX: \definecolor{coqcomment}{RGB}{105,120,140})
+ *
+ *   --coq-str       dark red   String literals  "..."  inside listings.
+ *                              (LaTeX: \definecolor{coqstr}{RGB}{160,40,40})
+ *
+ *   --coq-bg        off-white  Listing background panel.
+ *                              (LaTeX: \definecolor{coqbg}{RGB}{248,248,250})
+ *
+ *   --coq-border    light gray Frame around listing.
+ *
+ *   --coq-ns        gray ~55%  De-emphasized "Contender." module prefix
+ *                              in listings.
+ *                              (LaTeX: \textcolor{gray!55}{Contender.})
+ * ============================================================ */
+
+:root {
+  --coq-kw:        #0E2D62;   /* navy keywords           */
+  --coq-num:       #404D1A;   /* olive numeric literals  */
+  --coq-id:        #000000;   /* identifiers             */
+  --coq-comment:   #69788C;   /* italic comments         */
+  --coq-str:       #A02828;   /* string literals         */
+  --coq-bg:        #F8F8FA;   /* listing background      */
+  --coq-border:    #C9CDD5;   /* listing frame           */
+  --coq-ns:        #B4B6BC;   /* gray-55% module prefix  */
+
+  --body-fg:       #111;
+  --page-bg:       #FFFFFF;
+
+  /* Body type sizing.  Article class is 11pt; Pagella linespread is
+     1.05 which yields ~1.155 line-height once Pagella's natural
+     leading is factored in.  In CSS we approximate with 18px body
+     and 1.5 line-height, which feels comparable on screen. */
+  --body-size:     18px;
+  --body-leading:  1.5;
+
+  /* Inline \texttt{} and math operators are scaled 0.875 of body
+     (Mono Scale=0.875 in the LaTeX preamble).  Listings get an
+     additional bump down via \fontsize{10.5pt}{12.6pt}\selectfont,
+     so they end up around 0.83 of body. */
+  --tt-scale:      0.875;
+  --listing-scale: 0.83;
+}
+
+/* ============================================================
+ * LAYOUT  (Pagella prose body)
+ * ============================================================ */
+
+html { background: var(--page-bg); }
+
+body {
+  font-family: "TeX Gyre Pagella", "Palatino", "Palatino Linotype",
+               "URW Palladio L", "Book Antiqua", "Source Serif Pro",
+               Georgia, serif;
+  font-size: var(--body-size);
+  line-height: var(--body-leading);
+  color: var(--body-fg);
+  max-width: 760px;
+  margin: 2em auto;
+  padding: 0 1em;
+}
+
+/* Subsection heading -- "7.2  Depth measure"
+   In the article class at 11pt, \subsection renders bold at ~12pt. */
+h2.subsection {
+  font-weight: bold;
+  font-size: 1.22em;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+}
+h2.subsection .num {
+  display: inline-block;
+  margin-right: 0.55em;
+}
+
+p { margin: 0.7em 0; }
+
+/* ============================================================
+ * INLINE CODE  ( \texttt{...} )
+ * Same family as listings, scaled 0.875 of body.  Disable code
+ * ligatures so identifiers read literally.
+ * ============================================================ */
+
+.tt {
+  font-family: "Monaspace Xenon", "JetBrains Mono", "Cascadia Code",
+               "Iosevka", Menlo, Consolas, monospace;
+  font-size: calc(1em * var(--tt-scale));
+  font-feature-settings: "liga" 0, "calt" 0;
+}
+
+/* ============================================================
+ * MATH OPERATORS  ( \depth, \eval, \embed, \largest )
+ * Monaspace Argon -- sans-serif Monaspace variant.
+ * ============================================================ */
+
+.op {
+  font-family: "Monaspace Argon", "JetBrains Mono", "Cascadia Code",
+               Menlo, Consolas, monospace;
+  font-size: calc(1em * var(--tt-scale));
+  font-feature-settings: "liga" 0, "calt" 0;
+}
+
+/* ============================================================
+ * INLINE MATH  ( $...$ )
+ *
+ * Math is Pagella + newpxmath in the PDF.  Letters lean italic by
+ * default (math italic), parens / digits / relations are upright.
+ * On the web we approximate with serif italic and let .tt / .op
+ * override their respective spans.
+ * ============================================================ */
+
+.math {
+  /* Inline-math container; default is serif italic for variables. */
+  font-style: italic;
+}
+.math .upright,                       /* digits, parens, =, ≤      */
+.math .tt,                            /* texttt insertions         */
+.math .op {                           /* operator-name insertions  */
+  font-style: normal;
+}
+.math .mi { font-style: italic; }     /* explicit math italic      */
+
+/* Star superscript -- LaTeX \star, Unicode U+22C6.  Subtler than
+   the more common asterisk *. */
+sup.star {
+  font-size: 0.78em;
+  vertical-align: 0.45em;
+  margin-left: 0.06em;
+}
+
+/* ============================================================
+ * CODE LISTING BLOCK  ( lstlisting environment )
+ *
+ * Off-white panel with thin border, monospace text slightly smaller
+ * than inline tt.  white-space: pre preserves source indentation.
+ * Per-token classes below (.kw, .num, .ns, .com, .str) match the
+ * keywordstyle / commentstyle / stringstyle settings in the LaTeX
+ * lstdefinelanguage{Coq} block.
+ * ============================================================ */
+
+pre.listing {
+  background: var(--coq-bg);
+  border: 1px solid var(--coq-border);
+  padding: 0.7em 1em;
+  margin: 0.8em 0 0.8em 1em;
+  font-family: "Monaspace Xenon", "JetBrains Mono", "Cascadia Code",
+               Menlo, Consolas, monospace;
+  font-size: calc(1em * var(--listing-scale));
+  line-height: 1.4;
+  font-feature-settings: "liga" 0, "calt" 0;
+  white-space: pre;
+  overflow-x: auto;
+  color: var(--coq-id);
+}
+
+pre.listing .kw  { color: var(--coq-kw);      }
+pre.listing .num { color: var(--coq-num);     }
+pre.listing .ns  { color: var(--coq-ns);      }
+pre.listing .com { color: var(--coq-comment); font-style: italic; }
+pre.listing .str { color: var(--coq-str);     }
+
+/* The arrow ⇒ corresponds to "=>" in source.  In LaTeX listings the
+   literate substitution reserves 2 source columns for it; many
+   monospace fonts render ⇒ as 1 column, which can make subsequent
+   columns shift left.  Padding it on the right with a hair-space
+   keeps the visual rhythm closer to the PDF. */
+pre.listing .arrow::after { content: "\2009"; }
+</style>
+</head>
+
+<body>
+
+<h2 class="subsection"><span class="num">7.2</span>Depth measure</h2>
+
+<p>
+Term depth is exactly the same recursive measure as in
+<span class="tt">Contender.v</span>, with one new leaf:
+</p>
+
+<pre class="listing"><span class="kw">Fixpoint</span> term_depth (t : <span class="kw">term</span>) : <span class="kw">nat</span> :=
+  <span class="kw">match</span> t <span class="kw">with</span>
+  | <span class="kw">tVar</span> x <span class="arrow">&#x21D2;</span> S (<span class="ns">Contender.</span>nat_depth x)
+  | <span class="kw">tLam</span> A B body <span class="arrow">&#x21D2;</span>
+      S (<span class="kw">max</span> (<span class="kw">max</span> (<span class="ns">Contender.</span>type_depth A) (<span class="ns">Contender.</span>type_depth B))
+             (term_depth body))
+  | <span class="kw">tApp</span> t<span class="num">1</span> t<span class="num">2</span> <span class="arrow">&#x21D2;</span> S (<span class="kw">max</span> (term_depth t<span class="num">1</span>) (term_depth t<span class="num">2</span>))
+  | <span class="kw">tO</span> <span class="arrow">&#x21D2;</span> <span class="num">1</span>
+  | <span class="kw">tS</span> <span class="arrow">&#x21D2;</span> <span class="num">1</span>
+  | <span class="kw">tNatRec</span> R <span class="arrow">&#x21D2;</span> S (<span class="ns">Contender.</span>type_depth R)
+  | <span class="kw">tGrow</span> <span class="arrow">&#x21D2;</span> <span class="num">1</span>
+  <span class="kw">end</span>.</pre>
+
+<p>
+<span class="tt">tGrow</span> has depth 1, just like
+<span class="tt">tO</span> and <span class="tt">tS</span>: it is a
+constant. This is what lets the witness term
+<span class="math"><span class="tt">tGrow</span>&thinsp;(<span class="tt">tS</span>&thinsp;(<span class="op">embed</span>&thinsp;<span class="mi">t</span><sup class="star">&#x22C6;</sup>))</span>
+stay within depth
+<span class="math"><span class="upright">44</span></span>
+when
+<span class="math"><span class="op">depth</span>(<span class="mi">t</span><sup class="star">&#x22C6;</sup>) <span class="upright">&#x2264; 42</span></span>
+(one <span class="tt">tS</span> application, one
+<span class="tt">tGrow</span> application, each adding
+<span class="math"><span class="upright">1</span></span>).
+</p>
+
+</body>
+</html>
