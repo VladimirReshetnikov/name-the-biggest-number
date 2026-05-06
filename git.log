@@ -1,4 +1,34 @@
-* commit 767238c2ff2b77f504c2300f7ea6f7ed6752fdc3 (HEAD -> submit-c6-prep)
+* commit 6cc1aefa78761b4deca6889d55a66e9894dd6997 (HEAD -> submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Wed May 6 10:32:04 2026 -0700
+| 
+|     docs: add standalone HTML preview of section 7.2 for color/font tinkering
+|     
+|     Single-file HTML mirror of the "Depth measure" subsection.  Pulls
+|     Monaspace Xenon / Argon as webfonts from a jsdelivr mirror of the
+|     upstream githubnext/monaspace v1.400 release, falls back to a
+|     Pagella / Palatino stack for the prose.  All five color tokens are
+|     exposed as CSS custom properties and commented inline so the file
+|     can serve as a sandbox for trying alternative palettes without going
+|     through a LuaLaTeX compile.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  docs/contender_6_section_7_2.html | 296 ++++++++++++++++++++++++++++++++++++
+|  1 file changed, 296 insertions(+)
+| 
+* commit bc71132cba380df325141ec408b1d025480d056f (origin/submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Wed May 6 10:09:27 2026 -0700
+| 
+|     chore: refresh git.log
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  git.log | 47 +++++++++++++++++++++++++++++++++++++++++++++--
+|  1 file changed, 45 insertions(+), 2 deletions(-)
+| 
+* commit 767238c2ff2b77f504c2300f7ea6f7ed6752fdc3
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Wed May 6 10:09:17 2026 -0700
 | 
@@ -30,7 +60,7 @@
 |  docs/contender_6.tex | 45 +++++++++++++++++++++++++++++----------------
 |  1 file changed, 29 insertions(+), 16 deletions(-)
 | 
-* commit a8007a86f68b78e3eeb423b0e81c2799bf056427 (origin/submit-c6-prep)
+* commit a8007a86f68b78e3eeb423b0e81c2799bf056427
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Wed May 6 07:24:53 2026 -0700
 | 
