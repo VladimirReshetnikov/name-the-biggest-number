@@ -9,7 +9,12 @@
 % Pagella math companion via newpxmath (Palatino-flavoured math).
 \usepackage{fontspec}
 \setmainfont{TeX Gyre Pagella}
-\setmonofont{TeX Gyre Cursor}[Scale=0.92, Ligatures=NoCommon]
+\setmonofont{Source Code Pro}[
+  Scale=0.92,
+  Ligatures=NoCommon,
+  BoldFont={Source Code Pro Semibold},
+  BoldItalicFont={Source Code Pro Semibold Italic},
+]
 \usepackage[scaled=1]{newpxmath}        % Palatino-flavoured math symbols
 \linespread{1.05}                       % Pagella benefits from a touch more leading
 % Define [[ ]] as composite glyphs with a small *positive* gap between
@@ -64,7 +69,7 @@
   sensitive=true,
   alsoletter={'},
   basicstyle=\ttfamily\small,
-  keywordstyle=\color{coqkw},
+  keywordstyle=\color{coqkw}\bfseries,
   commentstyle=\color{coqcomment}\itshape,
   stringstyle=\color{coqstr},
   identifierstyle=\color{coqid},
