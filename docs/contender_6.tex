@@ -45,11 +45,13 @@
 % --- Code listings ------------------------------------------------------
 \usepackage{listings}
 
-% Keyword and constructor colors are matched in HSL: both at S=75%,
-% L=22% with hues 180 degrees apart (217 navy vs 0 dark red).  Reads
-% as a paired blue/red peer relationship at regular weight.
+% Keyword color #0E2D62 (HSL 217/75/22) and numeric-literal color
+% #404D1A (HSL 76/50/20) sit at similar lightness so they read as
+% paired highlights rather than competing.  The olive cast on
+% literals is mainly there to make digit "1" unmistakable from
+% letter "l" in the Monaspace Xenon body.
 \definecolor{coqkw}{HTML}{0E2D62}     % vernacular, tactics, reserved
-\definecolor{coqcons}{HTML}{620E0E}   % data constructors of inductive types
+\definecolor{coqnum}{HTML}{404D1A}    % numeric literals (0..9)
 \definecolor{coqcomment}{RGB}{105,120,140}
 \definecolor{coqstr}{RGB}{160,40,40}
 \definecolor{coqid}{RGB}{0,0,0}
@@ -70,25 +72,18 @@
                 generalize,revert,clear,case,solve,contradiction,
                 inversion,discriminate,congruence,repeat,first,try,now,
                 progress,context,goal,at,all,
-                projT1,projT2,List,In,Forall2,nth_error,
-                Nat,iter,recursion,nat,list,max,bool,option,
-                FGH,BigGrow,epsilon_0,omega,
-                term,interp_type,
+                projT1,projT2,existT,ex_intro,List,In,Some,None,Forall2,nth_error,
+                Nat,iter,recursion,nil,cons,nat,list,max,bool,option,True,False,
+                Bz,Bsucc,Blim,FGH,BigGrow,epsilon_0,omega,
+                tVar,tLam,tApp,tO,tS,tNatRec,tGrow,tpNat,tpArr,
+                term,interp_type,pack,RelVal,RelPack,RelEnv,
                 contender_5,contender_6,contender_grow_6},
-  % Class 2: data constructors of inductive types (user-defined and stdlib).
-  morekeywords=[2]{Bz,Bsucc,Blim,
-                   tVar,tLam,tApp,tO,tS,tNatRec,tGrow,
-                   tpNat,tpArr,
-                   pack,RelVal,RelPack,RelEnv,
-                   Some,None,nil,cons,True,False,
-                   existT,ex_intro},
   morecomment=[s]{(*}{*)},
   morestring=[b]",
   sensitive=true,
   alsoletter={'},
   basicstyle=\ttfamily\fontsize{10.5pt}{12.6pt}\selectfont,
   keywordstyle=\color{coqkw},
-  keywordstyle=[2]\color{coqcons},
   commentstyle=\color{coqcomment}\itshape,
   stringstyle=\color{coqstr},
   identifierstyle=\color{coqid},
@@ -115,6 +110,24 @@
     {\\/}{{$\lor$}}2
     {<->}{{$\leftrightarrow$}}3
     {Contender.}{{\textcolor{gray!55}{Contender.}}}{10}
+    {forall}{{$\forall$}}1
+    {exists}{{$\exists$}}1
+    {0}{{\textcolor{coqnum}{0}}}1
+    {1}{{\textcolor{coqnum}{1}}}1
+    {2}{{\textcolor{coqnum}{2}}}1
+    {3}{{\textcolor{coqnum}{3}}}1
+    {4}{{\textcolor{coqnum}{4}}}1
+    {5}{{\textcolor{coqnum}{5}}}1
+    {6}{{\textcolor{coqnum}{6}}}1
+    {7}{{\textcolor{coqnum}{7}}}1
+    {8}{{\textcolor{coqnum}{8}}}1
+    {9}{{\textcolor{coqnum}{9}}}1
+    % Passthrough rule(s) below: listings tries last-declared literate
+    % patterns first.  Listing identifiers that share a prefix with
+    % "forall" or "exists" (which are substituted above) need to appear
+    % here verbatim so the longer match wins and the prefix-substitution
+    % is never applied.  Add new entries as new identifiers appear.
+    {exists_maximizer_42}{{exists\textunderscore{}maximizer\textunderscore{}\textcolor{coqnum}{4}\textcolor{coqnum}{2}}}{19}
 }
 
 \lstset{language=Coq}
