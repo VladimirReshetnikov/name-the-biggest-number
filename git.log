@@ -1,4 +1,47 @@
-* commit d1c13c5e23f019260321b16d6666261b674c4c32 (HEAD -> submit-c6-prep)
+* commit 767238c2ff2b77f504c2300f7ea6f7ed6752fdc3 (HEAD -> submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Wed May 6 10:09:17 2026 -0700
+| 
+|     docs: fold constructors back, add forall/exists symbols + digit color
+|     
+|     Revert the coqcons split -- on review, all-blue-keywords reads cleaner
+|     than blue-keywords-plus-red-constructors when the constructors are
+|     not consistently set apart in the Coq source either.  All 26 ctors
+|     move back into the single morekeywords list.
+|     
+|     Add a new coqnum #404D1A (HSL 76/50/20, dark olive) for digit
+|     literals 0-9.  Rationale: at weight 400 in Monaspace Xenon, digit "1"
+|     and letter "l" are easy to confuse; an olive tint on every digit
+|     makes the distinction unambiguous without bolding.  The same digit
+|     color is at lightness ~20%, matching the navy keyword's 22%, so the
+|     two highlights read as a paired set.
+|     
+|     Restore "forall" -> $\forall$ and "exists" -> $\exists$ via listings
+|     literate substitutions.  Listings literate is character-level (no
+|     word-boundary check), which would mangle identifiers that share a
+|     prefix with "forall" or "exists".  Currently the only such identifier
+|     in the document is exists_maximizer_42, so we add a passthrough
+|     literate for it that, since listings tries last-declared literates
+|     first, wins over the {exists}{$\exists$} rule.  Adding more passthrough
+|     entries is the right escape hatch if more such identifiers appear.
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  docs/contender_6.tex | 45 +++++++++++++++++++++++++++++----------------
+|  1 file changed, 29 insertions(+), 16 deletions(-)
+| 
+* commit a8007a86f68b78e3eeb423b0e81c2799bf056427 (origin/submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Wed May 6 07:24:53 2026 -0700
+| 
+|     chore: refresh git.log
+|     
+|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| 
+|  git.log | 38 ++++++++++++++++++++++++++++++++++++--
+|  1 file changed, 36 insertions(+), 2 deletions(-)
+| 
+* commit d1c13c5e23f019260321b16d6666261b674c4c32
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Wed May 6 07:24:44 2026 -0700
 | 
@@ -21,7 +64,7 @@
 |  docs/contender_6.tex | 26 +++++++++++++++++---------
 |  1 file changed, 17 insertions(+), 9 deletions(-)
 | 
-* commit 86f4d022f94bf45512ad319725b5715c57814dc2 (origin/submit-c6-prep)
+* commit 86f4d022f94bf45512ad319725b5715c57814dc2
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Wed May 6 07:08:07 2026 -0700
 | 
