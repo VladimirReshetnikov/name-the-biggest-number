@@ -876,14 +876,6 @@ Inductive Brouwer : Type :=
 | Bsucc : Brouwer -> Brouwer
 | Blim  : (nat -> Brouwer) -> Brouwer.
 
-Fixpoint nat_to_B (n : nat) : Brouwer :=
-  match n with
-  | 0    => Bz
-  | S n' => Bsucc (nat_to_B n')
-  end.
-
-Definition omega : Brouwer := Blim nat_to_B.
-
 Fixpoint Badd (a b : Brouwer) : Brouwer :=
   match b with
   | Bz       => a
@@ -891,18 +883,21 @@ Fixpoint Badd (a b : Brouwer) : Brouwer :=
   | Blim f   => Blim (fun n => Badd a (f n))
   end.
 
-Fixpoint Bmul (a b : Brouwer) : Brouwer :=
-  match b with
-  | Bz       => Bz
-  | Bsucc b' => Badd (Bmul a b') a
-  | Blim f   => Blim (fun n => Bmul a (f n))
+(* a * n  =  a + a + ... + a  (n copies): all the multiplication that
+   omega_pow needs. *)
+Fixpoint BmulN (a : Brouwer) (n : nat) : Brouwer :=
+  match n with
+  | 0   => Bz
+  | S m => Badd (BmulN a m) a
   end.
 
-(* omega^a, by structural recursion on [a]. *)
+(* omega^a, by structural recursion on [a]:  omega^0 = 1, limits are
+   taken pointwise, and omega^(a+1) = omega^a * omega is the limit of
+   its own fundamental sequence  omega^a * n. *)
 Fixpoint omega_pow (a : Brouwer) : Brouwer :=
   match a with
-  | Bz       => Bsucc Bz                            (* omega^0 = 1 *)
-  | Bsucc a' => Bmul (omega_pow a') omega           (* omega^(a+1) = omega^a * omega *)
+  | Bz       => Bsucc Bz
+  | Bsucc a' => Blim (BmulN (omega_pow a'))
   | Blim f   => Blim (fun n => omega_pow (f n))
   end.
 
@@ -927,32 +922,21 @@ Fixpoint FGH (a : Brouwer) (n : nat) : nat :=
   | Blim f   => FGH (f n) n
   end.
 
-Lemma Nat_iter_ge :
-  forall (f : nat -> nat) (k x : nat),
-    (forall n, n <= f n) ->
-    x <= Nat.iter k f x.
-Proof.
-  intros f k. induction k; intros x Hf; simpl;
-    [lia | eapply Nat.le_trans; [apply IHk; exact Hf | apply Hf]].
-Qed.
-
+(* Every function in the hierarchy is inflationary. *)
 Lemma FGH_ge : forall a n, n <= FGH a n.
 Proof.
-  induction a as [|a IHa|f IHf]; intro n; simpl.
-  - lia.
-  - apply Nat_iter_ge; exact IHa.
-  - apply IHf.
+  induction a as [|a IHa|f IHf]; intro n; cbn; [lia| |apply IHf].
+  enough (forall k x, x <= Nat.iter k (FGH a) x) by auto.
+  intro k; induction k as [|k IHk]; intro x; cbn;
+    [lia | etransitivity; [apply IHk | apply IHa]].
 Qed.
 
 Definition BigGrow (n : nat) : nat := FGH epsilon_0 n.
 
-Lemma BigGrow_ge : forall n, n <= BigGrow n.
-Proof. intro n. unfold BigGrow. apply FGH_ge. Qed.
-
 (* The one growth fact the whole proof needs. *)
 Lemma BigGrow_gt_S : forall n, n < BigGrow (S n).
 Proof.
-  intro n. eapply Nat.lt_le_trans with (m := S n); [lia|apply BigGrow_ge].
+  intro n. apply Nat.lt_le_trans with (S n); [lia | apply FGH_ge].
 Qed.
 
 
@@ -1057,53 +1041,37 @@ Definition eval (t : term) : nat :=
   | tpArr _ _ => fun _ => 0
   end res.
 
-(* The depth-bounded enumerator: same segments as the old [termsUpTo],   *)
-(* plus [tGrow] at the end.                                              *)
+(* The depth-bounded enumerator: same segments as the old [termsUpTo]    *)
+(* (reordered, atoms first), plus [tGrow] among the atoms.               *)
 Fixpoint termsUpTo (n : nat) : list term :=
   match n with
   | O => []
   | S m =>
+    tO :: tS :: tGrow ::
     List.map tVar (natsUpTo m) ++
+    List.map tNatRec (typesUpTo m) ++
     List.map (fun '(A, B, body) => tLam A B body)
              (list_prod (list_prod (typesUpTo m) (typesUpTo m)) (termsUpTo m)) ++
     List.map (fun '(t1, t2) => tApp t1 t2)
-             (list_prod (termsUpTo m) (termsUpTo m)) ++
-    [tO] ++ [tS] ++
-    List.map tNatRec (typesUpTo m) ++
-    [tGrow]
+             (list_prod (termsUpTo m) (termsUpTo m))
   end.
-
-(* Discharge an [In _ (map _ _)] / [In _ (list_prod _ _)] goal by peeling
-   off [in_map] / [in_prod] and closing side conditions with the
-   enumerator-correctness lemmas plus the in-scope [IHn]. *)
-Ltac termsUpTo_solve_in IHn :=
-  repeat first
-    [ apply in_map | apply in_prod
-    | apply (proj1 (natsUpTo_correct _ _))
-    | apply (proj1 (typesUpTo_correct _ _))
-    | eapply IHn
-    | lia].
 
 (* Only completeness is needed: every term of depth <= n is enumerated. *)
 Lemma termsUpTo_complete : forall n t,
     term_depth t <= n -> List.In t (termsUpTo n).
 Proof.
   induction n; intros t H; [destruct t; simpl in H; lia|].
-  destruct t; simpl in H.
-    + do 0 (apply in_or_app; right). apply in_or_app; left.
-      termsUpTo_solve_in IHn.
-    + do 1 (apply in_or_app; right). apply in_or_app; left.
-      match goal with |- In ?e (map ?f _) => change e with (f (A, B, t)) end.
-      termsUpTo_solve_in IHn.
-    + do 2 (apply in_or_app; right). apply in_or_app; left.
-      match goal with |- In ?e (map ?f _) => change e with (f (t1, t2)) end.
-      termsUpTo_solve_in IHn.
-    + do 3 (apply in_or_app; right). simpl. auto.
-    + do 3 (apply in_or_app; right). simpl. auto.
-    + do 3 (apply in_or_app; right). simpl. right. right.
-      apply in_app_iff; left. termsUpTo_solve_in IHn.
-    + do 3 (apply in_or_app; right). simpl. right. right.
-      apply in_app_iff; right. simpl. auto.
+  destruct t as [x|A B body|t1 t2| | |R|]; simpl in H; simpl; auto;
+    do 3 right; rewrite !in_app_iff.
+  - left. apply in_map, natsUpTo_correct. lia.
+  - do 2 right; left.
+    match goal with |- In ?e (map ?f _) => change e with (f (A, B, body)) end.
+    apply in_map.
+    apply in_prod; [apply in_prod; apply typesUpTo_correct | apply IHn]; lia.
+  - do 3 right.
+    match goal with |- In ?e (map ?f _) => change e with (f (t1, t2)) end.
+    apply in_map. apply in_prod; apply IHn; lia.
+  - right; left. apply in_map, typesUpTo_correct. lia.
 Qed.
 
 Definition largest_of_depth (n : nat) : term :=
@@ -1156,47 +1124,41 @@ Lemma RelPack_intro :
     RelPack (existT interp_type tp v1) (existT interp_type tp v2).
 Proof. intros tp v1 v2 H; exists tp, v1, v2; repeat split; assumption. Qed.
 
-Definition RelEnv (e1 e2 : list pack) : Prop :=
-  List.Forall2 RelPack e1 e2.
-
 Lemma error_related : forall tp, RelVal tp (@error tp) (@error tp).
 Proof. induction tp; simpl; [reflexivity | intros _ _ _; exact IHtp2]. Qed.
 
-Lemma RelPack_error :
-  RelPack (existT interp_type tpNat (@error tpNat))
-          (existT interp_type tpNat (@error tpNat)).
-Proof. apply RelPack_intro; reflexivity. Qed.
+(* A related environment is ONE list whose entries each carry a type
+   tag, a value for either side, and the proof that the two values are
+   related.  Projecting out the first / second components gives the two
+   environments the fundamental lemma talks about; bundling the proofs
+   into the entries makes a pointwise list relation (and the length
+   bookkeeping it would drag in) unnecessary.                           *)
+Record REntry := mkREntry {
+  rtp  : type;
+  rv1  : interp_type rtp;
+  rv2  : interp_type rtp;
+  rrel : RelVal rtp rv1 rv2
+}.
 
-Lemma Forall2_nth_error :
-  forall {A B : Type} (R : A -> B -> Prop) l1 l2 n x,
-    List.Forall2 R l1 l2 ->
-    nth_error l1 n = Some x ->
-    exists y, nth_error l2 n = Some y /\ R x y.
-Proof.
-  intros A B R l1 l2 n x H; revert n x;
-  induction H; intros [|n] x0 Hnth; simpl in *;
-    [discriminate|discriminate|inversion Hnth; subst; eauto|eauto].
-Qed.
+Definition rfst (r : REntry) : pack := existT interp_type (rtp r) (rv1 r).
+Definition rsnd (r : REntry) : pack := existT interp_type (rtp r) (rv2 r).
 
-(* [Forall2] forces equal lengths, so the reverse-indexed [lookup]
-   either misses on both sides or finds related entries. *)
+(* The two projected environments have equal lengths by construction,
+   so the reverse-indexed [lookup] either misses on both sides or finds
+   the two halves of the same entry.                                    *)
 Lemma lookup_related :
-  forall e1 e2 n,
-    RelEnv e1 e2 ->
-    match lookup e1 n, lookup e2 n with
+  forall (e : list REntry) n,
+    match lookup (map rfst e) n, lookup (map rsnd e) n with
     | Some p1, Some p2 => RelPack p1 p2
     | None, None => True
     | _, _ => False
     end.
 Proof.
-  intros e1 e2 n Henv.
-  pose proof (List.Forall2_length Henv) as Hlen.
-  unfold lookup. cbv zeta. rewrite Hlen.
-  destruct (length e2 <=? n) eqn:E; [exact I|].
-  destruct (nth_error e1 (length e2 - S n)) as [p1|] eqn:E1.
-  - eapply Forall2_nth_error in Henv as (p2 & E2 & HR);
-      [rewrite E2; exact HR | exact E1].
-  - apply Nat.leb_gt in E; apply (proj1 (nth_error_None _ _)) in E1; lia.
+  intros e n. unfold lookup. cbv zeta. rewrite !length_map.
+  destruct (length e <=? n); [exact I|].
+  rewrite !nth_error_map.
+  destruct (nth_error e (length e - S n)) as [[tp v1 v2 Hrel]|]; cbn;
+    [apply RelPack_intro; exact Hrel | exact I].
 Qed.
 
 Local Opaque lookup.
@@ -1235,56 +1197,62 @@ Lemma cast_related : forall from to v1 v2,
     RelVal to (@cast from to v1) (@cast from to v2).
 Proof. intros; apply (proj1 (cast_impl_related _ _)); assumption. Qed.
 
-(* The fundamental theorem of the embedding: under related environments,
-   a term and its embedding interpret to related packs. *)
+(* The fundamental theorem of the embedding: under the two projections
+   of a related environment, a term and its embedding interpret to
+   related packs. *)
 Lemma embed_interp_related :
-  forall e1 e2 t,
-    RelEnv e1 e2 ->
-    RelPack (Contender.interp_term e1 t) (interp_term e2 (embed_term t)).
+  forall (e : list REntry) t,
+    RelPack (Contender.interp_term (map rfst e) t)
+            (interp_term (map rsnd e) (embed_term t)).
 Proof.
-  intros e1 e2 t Henv. revert e1 e2 Henv.
-  induction t as [x|A B body IH|t1 IH1 t2 IH2| | |R];
-    intros e1 e2 Henv.
+  intros e t. revert e.
+  induction t as [x|A B body IH|t1 IH1 t2 IH2| | |R]; intro e.
   - (* tVar.  Make both sides explicit [match lookup] expressions, then
        [lookup_related] rules out the one-sided cases. *)
     change
       (RelPack
-         (match lookup e1 x with
+         (match lookup (map rfst e) x with
           | Some p => p
           | None => existT interp_type tpNat (@error tpNat)
           end)
-         (match lookup e2 x with
+         (match lookup (map rsnd e) x with
           | Some p => p
           | None => existT interp_type tpNat (@error tpNat)
           end)).
-    pose proof (lookup_related e1 e2 x Henv) as Hlk.
-    destruct (lookup e1 x), (lookup e2 x);
+    pose proof (lookup_related e x) as Hlk.
+    destruct (lookup (map rfst e) x), (lookup (map rsnd e) x);
       simpl in Hlk; try contradiction.
     + exact Hlk.
-    + exact RelPack_error.
-  - (* tLam.  Both sides are explicit packs at tag [tpArr A B]; the IH
-       (at an extended environment) relates the bodies, [cast_related]
-       pushes that through the final cast. *)
+    + apply RelPack_intro; reflexivity.
+  - (* tLam.  Both sides are explicit packs at tag [tpArr A B]; the IH,
+       at the environment extended with the entry (A, x, y, Hxy),
+       relates the bodies, and [cast_related] pushes that through the
+       final cast. *)
     change
       (RelPack
          (existT interp_type (tpArr A B)
             (fun x' : interp_type A =>
-               cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))))
+               cast B (projT2 (Contender.interp_term
+                                 (existT _ A x' :: map rfst e) body))))
          (existT interp_type (tpArr A B)
             (fun x' : interp_type A =>
-               cast B (projT2 (interp_term (existT _ A x' :: e2) (embed_term body)))))).
+               cast B (projT2 (interp_term
+                                 (existT _ A x' :: map rsnd e)
+                                 (embed_term body)))))).
     apply RelPack_intro. simpl. intros x y Hxy.
-    assert (RelEnv (existT _ A x :: e1) (existT _ A y :: e2)) as Henv'.
-    { constructor; [|exact Henv]. apply RelPack_intro. exact Hxy. }
-    destruct (IH _ _ Henv') as (tpb & rb1 & rb2 & -> & -> & Hrb).
+    assert (RelPack
+              (Contender.interp_term (existT _ A x :: map rfst e) body)
+              (interp_term (existT _ A y :: map rsnd e) (embed_term body)))
+      as (tpb & rb1 & rb2 & -> & -> & Hrb)
+      by exact (IH (mkREntry A x y Hxy :: e)).
     simpl. apply cast_related, Hrb.
   - (* tApp.  Both sides match on the function's type tag; the [tpArr]
        branch follows from the IHs and [cast_related], the [tpNat]
        branch falls to [error] on both sides. *)
     cbn [Contender.interp_term interp_term embed_term].
-    destruct (IH1 _ _ Henv) as (tp1 & v1 & v1' & -> & -> & Hrel1).
-    destruct (IH2 _ _ Henv) as (tp2 & v2 & v2' & -> & -> & Hrel2).
-    simpl; destruct tp1 as [|A B]; [exact RelPack_error|].
+    destruct (IH1 e) as (tp1 & v1 & v1' & -> & -> & Hrel1).
+    destruct (IH2 e) as (tp2 & v2 & v2' & -> & -> & Hrel2).
+    simpl; destruct tp1 as [|A B]; [apply RelPack_intro; reflexivity|].
     apply RelPack_intro; apply Hrel1, cast_related, Hrel2.
   - (* tO *)
     apply RelPack_intro. reflexivity.
@@ -1309,7 +1277,7 @@ Lemma embed_eval : forall t,
     eval (embed_term t) = Contender.eval t.
 Proof.
   intro t.
-  pose proof (embed_interp_related [] [] t (List.Forall2_nil _))
+  pose proof (embed_interp_related [] t)
     as (tp & v1 & v2 & Hp1 & Hp2 & Hrel).
   unfold eval, Contender.eval.
   replace (Contender.interp_term nil t) with (existT interp_type tp v1)

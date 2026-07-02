@@ -62,15 +62,27 @@ checkout to materialize as a real symlink on Windows.)
   submission itself and its LaTeX write-up.  The **authoritative
   construction** is the contender-6 section inlined at the end of
   `Contender.v` (Brouwer ordinals + FGH, `Module LGrow`, final
-  theorems; ~lines 830–1380).  It is a *simplified* rework
-  (2026-07-02) of the `sandbox/GrowEmbed.v` shell: no `GrowSig`
-  functor — `tGrow` is interpreted directly as `BigGrow`; no alias
-  layer (a same-file module sees upstream `type`/`cast`/`error`/
-  `lookup` unqualified); `witness_eval` holds *unconditionally* (on
-  arrow-typed embeddings both sides collapse to `BigGrow 1`), which
-  eliminated `contender_5_ge_1` and the arrow-contradiction case;
-  and `exists_maximizer_42` handles the `maxBy = tO` case directly
-  (depth 1) instead of by contradiction.  The sandbox file keeps the
+  theorems; ~lines 830–1348).  It is a *simplified* rework
+  (2026-07-02, two passes) of the `sandbox/GrowEmbed.v` shell.
+  Pass 1: no `GrowSig` functor — `tGrow` is interpreted directly as
+  `BigGrow`; no alias layer (a same-file module sees upstream
+  `type`/`cast`/`error`/`lookup` unqualified); `witness_eval` holds
+  *unconditionally* (on arrow-typed embeddings both sides collapse
+  to `BigGrow 1`), which eliminated `contender_5_ge_1` and the
+  arrow-contradiction case; and `exists_maximizer_42` handles the
+  `maxBy = tO` case directly (depth 1) instead of by contradiction.
+  Pass 2: ordinal-arithmetic diet (no `nat_to_B`/`omega`/`Bmul` —
+  `BmulN : Brouwer -> nat -> nat` gives ω^(a+1) its fundamental
+  sequence ω^a·n directly, yielding a *definitionally identical*
+  `epsilon_0` tree pointwise); one inflationarity lemma `FGH_ge`
+  replaces the `Nat_iter_ge`/`FGH_ge`/`BigGrow_ge` chain; the LGrow
+  enumerator lists atoms first so `termsUpTo_complete` needs no Ltac
+  helper; and the logical relation uses *proof-carrying environments*
+  (`Record REntry` bundles the type tag, both values, and their
+  `RelVal` proof; the two interpreter environments are `map rfst e` /
+  `map rsnd e`), which deleted `RelEnv`, `Forall2_nth_error`, and
+  `RelPack_error` and reduced `lookup_related` to `length_map` +
+  `nth_error_map` rewrites.  The sandbox file keeps the
   generic-functor variant as a research artifact.  Docs:
   `docs/contender_6.tex` (tutorial write-up, listings kept in sync
   with `Contender.v`), its standalone HTML color/font preview

@@ -72,11 +72,11 @@
                 generalize,revert,clear,case,solve,contradiction,
                 inversion,discriminate,congruence,repeat,first,try,now,
                 progress,context,goal,at,all,
-                projT1,projT2,existT,ex_intro,List,In,Some,None,Forall2,nth_error,
+                projT1,projT2,existT,ex_intro,List,In,Some,None,nth_error,
                 Nat,iter,recursion,nil,cons,nat,list,max,bool,option,True,False,
-                Bz,Bsucc,Blim,FGH,BigGrow,epsilon_0,omega,
+                Bz,Bsucc,Blim,FGH,BigGrow,epsilon_0,Record,
                 tVar,tLam,tApp,tO,tS,tNatRec,tGrow,tpNat,tpArr,
-                term,interp_type,pack,RelVal,RelPack,RelEnv,
+                term,interp_type,pack,RelVal,RelPack,REntry,
                 contender_5,contender_6},
   morecomment=[s]{(*}{*)},
   morestring=[b]",
@@ -646,24 +646,12 @@ hierarchy genuinely depends on the choice of fundamental sequences,
 and this type forces us to commit to one.
 \end{remark}
 
-\subsection{Ordinal arithmetic in four \texttt{Fixpoint}s}
+\subsection{Ordinal arithmetic in three \texttt{Fixpoint}s}
 
-The natural numbers embed as iterated successors, and $\omega$ is
-their limit:
-
-\begin{lstlisting}
-Fixpoint nat_to_B (n : nat) : Brouwer :=
-  match n with
-  | 0    => Bz
-  | S n' => Bsucc (nat_to_B n')
-  end.
-
-Definition omega : Brouwer := Blim nat_to_B.
-\end{lstlisting}
-
-Addition, multiplication, and $\omega$-exponentiation follow the
-textbook recursion equations, in each case by structural recursion
-with limits pushed through pointwise:
+How much ordinal arithmetic does it take to write down
+$\varepsilon_0$?  Less than one might expect.  Addition follows the
+textbook recursion equations -- structural recursion on the right
+argument, with limits pushed through pointwise:
 
 \begin{lstlisting}
 Fixpoint Badd (a b : Brouwer) : Brouwer :=
@@ -672,21 +660,35 @@ Fixpoint Badd (a b : Brouwer) : Brouwer :=
   | Bsucc b' => Bsucc (Badd a b')
   | Blim f   => Blim (fun n => Badd a (f n))
   end.
+\end{lstlisting}
 
-Fixpoint Bmul (a b : Brouwer) : Brouwer :=
-  match b with
-  | Bz       => Bz
-  | Bsucc b' => Badd (Bmul a b') a
-  | Blim f   => Blim (fun n => Bmul a (f n))
+For exponentiation, the successor clause of the textbook definition
+is $\omega^{a+1} = \omega^a \cdot \omega$.  But in a representation
+where a limit ordinal \emph{is} its fundamental sequence, there is no
+need to define general multiplication and then multiply by $\omega$:
+the limit $\omega^a \cdot \omega = \sup_n\, (\omega^a \cdot n)$ can
+be written down directly, and it involves only multiplication
+\emph{by a natural number}, which is iterated addition:
+
+\begin{lstlisting}
+(* a * n  =  a + a + ... + a  (n copies). *)
+Fixpoint BmulN (a : Brouwer) (n : nat) : Brouwer :=
+  match n with
+  | 0   => Bz
+  | S m => Badd (BmulN a m) a
   end.
 
 Fixpoint omega_pow (a : Brouwer) : Brouwer :=
   match a with
-  | Bz       => Bsucc Bz                       (* omega^0 = 1 *)
-  | Bsucc a' => Bmul (omega_pow a') omega      (* omega^(a+1) = omega^a * omega *)
+  | Bz       => Bsucc Bz                (* omega^0 = 1 *)
+  | Bsucc a' => Blim (BmulN (omega_pow a'))
   | Blim f   => Blim (fun n => omega_pow (f n))
   end.
 \end{lstlisting}
+
+Neither $\omega$ itself nor general ordinal multiplication ever needs
+to be defined: $\omega$ only ever occurs in the position
+$\omega^{a+1}$, and there its fundamental sequence does the work.
 
 \subsection{The tower, and $\varepsilon_0$}
 
@@ -883,29 +885,31 @@ $\texttt{tpArr}\;\texttt{tpNat}\;\texttt{tpNat}$.
 
 \subsection{Enumeration, and the new contender}
 
-The enumerator gains \texttt{tGrow} as one more constant segment:
+The enumerator gains \texttt{tGrow} as one more atom.  The segments
+are also reordered -- atoms first -- which is invisible to the
+maximum (the enumerated \emph{set} is what matters) but shortens the
+membership proofs below:
 
 \begin{lstlisting}
 Fixpoint termsUpTo (n : nat) : list term :=
   match n with
   | O => []
   | S m =>
+    tO :: tS :: tGrow ::
     List.map tVar (natsUpTo m) ++
+    List.map tNatRec (typesUpTo m) ++
     List.map (fun '(A, B, body) => tLam A B body)
              (list_prod (list_prod (typesUpTo m) (typesUpTo m)) (termsUpTo m)) ++
     List.map (fun '(t1, t2) => tApp t1 t2)
-             (list_prod (termsUpTo m) (termsUpTo m)) ++
-    [tO] ++ [tS] ++
-    List.map tNatRec (typesUpTo m) ++
-    [tGrow]
+             (list_prod (termsUpTo m) (termsUpTo m))
   end.
 \end{lstlisting}
 
 Of the enumerator-correctness equivalence, the new proof needs only
 the \emph{completeness} direction -- every term within the depth
-budget is listed -- so only that direction is ported (the proof is the
-same induction as upstream's, with one extra trivial case for
-\texttt{tGrow}):
+budget is listed -- so only that direction is ported.  The three
+atoms are found by \texttt{auto}, and each remaining constructor is
+one \texttt{in\_map}/\texttt{in\_prod} chain:
 
 \begin{lstlisting}
 Lemma termsUpTo_complete : forall n t,
@@ -1072,8 +1076,8 @@ Fixpoint RelVal (A : type) : interp_type A -> interp_type A -> Prop :=
 
 At \texttt{tpNat}, related means equal.  At an arrow type, two
 functions are related iff they map related arguments to related
-results.  The relation lifts to packs -- \emph{same} type tag,
-related values -- and pointwise to environments:
+results.  The relation lifts to packs: \emph{same} type tag, related
+values.
 
 \begin{lstlisting}
 Definition RelPack (p q : pack) : Prop :=
@@ -1081,14 +1085,41 @@ Definition RelPack (p q : pack) : Prop :=
     p = existT interp_type tp v1
     /\ q = existT interp_type tp v2
     /\ RelVal tp v1 v2.
-
-Definition RelEnv (e1 e2 : list pack) : Prop :=
-  List.Forall2 RelPack e1 e2.
 \end{lstlisting}
 
 (\texttt{RelPack} is phrased with explicit equations rather than as an
 inductive so that destructing it yields plain rewrites, with no need
 for axiom~K or dependent inversion.)
+
+\subsubsection{Environments that carry their own proofs}
+
+For environments, the customary move would be to lift \texttt{RelPack}
+pointwise to two lists with \texttt{Forall2}.  We do something
+slightly slicker: a related environment is \emph{one} list, whose
+entries each carry a type tag, the value for either side, and --
+bundled right into the entry -- the proof that the two values are
+related:
+
+\begin{lstlisting}
+Record REntry := mkREntry {
+  rtp  : type;
+  rv1  : interp_type rtp;
+  rv2  : interp_type rtp;
+  rrel : RelVal rtp rv1 rv2
+}.
+
+Definition rfst (r : REntry) : pack := existT interp_type (rtp r) (rv1 r).
+Definition rsnd (r : REntry) : pack := existT interp_type (rtp r) (rv2 r).
+\end{lstlisting}
+
+The two environments of the fundamental lemma are then the two
+projections $\texttt{map}\;\texttt{rfst}\;e$ and
+$\texttt{map}\;\texttt{rsnd}\;e$ of a single list $e$.  Because there
+is only one list, the two sides have equal lengths \emph{by
+construction}, relatedness of corresponding entries is a field
+projection rather than an induction, and no pointwise list relation
+-- with the \texttt{Forall2} inversion lemmas it would drag in -- is
+needed anywhere.
 
 \subsubsection{Supporting lemmas}
 
@@ -1099,9 +1130,8 @@ lines each:
 Lemma error_related : forall tp, RelVal tp (@error tp) (@error tp).
 
 Lemma lookup_related :
-  forall e1 e2 n,
-    RelEnv e1 e2 ->
-    match lookup e1 n, lookup e2 n with
+  forall (e : list REntry) n,
+    match lookup (map rfst e) n, lookup (map rsnd e) n with
     | Some p1, Some p2 => RelPack p1 p2
     | None, None => True
     | _, _ => False
@@ -1113,23 +1143,24 @@ Lemma cast_related : forall from to v1 v2,
 \end{lstlisting}
 
 The first says the default value is self-related at every type
-(induction on the type).  The second says look-up in related
-environments misses on both sides or hits related packs on both sides
--- \texttt{Forall2} forces equal lengths, so the reverse-level
-index arithmetic agrees.  The third is the interesting one: it is
-proved simultaneously with its own converse, because casting a
-\emph{function} casts its argument \emph{backward} -- precisely the
-usual contravariance twist, and the reason the two directions cannot
-be separated.
+(induction on the type).  The second says look-up in the two projected
+environments either misses on both sides or finds the two halves of
+the same entry; since \texttt{map} preserves lengths and commutes with
+\texttt{nth\_error} (stdlib lemmas \texttt{length\_map} and
+\texttt{nth\_error\_map}), the proof is a few rewrites and a case
+split -- no induction over the list.  The third is the interesting
+one: it is proved simultaneously with its own converse, because
+casting a \emph{function} casts its argument \emph{backward} --
+precisely the usual contravariance twist, and the reason the two
+directions cannot be separated.
 
 \subsubsection{The fundamental theorem, and \texttt{embed\_eval}}
 
 \begin{lstlisting}
 Lemma embed_interp_related :
-  forall e1 e2 t,
-    RelEnv e1 e2 ->
-    RelPack (Contender.interp_term e1 t)
-            (interp_term e2 (embed_term t)).
+  forall (e : list REntry) t,
+    RelPack (Contender.interp_term (map rfst e) t)
+            (interp_term (map rsnd e) (embed_term t)).
 \end{lstlisting}
 
 The proof is induction on $t$, and each case writes itself:
@@ -1137,13 +1168,14 @@ The proof is induction on $t$, and each case writes itself:
 \begin{itemize}[leftmargin=2em]
   \item \textbf{\texttt{tVar}}: both sides look up the same index;
         \texttt{lookup\_related} covers hit-hit (related packs) and
-        miss-miss (default packs, related by \texttt{error\_related})
+        miss-miss (default packs, related since $0 = 0$)
         and refutes the mixed cases.
   \item \textbf{\texttt{tLam}}: both sides build a function pack at
-        tag $\texttt{tpArr}\,A\,B$; given related arguments, the
-        extended environments are related, the induction hypothesis
-        relates the interpreted bodies, and \texttt{cast\_related}
-        pushes that through the final cast.
+        tag $\texttt{tpArr}\,A\,B$; given related arguments $x, y$,
+        consing the entry $\texttt{mkREntry}\;A\;x\;y\;H_{xy}$ onto
+        $e$ extends both projections at once, the induction
+        hypothesis relates the interpreted bodies, and
+        \texttt{cast\_related} pushes that through the final cast.
   \item \textbf{\texttt{tApp}}: the induction hypotheses give related
         function-part and argument-part packs \emph{with equal type
         tags}; matching on that shared tag, the arrow case is the
@@ -1167,9 +1199,9 @@ Lemma embed_eval : forall t,
     eval (embed_term t) = Contender.eval t.
 \end{lstlisting}
 
-For closed terms the empty environments are trivially related, so the
-fundamental theorem yields a \emph{common} tag $tp$ and related values
-$v_1, v_2$.  If $tp = \texttt{tpNat}$, then $v_1 = v_2$ and the two
+For closed terms, the fundamental theorem at the empty bundled
+environment -- whose projections are the two empty environments --
+yields a \emph{common} tag $tp$ and related values $v_1, v_2$.  If $tp = \texttt{tpNat}$, then $v_1 = v_2$ and the two
 evaluators return the same number.  At an arrow tag, both return $0$.
 Note what was \emph{not} needed anywhere: at no point did we conclude
 $\lambda x.F(x) = \lambda x.G(x)$ from pointwise equality.  The
@@ -1353,7 +1385,7 @@ inherited proof about contenders 4 and 5,
 context}.
 
 On a modern laptop running Rocq~9.0.1, \texttt{coqc Contender.v}
-completes in about five seconds and \texttt{coqchk} independently
+completes in about two seconds and \texttt{coqchk} independently
 re-verifies the compiled file in under half a minute -- comfortably
 within the contest's $15\,\text{s}/60\,\text{s}$ budgets.
 
@@ -1367,7 +1399,7 @@ within the contest's $15\,\text{s}/60\,\text{s}$ budgets.
 
 The full Coq source corresponding to this article is the file
 \texttt{Contender.v} on the \texttt{submit-c6-prep} branch of the
-author's fork; the contender-6 section occupies lines $830$--$1380$
+author's fork; the contender-6 section occupies lines $830$--$1348$
 (the Brouwer ordinals, \texttt{Module LGrow}, and the final theorems).
 Every identifier mentioned in this article matches the corresponding
 Coq identifier verbatim.
