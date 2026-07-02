@@ -1,67 +1,85 @@
-* commit d33ab01ddabb8d6cef27d4d227e5a97943ece8a1 (origin/ideas, ideas)
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Thu Jul 2 13:12:58 2026 -0700
-| 
-|     Document branch map + consolidation; ignore LaTeX/Claude artifacts
-|     
-|     - AGENTS.md: add a Branch map subsection recording the purpose of
-|       every branch, the 2026-07-02 consolidation (manual and tooling
-|       merged into ideas and deleted; the temporary second clone
-|       C:/repos/name-the-biggest-number-2 retired; the empty
-|       claude/dazzling-heyrovsky-ecf14a session worktree removed), and the
-|       artifact policy for the contender_6 write-up.
-|     - AGENTS.md: add a RocqIDE subsection documenting the
-|       GDK_IGNORE_WINTAB=1 launch requirement (persisted at User scope)
-|       and the known error-highlighting freeze on Check Type@{Top.56}.,
-|       both recovered from May 2026 session transcripts.
-|     - .gitignore: ignore contender_6 LaTeX build artifacts (.log/.out/
-|       .toc/.pdf + texput.log) per the established source-only convention,
-|       and /.claude/ (local Claude Code settings + transient worktrees).
-|     - Refresh git.log.
-|     
-|     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
-| 
-|  .gitignore |   15 +
-|  AGENTS.md  |   59 +++
-|  git.log    | 1663 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
-|  3 files changed, 1713 insertions(+), 24 deletions(-)
-|   
-*   commit c2bb154d775779c6c346f387e92609b664fdb4fe
-|\  Merge: 7e900a3 82d2bcc
+*   commit 63c1a8cd18cbadf33a2b0efdc21658dc26075f6b (HEAD -> submit-c6-prep)
+|\  Merge: 1f76073 d33ab01
 | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| | Date:   Thu Jul 2 13:10:52 2026 -0700
+| | Date:   Thu Jul 2 13:13:45 2026 -0700
 | | 
-| |     Merge branch 'manual': Coq 8.19 reference manual converted to Markdown
+| |     Merge branch 'ideas': refman conversion, branch map docs, gitignore
 | |     
-| |     Absorbs the 'manual' branch from the temporary second clone
-| |     C:/repos/name-the-biggest-number-2 (created 2026-05-01), which adds
-| |     docs/coq-8.19.0-reference-manual.md and
-| |     scripts/convert_coq_refman_to_md.py. The second clone is now retired.
+| |     Brings the Coq 8.19 reference manual conversion (from the retired
+| |     'manual' branch / second clone), the AGENTS.md branch-map and RocqIDE
+| |     documentation, and the .gitignore coverage of contender_6 LaTeX build
+| |     artifacts into the submission-prep branch, preserving the invariant
+| |     that submit-c6-prep is a strict superset of ideas.
 | |     
 | |     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 | |     
 | |     # Conflicts:
 | |     #       git.log
 | | 
-| * commit 82d2bcc4529ce55b24e61f55e7dcd7b495a61c02 (manual)
+| * commit d33ab01ddabb8d6cef27d4d227e5a97943ece8a1 (origin/ideas, ideas)
 | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| | Date:   Fri May 1 08:03:40 2026 -0700
+| | Date:   Thu Jul 2 13:12:58 2026 -0700
 | | 
-| |     Convert Coq 8.19 reference manual to Markdown
+| |     Document branch map + consolidation; ignore LaTeX/Claude artifacts
+| |     
+| |     - AGENTS.md: add a Branch map subsection recording the purpose of
+| |       every branch, the 2026-07-02 consolidation (manual and tooling
+| |       merged into ideas and deleted; the temporary second clone
+| |       C:/repos/name-the-biggest-number-2 retired; the empty
+| |       claude/dazzling-heyrovsky-ecf14a session worktree removed), and the
+| |       artifact policy for the contender_6 write-up.
+| |     - AGENTS.md: add a RocqIDE subsection documenting the
+| |       GDK_IGNORE_WINTAB=1 launch requirement (persisted at User scope)
+| |       and the known error-highlighting freeze on Check Type@{Top.56}.,
+| |       both recovered from May 2026 session transcripts.
+| |     - .gitignore: ignore contender_6 LaTeX build artifacts (.log/.out/
+| |       .toc/.pdf + texput.log) per the established source-only convention,
+| |       and /.claude/ (local Claude Code settings + transient worktrees).
+| |     - Refresh git.log.
+| |     
+| |     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 | | 
-| |  docs/coq-8.19.0-reference-manual.md | 41833 ++++++++++++++++++++++++++++++
-| |  git.log                             |   596 +-
-| |  scripts/convert_coq_refman_to_md.py |   409 +
-| |  3 files changed, 42523 insertions(+), 315 deletions(-)
+| |  .gitignore |   15 +
+| |  AGENTS.md  |   59 ++
+| |  git.log    | 1663 +++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+| |  3 files changed, 1713 insertions(+), 24 deletions(-)
 | |   
-| *   commit 45e4b20c621aabdcd6321b50820e1a9eb7ba2e8b
-| |\  Merge: 28aa95e 38494f2
+| *   commit c2bb154d775779c6c346f387e92609b664fdb4fe
+| |\  Merge: 7e900a3 82d2bcc
 | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| | | Date:   Fri May 1 07:42:53 2026 -0700
+| | | Date:   Thu Jul 2 13:10:52 2026 -0700
 | | | 
-| | |     Merge remote-tracking branch 'origin/ideas' into manual
+| | |     Merge branch 'manual': Coq 8.19 reference manual converted to Markdown
+| | |     
+| | |     Absorbs the 'manual' branch from the temporary second clone
+| | |     C:/repos/name-the-biggest-number-2 (created 2026-05-01), which adds
+| | |     docs/coq-8.19.0-reference-manual.md and
+| | |     scripts/convert_coq_refman_to_md.py. The second clone is now retired.
+| | |     
+| | |     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+| | |     
+| | |     # Conflicts:
+| | |     #       git.log
+| | | 
+| | * commit 82d2bcc4529ce55b24e61f55e7dcd7b495a61c02
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 08:03:40 2026 -0700
+| | | 
+| | |     Convert Coq 8.19 reference manual to Markdown
+| | | 
+| | |  docs/coq-8.19.0-reference-manual.md | 41833 ++++++++++++++++++++++++++++
+| | |  git.log                             |   596 +-
+| | |  scripts/convert_coq_refman_to_md.py |   409 +
+| | |  3 files changed, 42523 insertions(+), 315 deletions(-)
 | | |   
-| | | * commit 1f76073698db1d0e4a449618ea35ee0f22a5744a (HEAD -> submit-c6-prep)
+| | *   commit 45e4b20c621aabdcd6321b50820e1a9eb7ba2e8b
+| | |\  Merge: 28aa95e 38494f2
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Fri May 1 07:42:53 2026 -0700
+| | | | 
+| | | |     Merge remote-tracking branch 'origin/ideas' into manual
+| | | | 
+* | | | commit 1f76073698db1d0e4a449618ea35ee0f22a5744a
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Thu Jul 2 13:09:09 2026 -0700
 | | | | 
@@ -75,7 +93,7 @@
 | | | |  docs/contender_6_section_7_2.html | 2 +-
 | | | |  1 file changed, 1 insertion(+), 1 deletion(-)
 | | | | 
-| | | * commit 0647fe6b837175fe2b28ba72303c4bdbee0b00cf (origin/submit-c6-prep)
+* | | | commit 0647fe6b837175fe2b28ba72303c4bdbee0b00cf (origin/submit-c6-prep)
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 10:32:15 2026 -0700
 | | | | 
@@ -86,7 +104,7 @@
 | | | |  git.log | 34 ++++++++++++++++++++++++++++++++--
 | | | |  1 file changed, 32 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit 6cc1aefa78761b4deca6889d55a66e9894dd6997
+* | | | commit 6cc1aefa78761b4deca6889d55a66e9894dd6997
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 10:32:04 2026 -0700
 | | | | 
@@ -105,7 +123,7 @@
 | | | |  docs/contender_6_section_7_2.html | 296 ++++++++++++++++++++++++++++++
 | | | |  1 file changed, 296 insertions(+)
 | | | | 
-| | | * commit bc71132cba380df325141ec408b1d025480d056f
+* | | | commit bc71132cba380df325141ec408b1d025480d056f
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 10:09:27 2026 -0700
 | | | | 
@@ -116,7 +134,7 @@
 | | | |  git.log | 47 +++++++++++++++++++++++++++++++++++++++++++++--
 | | | |  1 file changed, 45 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit 767238c2ff2b77f504c2300f7ea6f7ed6752fdc3
+* | | | commit 767238c2ff2b77f504c2300f7ea6f7ed6752fdc3
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 10:09:17 2026 -0700
 | | | | 
@@ -148,7 +166,7 @@
 | | | |  docs/contender_6.tex | 45 ++++++++++++++++++++++++++++----------------
 | | | |  1 file changed, 29 insertions(+), 16 deletions(-)
 | | | | 
-| | | * commit a8007a86f68b78e3eeb423b0e81c2799bf056427
+* | | | commit a8007a86f68b78e3eeb423b0e81c2799bf056427
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 07:24:53 2026 -0700
 | | | | 
@@ -159,7 +177,7 @@
 | | | |  git.log | 38 ++++++++++++++++++++++++++++++++++++--
 | | | |  1 file changed, 36 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit d1c13c5e23f019260321b16d6666261b674c4c32
+* | | | commit d1c13c5e23f019260321b16d6666261b674c4c32
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 07:24:44 2026 -0700
 | | | | 
@@ -182,7 +200,7 @@
 | | | |  docs/contender_6.tex | 26 +++++++++++++++++---------
 | | | |  1 file changed, 17 insertions(+), 9 deletions(-)
 | | | | 
-| | | * commit 86f4d022f94bf45512ad319725b5715c57814dc2
+* | | | commit 86f4d022f94bf45512ad319725b5715c57814dc2
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 07:08:07 2026 -0700
 | | | | 
@@ -193,7 +211,7 @@
 | | | |  git.log | 45 +++++++++++++++++++++++++++++++++++++++++++--
 | | | |  1 file changed, 43 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit 734aa204c0af533a2bed3bbaeda4ae4f4c9ef1e0
+* | | | commit 734aa204c0af533a2bed3bbaeda4ae4f4c9ef1e0
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 07:07:56 2026 -0700
 | | | | 
@@ -223,7 +241,7 @@
 | | | |  docs/contender_6.tex |  7 +++++--
 | | | |  2 files changed, 17 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit 1c4fcfce20602a6d3a74389a134539400d0aab9a
+* | | | commit 1c4fcfce20602a6d3a74389a134539400d0aab9a
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 22:37:39 2026 -0700
 | | | | 
@@ -234,7 +252,7 @@
 | | | |  git.log | 40 ++++++++++++++++++++++++++++++++++++++--
 | | | |  1 file changed, 38 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit 588b68610bd5bed852e3ff896cd56bcfba8eebcb
+* | | | commit 588b68610bd5bed852e3ff896cd56bcfba8eebcb
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 22:37:33 2026 -0700
 | | | | 
@@ -259,7 +277,7 @@
 | | | |  docs/contender_6.tex | 20 ++++++++++++++------
 | | | |  1 file changed, 14 insertions(+), 6 deletions(-)
 | | | | 
-| | | * commit 6aaf0f4310d854ae8277a40575d77edada9a9287
+* | | | commit 6aaf0f4310d854ae8277a40575d77edada9a9287
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 22:05:20 2026 -0700
 | | | | 
@@ -270,7 +288,7 @@
 | | | |  git.log | 992 +++++++++++++++++++++++++++++++++++++++++++++++++++++++-
 | | | |  1 file changed, 991 insertions(+), 1 deletion(-)
 | | | | 
-| | | * commit 4a684c7e19ef54005861895f056af7f39eee72cf
+* | | | commit 4a684c7e19ef54005861895f056af7f39eee72cf
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 22:05:13 2026 -0700
 | | | | 
@@ -290,7 +308,7 @@
 | | | |  docs/contender_6.tex | 4 ++--
 | | | |  1 file changed, 2 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit b131132f14d8e7382cd9a48379e22a47f35b311f
+* | | | commit b131132f14d8e7382cd9a48379e22a47f35b311f
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 20:55:49 2026 -0700
 | | | | 
@@ -320,7 +338,7 @@
 | | | |  docs/contender_6.tex | 2 +-
 | | | |  1 file changed, 1 insertion(+), 1 deletion(-)
 | | | | 
-| | | * commit 91d64790abd96de831a8e2ae6c1d52a138910137
+* | | | commit 91d64790abd96de831a8e2ae6c1d52a138910137
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 20:51:20 2026 -0700
 | | | | 
@@ -363,7 +381,7 @@
 | | | |  docs/contender_6.tex | 7 ++++---
 | | | |  1 file changed, 4 insertions(+), 3 deletions(-)
 | | | | 
-| | | * commit cc84827314e314c5ebf8dc65a0bfca29c0397850
+* | | | commit cc84827314e314c5ebf8dc65a0bfca29c0397850
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 20:30:43 2026 -0700
 | | | | 
@@ -399,7 +417,7 @@
 | | | |  docs/contender_6.tex | 9 +++++++--
 | | | |  1 file changed, 7 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit a7dae3020bafc2c3e9bc7b2b2bee43dbae61fa2b
+* | | | commit a7dae3020bafc2c3e9bc7b2b2bee43dbae61fa2b
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 20:24:12 2026 -0700
 | | | | 
@@ -435,7 +453,7 @@
 | | | |  docs/contender_6.tex | 4 ++--
 | | | |  1 file changed, 2 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit 1cf5321b5255759d3de579f7ca5b2ce4dc367971
+* | | | commit 1cf5321b5255759d3de579f7ca5b2ce4dc367971
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 20:14:55 2026 -0700
 | | | | 
@@ -460,7 +478,7 @@
 | | | |  docs/contender_6.tex | 2 +-
 | | | |  1 file changed, 1 insertion(+), 1 deletion(-)
 | | | | 
-| | | * commit 551acb8b93f50352140bbdf54a5bedf24d8163dc
+* | | | commit 551acb8b93f50352140bbdf54a5bedf24d8163dc
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 19:59:14 2026 -0700
 | | | | 
@@ -509,7 +527,7 @@
 | | | |  docs/contender_6.tex    |  10 ++++++++++
 | | | |  2 files changed, 10 insertions(+)
 | | | | 
-| | | * commit 34f36d99a7fca2de00227eea4aef4774820b8940
+* | | | commit 34f36d99a7fca2de00227eea4aef4774820b8940
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 15:27:49 2026 -0700
 | | | | 
@@ -555,7 +573,7 @@
 | | | |  docs/contender_6.tex | 8 +++++---
 | | | |  1 file changed, 5 insertions(+), 3 deletions(-)
 | | | | 
-| | | * commit 408f1b4f50cf1f1aa54a6b3120bf5fe12654d902
+* | | | commit 408f1b4f50cf1f1aa54a6b3120bf5fe12654d902
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 15:16:30 2026 -0700
 | | | | 
@@ -599,7 +617,7 @@
 | | | |  docs/contender_6.tex | 17 +++++++++++------
 | | | |  1 file changed, 11 insertions(+), 6 deletions(-)
 | | | | 
-| | | * commit 74399d5ecead04939fe3d908bf6a0d7eb15f7c0c
+* | | | commit 74399d5ecead04939fe3d908bf6a0d7eb15f7c0c
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Tue May 5 13:20:11 2026 -0700
 | | | | 
@@ -641,7 +659,7 @@
 | | | |  docs/contender_6.tex | 4 ++--
 | | | |  1 file changed, 2 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit 26d8f876de50ed426746f8444bb6092ee2484126
+* | | | commit 26d8f876de50ed426746f8444bb6092ee2484126
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 20:23:53 2026 -0700
 | | | | 
@@ -692,7 +710,7 @@
 | | | |  docs/contender_6.tex | 7 +++++--
 | | | |  1 file changed, 5 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit d6d2b4fd474c0936f81217ea67b93f175a871e37
+* | | | commit d6d2b4fd474c0936f81217ea67b93f175a871e37
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 20:14:47 2026 -0700
 | | | | 
@@ -723,7 +741,7 @@
 | | | |  docs/contender_6.tex | 2 +-
 | | | |  1 file changed, 1 insertion(+), 1 deletion(-)
 | | | | 
-| | | * commit 3afe2dcaf39816342ef33bdd291b88086028e412
+* | | | commit 3afe2dcaf39816342ef33bdd291b88086028e412
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 20:06:39 2026 -0700
 | | | | 
@@ -773,7 +791,7 @@
 | | | |  docs/contender_6.tex | 599 +++++++++++++++++++++++++++++++++++++++++--
 | | | |  1 file changed, 571 insertions(+), 28 deletions(-)
 | | | | 
-| | | * commit f7fbf6157d4e68fa9187eb5162fb4df0fcc5b844
+* | | | commit f7fbf6157d4e68fa9187eb5162fb4df0fcc5b844
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 18:47:15 2026 -0700
 | | | | 
@@ -800,7 +818,7 @@
 | | | |  docs/contender_6.tex | 4 ++--
 | | | |  1 file changed, 2 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit e8b4383429589ae600d438a5524c650a209947b0
+* | | | commit e8b4383429589ae600d438a5524c650a209947b0
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 16:15:53 2026 -0700
 | | | | 
@@ -832,7 +850,7 @@
 | | | |  docs/contender_6.tex | 5 ++++-
 | | | |  1 file changed, 4 insertions(+), 1 deletion(-)
 | | | | 
-| | | * commit 959e294e2de54f5375149e096ebff2752c2af419
+* | | | commit 959e294e2de54f5375149e096ebff2752c2af419
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 16:07:24 2026 -0700
 | | | | 
@@ -868,7 +886,7 @@
 | | | |  docs/contender_6.tex | 2 --
 | | | |  1 file changed, 2 deletions(-)
 | | | | 
-| | | * commit 48aa1e94138ae01b53893987268d5024a5ef0466
+* | | | commit 48aa1e94138ae01b53893987268d5024a5ef0466
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 15:55:24 2026 -0700
 | | | | 
@@ -893,7 +911,7 @@
 | | | |  docs/contender_6.tex | 4 ++--
 | | | |  1 file changed, 2 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit c61b8caabf0e6f3480f3f87bb26f551ccb4aa8a4
+* | | | commit c61b8caabf0e6f3480f3f87bb26f551ccb4aa8a4
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 15:43:50 2026 -0700
 | | | | 
@@ -921,7 +939,7 @@
 | | | |  docs/contender_6.tex | 30 +++++++++++++++---------------
 | | | |  1 file changed, 15 insertions(+), 15 deletions(-)
 | | | | 
-| | | * commit faa7de403b2c0f612b5c908d0bd251b9f77e9b29
+* | | | commit faa7de403b2c0f612b5c908d0bd251b9f77e9b29
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 15:32:19 2026 -0700
 | | | | 
@@ -958,7 +976,7 @@
 | | | |  docs/contender_6.tex | 1 +
 | | | |  1 file changed, 1 insertion(+)
 | | | | 
-| | | * commit 485b4b4308eee3d28f261da78432399a599156f3
+* | | | commit 485b4b4308eee3d28f261da78432399a599156f3
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 15:18:15 2026 -0700
 | | | | 
@@ -992,7 +1010,7 @@
 | | | |  docs/contender_6.tex | 52 ++++++++++++++++++++++++--------------------
 | | | |  1 file changed, 28 insertions(+), 24 deletions(-)
 | | | | 
-| | | * commit a25ca5611e488b1321de3dc5c18cd0c243af50d2
+* | | | commit a25ca5611e488b1321de3dc5c18cd0c243af50d2
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 15:10:10 2026 -0700
 | | | | 
@@ -1032,7 +1050,7 @@
 | | | |  docs/contender_6.tex | 19 +++++++++++--------
 | | | |  1 file changed, 11 insertions(+), 8 deletions(-)
 | | | | 
-| | | * commit b10cc60def5a127d3da678cc35d4948be2645467
+* | | | commit b10cc60def5a127d3da678cc35d4948be2645467
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 14:57:12 2026 -0700
 | | | | 
@@ -1055,7 +1073,7 @@
 | | | |  docs/contender_6.tex | 4 ++--
 | | | |  1 file changed, 2 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit 4b7ded6a92eda189f47af7eb3a029d9bd46b86cd
+* | | | commit 4b7ded6a92eda189f47af7eb3a029d9bd46b86cd
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 14:49:50 2026 -0700
 | | | | 
@@ -1090,7 +1108,7 @@
 | | | |  docs/contender_6.tex | 10 ++++++++--
 | | | |  1 file changed, 8 insertions(+), 2 deletions(-)
 | | | | 
-| | | * commit a1338ec599580ceb0ee55cf9d735701b54e50660
+* | | | commit a1338ec599580ceb0ee55cf9d735701b54e50660
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 14:24:25 2026 -0700
 | | | | 
@@ -1120,7 +1138,7 @@
 | | | |  docs/contender_6.tex | 13 +++++++------
 | | | |  1 file changed, 7 insertions(+), 6 deletions(-)
 | | | | 
-| | | * commit 76034afb0bd43c7295c50c6a023173208659d224
+* | | | commit 76034afb0bd43c7295c50c6a023173208659d224
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Mon May 4 13:47:34 2026 -0700
 | | | | 
@@ -1170,9 +1188,9 @@
 | | | |  docs/contender_6.tex | 1354 ++++++++++++++++++++++++++++++++++++++++++
 | | | |  1 file changed, 1354 insertions(+)
 | | | | 
-| | | * commit 9e12258f9c6f57080814a9bb706961c80316463f
-| |_|/  Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-|/| |   Date:   Fri May 1 13:39:01 2026 -0700
+* | | | commit 9e12258f9c6f57080814a9bb706961c80316463f
+|/ / /  Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | |   Date:   Fri May 1 13:39:01 2026 -0700
 | | |   
 | | |       Add contender_6 to Contender.v (submission prep)
 | | |       
@@ -1595,7 +1613,7 @@
 | | | 
 | | |     Merge branch 'tooling' into ideas
 | | | 
-| * | commit 260097b2469918346363bb1c587e1a061c8de8b8 (tooling)
+| * | commit 260097b2469918346363bb1c587e1a061c8de8b8
 | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | Date:   Thu Apr 30 21:05:18 2026 -0700
 | | | 
@@ -2619,7 +2637,7 @@
 |    OracleLang.v | 141 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |    1 file changed, 141 insertions(+)
 | 
-* commit d56dce013e6264292533efdc5e1de71863c6fb86 (upstream/master, upstream/HEAD, origin/master, origin/HEAD, master, claude/dazzling-heyrovsky-ecf14a)
+* commit d56dce013e6264292533efdc5e1de71863c6fb86 (upstream/master, upstream/HEAD, origin/master, origin/HEAD, master)
 | Author: Cody Roux <cody.roux@gmail.com>
 | Date:   Sun Jan 9 16:25:52 2022 -0500
 | 
