@@ -58,9 +58,22 @@ checkout to materialize as a real symlink on Windows.)
 - `master` — read-only mirror of `upstream/master`. Never commit here.
 - `ideas` — the default working branch: all brainstorm work, sandbox
   files, `IDEAS.md`, and `AGENTS.md` revisions live here.
-- `submit-c6-prep` — `ideas` plus the in-progress LaTeX write-up of the
-  planned contender_6 submission: `docs/contender_6.tex`, its
-  standalone HTML color/font preview
+- `submit-c6-prep` — `ideas` plus the in-progress contender_6
+  submission itself and its LaTeX write-up.  The **authoritative
+  construction** is the contender-6 section inlined at the end of
+  `Contender.v` (Brouwer ordinals + FGH, `Module LGrow`, final
+  theorems; ~lines 830–1380).  It is a *simplified* rework
+  (2026-07-02) of the `sandbox/GrowEmbed.v` shell: no `GrowSig`
+  functor — `tGrow` is interpreted directly as `BigGrow`; no alias
+  layer (a same-file module sees upstream `type`/`cast`/`error`/
+  `lookup` unqualified); `witness_eval` holds *unconditionally* (on
+  arrow-typed embeddings both sides collapse to `BigGrow 1`), which
+  eliminated `contender_5_ge_1` and the arrow-contradiction case;
+  and `exists_maximizer_42` handles the `maxBy = tO` case directly
+  (depth 1) instead of by contradiction.  The sandbox file keeps the
+  generic-functor variant as a research artifact.  Docs:
+  `docs/contender_6.tex` (tutorial write-up, listings kept in sync
+  with `Contender.v`), its standalone HTML color/font preview
   `docs/contender_6_section_7_2.html`, and the deliberately committed
   font-comparison snapshot `docs/contender_6-LM.pdf` (the original
   Latin Modern rendering, kept for side-by-side comparison after the

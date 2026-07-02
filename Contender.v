@@ -829,43 +829,46 @@ Print Assumptions contender_4_lt_contender_5.
 
 
 (* ===================================================================== *)
-(* contender_6: a fresh-engine extension of STLC+NatRec.                  *)
-(*                                                                        *)
-(* The new language [L_Grow] extends STLC+NatRec with a single fresh      *)
-(* primitive constant [tGrow : Nat -> Nat], interpreted as the function  *)
-(*                                                                        *)
-(*     BigGrow := f_{epsilon_0}                                          *)
-(*                                                                        *)
-(* in the fast-growing hierarchy.  [BigGrow] dominates every closed       *)
-(* STLC+NatRec term (in fact, every function provably total in PA).      *)
-(*                                                                        *)
-(* The contender                                                          *)
-(*                                                                        *)
-(*     contender_6 := largest L_Grow nat at depth 44                      *)
-(*                                                                        *)
-(* mentions no [contender_5] machinery -- it is the same depth-bounded    *)
-(* maximisation construction in a strictly larger object language.        *)
-(*                                                                        *)
-(* The proof of [contender_5 < contender_6] does invoke the existential   *)
-(* maximizer of [contender_5] (via [maxBy_In] / [lowerbound_maxBy]):      *)
-(* it embeds that maximizer term into [L_Grow] and uses                   *)
-(*                                                                        *)
-(*     tGrow (S (embed_term t_star))                                     *)
-(*                                                                        *)
-(* as the witness, at term depth 44.  The embedding's eval-preservation   *)
-(* property is shown by a Tait-style logical relation, sidestepping       *)
-(* function extensionality.                                                *)
-(*                                                                        *)
-(* Submitted by V. Reshetnikov.                                            *)
+(* contender_6                                                           *)
+(*                                                                       *)
+(* Strategy: run the SAME depth-bounded-maximum construction that        *)
+(* defines contender_5, but inside a strictly larger object language.    *)
+(*                                                                       *)
+(*   L_Grow :=  STLC+NatRec extended with one fresh primitive constant   *)
+(*              [tGrow : Nat -> Nat], interpreted as                     *)
+(*                                                                       *)
+(*      BigGrow := f_epsilon_0     (the fast-growing hierarchy, indexed  *)
+(*                                  at the proof-theoretic ordinal of PA)*)
+(*                                                                       *)
+(*   contender_6 :=  the largest nat any closed L_Grow term of depth     *)
+(*                   at most 44 evaluates to.                            *)
+(*                                                                       *)
+(* The definition mentions none of contender_5's search machinery.  The  *)
+(* proof of [contender_5 < contender_6] obtains -- existentially -- a    *)
+(* maximizer term t_star of the depth-42 search behind contender_5,      *)
+(* embeds it into L_Grow, and offers the depth-(at most)-44 term         *)
+(*                                                                       *)
+(*     tGrow (tS (embed t_star))                                         *)
+(*                                                                       *)
+(* as a witness to the new maximum, giving the explicit lower bound      *)
+(*                                                                       *)
+(*     BigGrow (S contender_5) <= contender_6.                           *)
+(*                                                                       *)
+(* That the embedding preserves evaluation is proved with a Tait-style   *)
+(* logical relation, so no axioms (in particular no function             *)
+(* extensionality) are needed anywhere.                                  *)
+(*                                                                       *)
+(* Submitted by V. Reshetnikov.                                          *)
 (* ===================================================================== *)
 
 
 (* --------------------------------------------------------------------- *)
 (* Brouwer ordinal notations and the fast-growing hierarchy.              *)
 (*                                                                        *)
-(* [Brouwer] bakes the fundamental sequence of every limit ordinal into   *)
-(* the data of the [Blim] constructor, so [FGH] is structurally total --  *)
-(* no [Acc], [Fix], or fuel parameter required. *)
+(* A [Brouwer] tree is an ordinal notation in which every limit ordinal   *)
+(* carries its own fundamental sequence: [Blim f] denotes sup_n f(n).     *)
+(* Because the sequence is part of the data, every recursion below is     *)
+(* structural -- no accessibility predicates, no fuel.                    *)
 (* --------------------------------------------------------------------- *)
 
 Inductive Brouwer : Type :=
@@ -895,7 +898,7 @@ Fixpoint Bmul (a b : Brouwer) : Brouwer :=
   | Blim f   => Blim (fun n => Bmul a (f n))
   end.
 
-(* omega^a, by induction on [a]. *)
+(* omega^a, by structural recursion on [a]. *)
 Fixpoint omega_pow (a : Brouwer) : Brouwer :=
   match a with
   | Bz       => Bsucc Bz                            (* omega^0 = 1 *)
@@ -903,7 +906,7 @@ Fixpoint omega_pow (a : Brouwer) : Brouwer :=
   | Blim f   => Blim (fun n => omega_pow (f n))
   end.
 
-(* omega ^^ n in tetration notation. *)
+(* omega ^^ n: a tower of omegas of height n. *)
 Fixpoint omega_tower (n : nat) : Brouwer :=
   match n with
   | 0    => Bsucc Bz
@@ -914,9 +917,9 @@ Fixpoint omega_tower (n : nat) : Brouwer :=
 Definition epsilon_0 : Brouwer := Blim omega_tower.
 
 (* The fast-growing hierarchy:
-     f_0(n) = n + 1,
+     f_0(n)     = n + 1,
      f_{a+1}(n) = f_a iterated n times starting from n,
-     f_lambda(n) = f_{lambda[n]}(n)  (using the [Blim] fundamental sequence). *)
+     f_lam(n)   = f_{lam[n]}(n)   (via the [Blim] fundamental sequence). *)
 Fixpoint FGH (a : Brouwer) (n : nat) : nat :=
   match a with
   | Bz       => S n
@@ -946,6 +949,7 @@ Definition BigGrow (n : nat) : nat := FGH epsilon_0 n.
 Lemma BigGrow_ge : forall n, n <= BigGrow n.
 Proof. intro n. unfold BigGrow. apply FGH_ge. Qed.
 
+(* The one growth fact the whole proof needs. *)
 Lemma BigGrow_gt_S : forall n, n < BigGrow (S n).
 Proof.
   intro n. eapply Nat.lt_le_trans with (m := S n); [lia|apply BigGrow_ge].
@@ -953,36 +957,52 @@ Qed.
 
 
 (* --------------------------------------------------------------------- *)
-(* L_Grow := STLC+NatRec + a fresh primitive [tGrow] for the growth      *)
-(* engine, parameterised over [GrowSig].                                 *)
+(* From here on, contender_5's search machinery must never be unfolded    *)
+(* by conversion: at depth 42 that would be a computation of astronomical *)
+(* size.  We only ever reason about these constants through their lemmas, *)
+(* restoring transparency locally in the few places that need to peek     *)
+(* one definition deep.                                                   *)
 (* --------------------------------------------------------------------- *)
 
-(* Coq kernel conversion must never try to unfold depth-bounded search at a
-   concrete depth like 42.  Keep Contender's max/search machinery opaque
-   from this point forward.  (We only use its lemmas about these constants.) *)
-Opaque Contender.eval Contender.maxBy Contender.termsUpTo Contender.typesUpTo
-       Contender.natsUpTo Contender.largest_of_depth
-       Contender.largest_STLCNatRec_nat_of_depth.
+Opaque eval maxBy termsUpTo typesUpTo natsUpTo
+       largest_of_depth largest_STLCNatRec_nat_of_depth.
 
-Module Type GrowSig.
-  Parameter grow : nat -> nat.
-  Axiom grow_gt_S : forall n, n < grow (S n).
-End GrowSig.
 
-Module GrowEmbed (G : GrowSig).
+(* Step (A) of the proof: the maximum defining contender_5 is attained    *)
+(* by some closed term of depth at most 42.  By [maxBy_In], the result of *)
+(* [maxBy] is either an element of the searched list (depth <= 42 by      *)
+(* [termsUpTo_correct]) or the initial best [tO] (depth 1).  Note that    *)
+(* this is bare existence: nobody can compute t_star in this universe,    *)
+(* but we only ever use the existential witness inside a proof.           *)
 
-(* -------------------------------------------------------------------- *)
-(* Syntax: STLC+NatRec + a fresh unary growth primitive [tGrow].         *)
-(* Types are shared with Contender's STLC+NatRec definitions.            *)
-(* -------------------------------------------------------------------- *)
+Local Transparent eval largest_of_depth largest_STLCNatRec_nat_of_depth.
 
-Definition type := Contender.type.
-Definition interp_type := Contender.interp_type.
+Lemma exists_maximizer_42 :
+  exists tstar : term,
+    term_depth tstar <= 42 /\ eval tstar = contender_5.
+Proof.
+  unfold contender_5, largest_STLCNatRec_nat_of_depth, largest_of_depth.
+  exists (maxBy eval 0 tO (termsUpTo 42)); split; [|reflexivity].
+  destruct (maxBy_In eval (termsUpTo 42) 0 tO eq_refl) as [Pin | Peq].
+  - apply (proj2 (termsUpTo_correct 42 _)) in Pin. exact Pin.
+  - rewrite Peq. simpl. lia.
+Qed.
 
-Notation tpNat := Contender.tpNat.
-Notation tpArr := Contender.tpArr.
+Local Opaque eval largest_of_depth largest_STLCNatRec_nat_of_depth.
 
-Definition pack := {tp : Contender.type & Contender.interp_type tp}.
+
+(* --------------------------------------------------------------------- *)
+(* The new object language L_Grow.                                        *)
+(*                                                                        *)
+(* Everything in this module is a line-for-line copy of the STLC+NatRec   *)
+(* development above, plus exactly one new constant [tGrow] (of depth 1,  *)
+(* like [tO] and [tS]), interpreted as [BigGrow].  Types and their        *)
+(* interpretation are shared with the old language; only terms are new.   *)
+(* --------------------------------------------------------------------- *)
+
+Module LGrow.
+
+Definition pack := {tp : type & interp_type tp}.
 
 Inductive term :=
 | tVar (x : nat)
@@ -993,28 +1013,22 @@ Inductive term :=
 | tNatRec (R : type)
 | tGrow.
 
-(* Depth accounting: re-use the exact measures from Contender's STLC+NatRec. *)
-
 Fixpoint term_depth (t : term) : nat :=
   match t with
-  | tVar x => S (Contender.nat_depth x)
+  | tVar x => S (nat_depth x)
   | tLam A B body =>
-      S (max (max (Contender.type_depth A) (Contender.type_depth B)) (term_depth body))
+      S (max (max (type_depth A) (type_depth B)) (term_depth body))
   | tApp t1 t2 => S (max (term_depth t1) (term_depth t2))
   | tO => 1
   | tS => 1
-  | tNatRec R => S (Contender.type_depth R)
+  | tNatRec R => S (type_depth R)
   | tGrow => 1
   end.
-
-Definition error {tp : type} : interp_type tp := Contender.error (tp := tp).
-Definition cast {from : type} (to : type) : interp_type from -> interp_type to :=
-  Contender.cast (from := from) to.
 
 Fixpoint interp_term (e : list pack) (t : term) : pack :=
   match t with
   | tVar x =>
-      match Contender.lookup e x with
+      match lookup e x with
       | Some R => R
       | None   => existT _ tpNat error
       end
@@ -1033,7 +1047,7 @@ Fixpoint interp_term (e : list pack) (t : term) : pack :=
   | tNatRec R =>
       existT _ (tpArr R (tpArr (tpArr tpNat (tpArr R R)) (tpArr tpNat R)))
              (@Nat.recursion (interp_type R))
-  | tGrow    => existT _ (tpArr tpNat tpNat) G.grow
+  | tGrow    => existT _ (tpArr tpNat tpNat) BigGrow
   end.
 
 Definition eval (t : term) : nat :=
@@ -1043,36 +1057,34 @@ Definition eval (t : term) : nat :=
   | tpArr _ _ => fun _ => 0
   end res.
 
-(* -------------------------------------------------------------------- *)
-(* Enumeration for L_Grow: copy Contender's depth-bounded generator and  *)
-(* add the new constant [tGrow].                                        *)
-(* -------------------------------------------------------------------- *)
-
+(* The depth-bounded enumerator: same segments as the old [termsUpTo],   *)
+(* plus [tGrow] at the end.                                              *)
 Fixpoint termsUpTo (n : nat) : list term :=
   match n with
   | O => []
   | S m =>
-    List.map tVar (Contender.natsUpTo m) ++
+    List.map tVar (natsUpTo m) ++
     List.map (fun '(A, B, body) => tLam A B body)
-             (list_prod (list_prod (Contender.typesUpTo m) (Contender.typesUpTo m)) (termsUpTo m)) ++
+             (list_prod (list_prod (typesUpTo m) (typesUpTo m)) (termsUpTo m)) ++
     List.map (fun '(t1, t2) => tApp t1 t2)
              (list_prod (termsUpTo m) (termsUpTo m)) ++
     [tO] ++ [tS] ++
-    List.map tNatRec (Contender.typesUpTo m) ++
+    List.map tNatRec (typesUpTo m) ++
     [tGrow]
   end.
 
-(* Helper: discharge an [In _ (map _ _)] / [In _ (list_prod _ _)] obligation
-   by repeatedly peeling off [in_map] / [in_prod] and discharging side
-   conditions via the correctness lemmas plus an in-scope [IHn]. *)
+(* Discharge an [In _ (map _ _)] / [In _ (list_prod _ _)] goal by peeling
+   off [in_map] / [in_prod] and closing side conditions with the
+   enumerator-correctness lemmas plus the in-scope [IHn]. *)
 Ltac termsUpTo_solve_in IHn :=
   repeat first
     [ apply in_map | apply in_prod
-    | apply (proj1 (Contender.natsUpTo_correct _ _))
-    | apply (proj1 (Contender.typesUpTo_correct _ _))
+    | apply (proj1 (natsUpTo_correct _ _))
+    | apply (proj1 (typesUpTo_correct _ _))
     | eapply IHn
     | lia].
 
+(* Only completeness is needed: every term of depth <= n is enumerated. *)
 Lemma termsUpTo_complete : forall n t,
     term_depth t <= n -> List.In t (termsUpTo n).
 Proof.
@@ -1095,13 +1107,14 @@ Proof.
 Qed.
 
 Definition largest_of_depth (n : nat) : term :=
-  Contender.maxBy eval 0 tO (termsUpTo n).
+  maxBy eval 0 tO (termsUpTo n).
 
-Definition largest_Grow_nat_of_depth (n : nat) : nat :=
+Definition largest_LGrow_nat_of_depth (n : nat) : nat :=
   eval (largest_of_depth n).
 
 (* -------------------------------------------------------------------- *)
-(* Embedding from [Contender.term] into L_Grow + logical relation.       *)
+(* The embedding of the old language into L_Grow, and step (B) of the    *)
+(* proof: the embedding preserves evaluation.                            *)
 (* -------------------------------------------------------------------- *)
 
 Fixpoint embed_term (t : Contender.term) : term :=
@@ -1118,24 +1131,29 @@ Lemma term_depth_embed : forall t,
     term_depth (embed_term t) = Contender.term_depth t.
 Proof. induction t; simpl; congruence. Qed.
 
-(* Tait-style logical relation, collapsing to plain equality at [tpNat]. *)
+(* Naive equality of the two interpretations fails at arrow types
+   without function extensionality, so we use a Tait-style logical
+   relation instead.  It collapses to plain equality at [tpNat] --
+   which is all [eval] looks at.                                       *)
 Fixpoint RelVal (A : type) : interp_type A -> interp_type A -> Prop :=
   match A with
   | tpNat => fun x y => x = y
   | tpArr A1 A2 => fun f g => forall x y, RelVal A1 x y -> RelVal A2 (f x) (g y)
   end.
 
+(* Two packs are related when they carry the SAME type tag and related
+   values at that tag.  (Stated with explicit equations rather than as
+   an inductive, so that destructing it never needs axiom K.)           *)
 Definition RelPack (p q : pack) : Prop :=
   exists tp (v1 v2 : interp_type tp),
-    p = existT Contender.interp_type tp v1
-    /\ q = existT Contender.interp_type tp v2
+    p = existT interp_type tp v1
+    /\ q = existT interp_type tp v2
     /\ RelVal tp v1 v2.
 
-(* Convenience constructor for [RelPack] when both packs are explicit. *)
 Lemma RelPack_intro :
   forall tp (v1 v2 : interp_type tp),
     RelVal tp v1 v2 ->
-    RelPack (existT Contender.interp_type tp v1) (existT Contender.interp_type tp v2).
+    RelPack (existT interp_type tp v1) (existT interp_type tp v2).
 Proof. intros tp v1 v2 H; exists tp, v1, v2; repeat split; assumption. Qed.
 
 Definition RelEnv (e1 e2 : list pack) : Prop :=
@@ -1145,9 +1163,8 @@ Lemma error_related : forall tp, RelVal tp (@error tp) (@error tp).
 Proof. induction tp; simpl; [reflexivity | intros _ _ _; exact IHtp2]. Qed.
 
 Lemma RelPack_error :
-  RelPack
-    (existT Contender.interp_type tpNat (@error tpNat))
-    (existT Contender.interp_type tpNat (@error tpNat)).
+  RelPack (existT interp_type tpNat (@error tpNat))
+          (existT interp_type tpNat (@error tpNat)).
 Proof. apply RelPack_intro; reflexivity. Qed.
 
 Lemma Forall2_nth_error :
@@ -1161,13 +1178,12 @@ Proof.
     [discriminate|discriminate|inversion Hnth; subst; eauto|eauto].
 Qed.
 
-(* Since [RelEnv] is [Forall2], both environments have the same length.
-   Contender's reverse-indexed [lookup] therefore either misses on both sides
-   or finds related entries at the same underlying [nth_error] index. *)
+(* [Forall2] forces equal lengths, so the reverse-indexed [lookup]
+   either misses on both sides or finds related entries. *)
 Lemma lookup_related :
   forall e1 e2 n,
     RelEnv e1 e2 ->
-    match Contender.lookup e1 n, Contender.lookup e2 n with
+    match lookup e1 n, lookup e2 n with
     | Some p1, Some p2 => RelPack p1 p2
     | None, None => True
     | _, _ => False
@@ -1175,7 +1191,7 @@ Lemma lookup_related :
 Proof.
   intros e1 e2 n Henv.
   pose proof (List.Forall2_length Henv) as Hlen.
-  unfold Contender.lookup. cbv zeta. rewrite Hlen.
+  unfold lookup. cbv zeta. rewrite Hlen.
   destruct (length e2 <=? n) eqn:E; [exact I|].
   destruct (nth_error e1 (length e2 - S n)) as [p1|] eqn:E1.
   - eapply Forall2_nth_error in Henv as (p2 & E2 & HR);
@@ -1183,32 +1199,32 @@ Proof.
   - apply Nat.leb_gt in E; apply (proj1 (nth_error_None _ _)) in E1; lia.
 Qed.
 
-Local Opaque Contender.lookup.
+Local Opaque lookup.
 
-(* [cast_impl from to] is related to itself (in both directions) when
-   inputs are related.  Both directions have to be done together because
-   the [tpArr -> tpArr] case casts the function argument *backward*. *)
+(* [cast_impl from to] preserves the relation, in both directions at
+   once -- the two directions are interlocked because casting a
+   function casts its argument *backward*. *)
 Lemma cast_impl_related : forall from to,
     (forall v1 v2,
         RelVal from v1 v2 ->
-        RelVal to (fst (Contender.cast_impl from to) v1)
-                  (fst (Contender.cast_impl from to) v2))
+        RelVal to (fst (cast_impl from to) v1)
+                  (fst (cast_impl from to) v2))
     /\
     (forall u1 u2,
         RelVal to u1 u2 ->
-        RelVal from (snd (Contender.cast_impl from to) u1)
-                    (snd (Contender.cast_impl from to) u2)).
+        RelVal from (snd (cast_impl from to) u1)
+                    (snd (cast_impl from to) u2)).
 Proof.
   induction from as [|from1 IH1 from2 IH2]; intros [|to1 to2]; simpl;
     try (split; intros; assumption);
     try (split; intros _ _ _; simpl;
          (reflexivity || (intros; apply error_related))).
-  destruct (Contender.type_eqb from1 to1) eqn:E1;
-  destruct (Contender.type_eqb from2 to2) eqn:E2; simpl;
+  destruct (type_eqb from1 to1) eqn:E1;
+  destruct (type_eqb from2 to2) eqn:E2; simpl;
     try (split; intros _ _ _; simpl; intros; apply error_related).
   destruct (IH1 to1) as [IH1fw IH1bw], (IH2 to2) as [IH2fw IH2bw].
-  destruct (Contender.cast_impl from1 to1) eqn:C1.
-  destruct (Contender.cast_impl from2 to2) eqn:C2.
+  destruct (cast_impl from1 to1) eqn:C1.
+  destruct (cast_impl from2 to2) eqn:C2.
   split; intros f g Hfg x y Hxy; simpl in *.
   - apply IH2fw. apply Hfg. apply IH1bw. exact Hxy.
   - apply IH2bw. apply Hfg. apply IH1fw. exact Hxy.
@@ -1219,6 +1235,8 @@ Lemma cast_related : forall from to v1 v2,
     RelVal to (@cast from to v1) (@cast from to v2).
 Proof. intros; apply (proj1 (cast_impl_related _ _)); assumption. Qed.
 
+(* The fundamental theorem of the embedding: under related environments,
+   a term and its embedding interpret to related packs. *)
 Lemma embed_interp_related :
   forall e1 e2 t,
     RelEnv e1 e2 ->
@@ -1231,28 +1249,28 @@ Proof.
        [lookup_related] rules out the one-sided cases. *)
     change
       (RelPack
-         (match Contender.lookup e1 x with
+         (match lookup e1 x with
           | Some p => p
-          | None => existT Contender.interp_type tpNat (@error tpNat)
+          | None => existT interp_type tpNat (@error tpNat)
           end)
-         (match Contender.lookup e2 x with
+         (match lookup e2 x with
           | Some p => p
-          | None => existT Contender.interp_type tpNat (@error tpNat)
+          | None => existT interp_type tpNat (@error tpNat)
           end)).
     pose proof (lookup_related e1 e2 x Henv) as Hlk.
-    destruct (Contender.lookup e1 x), (Contender.lookup e2 x);
+    destruct (lookup e1 x), (lookup e2 x);
       simpl in Hlk; try contradiction.
     + exact Hlk.
     + exact RelPack_error.
-  - (* tLam.  Build the [tpArr]-typed RelPack directly (the explicit packs
-       avoid any reliance on function extensionality); the IH gives a
-       related body for any related extension of the environment. *)
+  - (* tLam.  Both sides are explicit packs at tag [tpArr A B]; the IH
+       (at an extended environment) relates the bodies, [cast_related]
+       pushes that through the final cast. *)
     change
       (RelPack
-         (existT Contender.interp_type (tpArr A B)
+         (existT interp_type (tpArr A B)
             (fun x' : interp_type A =>
                cast B (projT2 (Contender.interp_term (existT _ A x' :: e1) body))))
-         (existT Contender.interp_type (tpArr A B)
+         (existT interp_type (tpArr A B)
             (fun x' : interp_type A =>
                cast B (projT2 (interp_term (existT _ A x' :: e2) (embed_term body)))))).
     apply RelPack_intro. simpl. intros x y Hxy.
@@ -1260,9 +1278,9 @@ Proof.
     { constructor; [|exact Henv]. apply RelPack_intro. exact Hxy. }
     destruct (IH _ _ Henv') as (tpb & rb1 & rb2 & -> & -> & Hrb).
     simpl. apply cast_related, Hrb.
-  - (* tApp.  Both interp_term calls reduce to a [match] on the
-       argument-1 type; if it's [tpArr A B] we get a function we can
-       relate via the IH; otherwise both fall to [error]. *)
+  - (* tApp.  Both sides match on the function's type tag; the [tpArr]
+       branch follows from the IHs and [cast_related], the [tpNat]
+       branch falls to [error] on both sides. *)
     cbn [Contender.interp_term interp_term embed_term].
     destruct (IH1 _ _ Henv) as (tp1 & v1 & v1' & -> & -> & Hrel1).
     destruct (IH2 _ _ Henv) as (tp2 & v2 & v2' & -> & -> & Hrel2).
@@ -1272,8 +1290,8 @@ Proof.
     apply RelPack_intro. reflexivity.
   - (* tS *)
     apply RelPack_intro; simpl; intros x y Hxy; subst; reflexivity.
-  - (* tNatRec.  [Nat.recursion] respects the logical relation: equal
-       counters + related base/step give related accumulators. *)
+  - (* tNatRec.  [Nat.recursion] respects the relation: equal counters
+       plus related base/step values give related results. *)
     apply RelPack_intro. simpl.
     intros base1 base2 Hbase step1 step2 Hstep n1 n2 Hn. subst n2.
     revert base1 base2 Hbase step1 step2 Hstep.
@@ -1281,7 +1299,10 @@ Proof.
       [exact Hbase | apply Hstep; [reflexivity | apply IHn1; assumption]].
 Qed.
 
-(* embed_eval needs to peek inside [Contender.eval] (kept Opaque elsewhere). *)
+(* Specialized to closed terms, the relation IS equality of the two
+   evaluators, because [RelVal tpNat] is equality and both evaluators
+   return 0 at arrow tags.  ([Contender.eval] must be unfolded once,
+   so transparency is restored just for this proof.) *)
 Local Transparent Contender.eval.
 
 Lemma embed_eval : forall t,
@@ -1291,9 +1312,9 @@ Proof.
   pose proof (embed_interp_related [] [] t (List.Forall2_nil _))
     as (tp & v1 & v2 & Hp1 & Hp2 & Hrel).
   unfold eval, Contender.eval.
-  replace (Contender.interp_term nil t) with (existT Contender.interp_type tp v1)
+  replace (Contender.interp_term nil t) with (existT interp_type tp v1)
     by (symmetry; exact Hp1).
-  replace (interp_term nil (embed_term t)) with (existT Contender.interp_type tp v2)
+  replace (interp_term nil (embed_term t)) with (existT interp_type tp v2)
     by (symmetry; exact Hp2).
   destruct tp; [symmetry; exact Hrel | reflexivity].
 Qed.
@@ -1301,107 +1322,59 @@ Qed.
 Local Opaque Contender.eval.
 
 (* -------------------------------------------------------------------- *)
-(* Main theorems: explicit lower bound and strict inequality.            *)
+(* Step (C): the witness term and its two properties.                    *)
 (* -------------------------------------------------------------------- *)
 
-Definition contender_grow_6 : nat := largest_Grow_nat_of_depth 44.
+Definition witness (t : Contender.term) : term :=
+  tApp tGrow (tApp tS (embed_term t)).
 
-(* [contender_5_ge_1] and [exists_maximizer_42] need to peek inside
-   Contender's opaque definitions. *)
-Local Transparent Contender.largest_STLCNatRec_nat_of_depth
-                  Contender.largest_of_depth Contender.eval.
-
-(* [contender_5 >= 1] because [tApp tS tO] is in [termsUpTo 42] and
-   evaluates to 1.  [Contender.lowerbound_maxBy] does the rest. *)
-Lemma contender_5_ge_1 : 1 <= Contender.contender_5.
+Lemma witness_depth : forall t,
+    Contender.term_depth t <= 42 ->
+    term_depth (witness t) <= 44.
 Proof.
-  unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth,
-         Contender.largest_of_depth.
-  change 1 with (Contender.eval (Contender.tApp Contender.tS Contender.tO)).
-  apply Contender.lowerbound_maxBy
-    with (x := Contender.tApp Contender.tS Contender.tO);
-    [apply (proj1 (Contender.termsUpTo_correct 42 _)); cbv; lia | reflexivity].
+  intros t H. unfold witness. cbn [term_depth].
+  rewrite term_depth_embed. lia.
 Qed.
 
-(* The maximizer term *t* whose eval realises [contender_5].  Either
-   [maxBy] returned a member of [termsUpTo 42] (depth bound is direct)
-   or it returned the initial best [tO] -- but that contradicts
-   [contender_5_ge_1]. *)
-Lemma exists_maximizer_42 :
-  exists tstar : Contender.term,
-    Contender.term_depth tstar <= 42 /\
-    Contender.eval tstar = Contender.contender_5.
+(* Evaluating the witness applies [BigGrow] after [S] -- with no side
+   condition on [t]: if [embed_term t] happens to have an arrow type,
+   both sides collapse to [BigGrow 1] because [S] casts its argument
+   to [error = 0] and [eval t] is 0 as well.                            *)
+Lemma witness_eval : forall t,
+    eval (witness t) = BigGrow (S (Contender.eval t)).
 Proof.
-  pose proof contender_5_ge_1 as Hge.
-  unfold Contender.contender_5, Contender.largest_STLCNatRec_nat_of_depth,
-         Contender.largest_of_depth in *.
-  exists (Contender.maxBy Contender.eval 0 Contender.tO (Contender.termsUpTo 42));
-    split; [|reflexivity].
-  destruct (Contender.maxBy_In Contender.eval (Contender.termsUpTo 42)
-                               0 Contender.tO eq_refl) as [Pin | Peq].
-  - apply (proj2 (Contender.termsUpTo_correct 42 _)) in Pin. exact Pin.
-  - rewrite Peq in Hge. cbv in Hge. lia.
+  intro t. rewrite <- (embed_eval t). unfold witness, eval.
+  destruct (interp_term [] (embed_term t)) as [[|A B] v] eqn:E;
+    cbn [interp_term]; rewrite E; reflexivity.
 Qed.
 
-Definition witness_grow (tstar : Contender.term) : term :=
-  tApp tGrow (tApp tS (embed_term tstar)).
+End LGrow.
 
-Lemma witness_grow_depth :
-  forall tstar,
-    Contender.term_depth tstar <= 42 ->
-    term_depth (witness_grow tstar) <= 44.
-Proof.
-  intros tstar H. unfold witness_grow. simpl. rewrite term_depth_embed.
-  destruct (Contender.term_depth tstar); simpl; lia.
-Qed.
+(* The new contender: the largest value reached by any closed L_Grow    *)
+(* term of depth at most 44.  Its unfolding mentions only L_Grow's own  *)
+(* evaluator and enumerator plus the generic [maxBy] -- no contender_5  *)
+(* machinery.                                                           *)
+Definition contender_6 : nat := LGrow.largest_LGrow_nat_of_depth 44.
 
-Lemma witness_grow_eval :
-  forall tstar,
-    Contender.eval tstar = Contender.contender_5 ->
-    eval (witness_grow tstar) = G.grow (S Contender.contender_5).
+(* The explicit lower bound: chain (A), (B), (C) through the generic    *)
+(* [lowerbound_maxBy].                                                  *)
+Theorem BigGrow_lower_bound : BigGrow (S contender_5) <= contender_6.
 Proof.
-  intros tstar Heq.
-  assert (Hembed : eval (embed_term tstar) = Contender.contender_5)
-    by (rewrite embed_eval; exact Heq).
-  unfold witness_grow, eval in *.
-  destruct (interp_term [] (embed_term tstar)) as [[|A B] res] eqn:E;
-    simpl in Hembed.
-  - subst res. cbn [interp_term]; rewrite E; cbn [interp_term]; reflexivity.
-  - pose proof contender_5_ge_1; lia.
-Qed.
-
-Theorem grow_lower_bound :
-  G.grow (S Contender.contender_5) <= contender_grow_6.
-Proof.
-  unfold contender_grow_6, largest_Grow_nat_of_depth, largest_of_depth.
+  unfold contender_6, LGrow.largest_LGrow_nat_of_depth,
+         LGrow.largest_of_depth.
   destruct exists_maximizer_42 as (tstar & Hdepth & Heval).
-  rewrite <- (witness_grow_eval tstar Heval).
-  eapply Contender.lowerbound_maxBy with (x := witness_grow tstar). 2: reflexivity.
-  apply (termsUpTo_complete 44 (witness_grow tstar)).
-  apply witness_grow_depth. exact Hdepth.
+  rewrite <- Heval, <- LGrow.witness_eval.
+  apply lowerbound_maxBy.
+  - apply LGrow.termsUpTo_complete, LGrow.witness_depth, Hdepth.
+  - reflexivity.
 Qed.
-
-Theorem contender_5_lt_contender_grow_6 :
-  Contender.contender_5 < contender_grow_6.
-Proof.
-  eapply Nat.lt_le_trans with (m := G.grow (S Contender.contender_5)).
-  - apply G.grow_gt_S.
-  - exact grow_lower_bound.
-Qed.
-
-End GrowEmbed.
-
-(* Instantiate with [BigGrow := FGH epsilon_0]. *)
-Module BigGrowSig <: GrowSig.
-  Definition grow := BigGrow.
-  Definition grow_gt_S : forall n, n < grow (S n) := BigGrow_gt_S.
-End BigGrowSig.
-
-Module BigGrowEmbed := GrowEmbed(BigGrowSig).
-
-Definition contender_6 : nat := BigGrowEmbed.contender_grow_6.
 
 Theorem contender_5_lt_contender_6 : contender_5 < contender_6.
-Proof. exact BigGrowEmbed.contender_5_lt_contender_grow_6. Qed.
+Proof.
+  apply Nat.lt_le_trans with (m := BigGrow (S contender_5)).
+  - apply BigGrow_gt_S.
+  - exact BigGrow_lower_bound.
+Qed.
 
+Print Assumptions BigGrow_lower_bound.
 Print Assumptions contender_5_lt_contender_6.
