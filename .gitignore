@@ -10,3 +10,18 @@
 # Output of scripts/status.py.  Local-only snapshot; regenerate with
 # `python scripts/status.py`.
 /STATUS.md
+
+# LaTeX build artifacts from docs/contender_6.tex (submit-c6-prep
+# branch).  Only sources are committed; the rendered contender_6.pdf
+# is regenerable (lualatex -interaction=nonstopmode -output-directory=docs
+# docs/contender_6.tex, run twice).  docs/contender_6-LM.pdf is NOT
+# ignored: it is a deliberately committed snapshot of the original
+# Latin Modern rendering, kept for font comparison.
+docs/contender_6.log
+docs/contender_6.out
+docs/contender_6.toc
+docs/contender_6.pdf
+texput.log
+
+# Claude Code local settings and transient session worktrees.
+/.claude/
