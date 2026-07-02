@@ -1,4 +1,57 @@
-*   commit 63c1a8cd18cbadf33a2b0efdc21658dc26075f6b (HEAD -> submit-c6-prep)
+* commit 478e2c2abac245dcbfeaa320304463876dcee934 (HEAD -> submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Jul 2 14:27:28 2026 -0700
+| 
+|     Simplify contender_6 construction and proof; rewrite write-up to match
+|     
+|     Contender.v (579 -> 551 lines for the section, compile ~11s -> ~4s):
+|     - Drop the GrowSig functor and BigGrowSig/BigGrowEmbed instantiation;
+|       plain Module LGrow interprets tGrow directly as BigGrow (also removes
+|       the Axiom keyword from the file).
+|     - Drop the type/interp_type/error/cast alias layer: a same-file module
+|       sees the upstream identifiers unqualified.
+|     - witness_eval is now unconditional: eval (tGrow (tS u)) =
+|       BigGrow (S (eval u)) holds even for arrow-typed u (both sides
+|       collapse to BigGrow 1), so contender_5_ge_1 and the arrow-type
+|       contradiction case are deleted outright.
+|     - exists_maximizer_42 handles the maxBy = tO case directly (tO has
+|       depth 1) instead of deriving a contradiction.
+|     - witness_depth is one lia after cbn [term_depth] (no manual destruct
+|       of Nat.max).
+|     
+|     Verified: coqc 2.4-4.3s, coqchk ~25s, three Print Assumptions all
+|     closed under the global context, scripts/check_cleanliness.py reports
+|     Contender.contender_6 clean; sandbox/{Brouwer,GrowEmbed}.v still
+|     compile against the new Contender.vo.
+|     
+|     docs/contender_6.tex (1971 -> 1405 lines, PDF 19 pages):
+|     - Compress the contenders 1-4 walkthrough into a table + paragraph;
+|       keep a focused recap of contender_5's machinery (what we reuse).
+|     - Sync all contender-6 listings with the simplified code (no functor,
+|       no aliases, unconditional witness_eval + a remark explaining why no
+|       side condition is needed).
+|     - New LGrow. gray-prefix literate rule; updated discussion, budgets,
+|       and appendix pointer (lines 830-1380).
+|     
+|     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+| 
+|  AGENTS.md            |   19 +-
+|  Contender.v          |  397 +++++------
+|  docs/contender_6.tex | 1750 ++++++++++++++++--------------------------------
+|  3 files changed, 793 insertions(+), 1373 deletions(-)
+| 
+* commit 30e6ba053737c33621e9a56b03da4547e0f76282 (origin/submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Jul 2 13:14:21 2026 -0700
+| 
+|     chore: refresh git.log
+|     
+|     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+| 
+|  git.log | 196 ++++++++++++++++++++++++++++++++++----------------------------
+|  1 file changed, 107 insertions(+), 89 deletions(-)
+|   
+*   commit 63c1a8cd18cbadf33a2b0efdc21658dc26075f6b
 |\  Merge: 1f76073 d33ab01
 | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | Date:   Thu Jul 2 13:13:45 2026 -0700
@@ -93,7 +146,7 @@
 | | | |  docs/contender_6_section_7_2.html | 2 +-
 | | | |  1 file changed, 1 insertion(+), 1 deletion(-)
 | | | | 
-* | | | commit 0647fe6b837175fe2b28ba72303c4bdbee0b00cf (origin/submit-c6-prep)
+* | | | commit 0647fe6b837175fe2b28ba72303c4bdbee0b00cf
 | | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | | Date:   Wed May 6 10:32:15 2026 -0700
 | | | | 
