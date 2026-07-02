@@ -1,22 +1,1459 @@
-* commit 05816d10ee1f34380051c9b9b975220f9d347fa2 (HEAD -> manual)
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 08:03:40 2026 -0700
-| 
-|     Convert Coq 8.19 reference manual to Markdown
-| 
-|  docs/coq-8.19.0-reference-manual.md | 41833 ++++++++++++++++++++++++++++++++
-|  git.log                             |   596 +-
-|  scripts/convert_coq_refman_to_md.py |   409 +
-|  3 files changed, 42522 insertions(+), 316 deletions(-)
-|   
-*   commit 45e4b20c621aabdcd6321b50820e1a9eb7ba2e8b
-|\  Merge: 28aa95e 38494f2
+*   commit c2bb154d775779c6c346f387e92609b664fdb4fe (HEAD -> ideas)
+|\  Merge: 7e900a3 82d2bcc
 | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| | Date:   Fri May 1 07:42:53 2026 -0700
+| | Date:   Thu Jul 2 13:10:52 2026 -0700
 | | 
-| |     Merge remote-tracking branch 'origin/ideas' into manual
+| |     Merge branch 'manual': Coq 8.19 reference manual converted to Markdown
+| |     
+| |     Absorbs the 'manual' branch from the temporary second clone
+| |     C:/repos/name-the-biggest-number-2 (created 2026-05-01), which adds
+| |     docs/coq-8.19.0-reference-manual.md and
+| |     scripts/convert_coq_refman_to_md.py. The second clone is now retired.
+| |     
+| |     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+| |     
+| |     # Conflicts:
+| |     #       git.log
 | | 
-| * commit 38494f29693b8f853e6e075475f336522da7474e (origin/ideas, origin/HEAD)
+| * commit 82d2bcc4529ce55b24e61f55e7dcd7b495a61c02 (manual)
+| | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | Date:   Fri May 1 08:03:40 2026 -0700
+| | 
+| |     Convert Coq 8.19 reference manual to Markdown
+| | 
+| |  docs/coq-8.19.0-reference-manual.md | 41833 ++++++++++++++++++++++++++++++
+| |  git.log                             |   596 +-
+| |  scripts/convert_coq_refman_to_md.py |   409 +
+| |  3 files changed, 42523 insertions(+), 315 deletions(-)
+| |   
+| *   commit 45e4b20c621aabdcd6321b50820e1a9eb7ba2e8b
+| |\  Merge: 28aa95e 38494f2
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 07:42:53 2026 -0700
+| | | 
+| | |     Merge remote-tracking branch 'origin/ideas' into manual
+| | |   
+| | | * commit 1f76073698db1d0e4a449618ea35ee0f22a5744a (submit-c6-prep)
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Thu Jul 2 13:09:09 2026 -0700
+| | | | 
+| | | |     docs: adjust numeric-literal color in section 7.2 HTML preview
+| | | |     
+| | | |     Darken the olive digit color from #404D1A to #5D5614 in the standalone
+| | | |     color/font tinkering preview.
+| | | |     
+| | | |     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6_section_7_2.html | 2 +-
+| | | |  1 file changed, 1 insertion(+), 1 deletion(-)
+| | | | 
+| | | * commit 0647fe6b837175fe2b28ba72303c4bdbee0b00cf (origin/submit-c6-prep)
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Wed May 6 10:32:15 2026 -0700
+| | | | 
+| | | |     chore: refresh git.log
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  git.log | 34 ++++++++++++++++++++++++++++++++--
+| | | |  1 file changed, 32 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit 6cc1aefa78761b4deca6889d55a66e9894dd6997
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Wed May 6 10:32:04 2026 -0700
+| | | | 
+| | | |     docs: add standalone HTML preview of section 7.2 for color/font tinkering
+| | | |     
+| | | |     Single-file HTML mirror of the "Depth measure" subsection.  Pulls
+| | | |     Monaspace Xenon / Argon as webfonts from a jsdelivr mirror of the
+| | | |     upstream githubnext/monaspace v1.400 release, falls back to a
+| | | |     Pagella / Palatino stack for the prose.  All five color tokens are
+| | | |     exposed as CSS custom properties and commented inline so the file
+| | | |     can serve as a sandbox for trying alternative palettes without going
+| | | |     through a LuaLaTeX compile.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6_section_7_2.html | 296 ++++++++++++++++++++++++++++++
+| | | |  1 file changed, 296 insertions(+)
+| | | | 
+| | | * commit bc71132cba380df325141ec408b1d025480d056f
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Wed May 6 10:09:27 2026 -0700
+| | | | 
+| | | |     chore: refresh git.log
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  git.log | 47 +++++++++++++++++++++++++++++++++++++++++++++--
+| | | |  1 file changed, 45 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit 767238c2ff2b77f504c2300f7ea6f7ed6752fdc3
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Wed May 6 10:09:17 2026 -0700
+| | | | 
+| | | |     docs: fold constructors back, add forall/exists symbols + digit color
+| | | |     
+| | | |     Revert the coqcons split -- on review, all-blue-keywords reads cleaner
+| | | |     than blue-keywords-plus-red-constructors when the constructors are
+| | | |     not consistently set apart in the Coq source either.  All 26 ctors
+| | | |     move back into the single morekeywords list.
+| | | |     
+| | | |     Add a new coqnum #404D1A (HSL 76/50/20, dark olive) for digit
+| | | |     literals 0-9.  Rationale: at weight 400 in Monaspace Xenon, digit "1"
+| | | |     and letter "l" are easy to confuse; an olive tint on every digit
+| | | |     makes the distinction unambiguous without bolding.  The same digit
+| | | |     color is at lightness ~20%, matching the navy keyword's 22%, so the
+| | | |     two highlights read as a paired set.
+| | | |     
+| | | |     Restore "forall" -> $\forall$ and "exists" -> $\exists$ via listings
+| | | |     literate substitutions.  Listings literate is character-level (no
+| | | |     word-boundary check), which would mangle identifiers that share a
+| | | |     prefix with "forall" or "exists".  Currently the only such identifier
+| | | |     in the document is exists_maximizer_42, so we add a passthrough
+| | | |     literate for it that, since listings tries last-declared literates
+| | | |     first, wins over the {exists}{$\exists$} rule.  Adding more passthrough
+| | | |     entries is the right escape hatch if more such identifiers appear.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 45 ++++++++++++++++++++++++++++----------------
+| | | |  1 file changed, 29 insertions(+), 16 deletions(-)
+| | | | 
+| | | * commit a8007a86f68b78e3eeb423b0e81c2799bf056427
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Wed May 6 07:24:53 2026 -0700
+| | | | 
+| | | |     chore: refresh git.log
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  git.log | 38 ++++++++++++++++++++++++++++++++++++--
+| | | |  1 file changed, 36 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit d1c13c5e23f019260321b16d6666261b674c4c32
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Wed May 6 07:24:44 2026 -0700
+| | | | 
+| | | |     docs: separate constructor color (#620E0E) from keyword color (#0E2D62)
+| | | |     
+| | | |     Both colors are HSL-matched at S=75 L=22 with hues 180 deg apart
+| | | |     (217 navy vs 0 dark red), so they read as paired peers rather than
+| | | |     one dominating.
+| | | |     
+| | | |     The 26 names that are *constructors* of inductive types -- Bz/Bsucc/
+| | | |     Blim, the term and type ctors (tVar, tLam, tApp, tO, tS, tNatRec,
+| | | |     tGrow, tpNat, tpArr), the logical-relation ctors (pack, RelVal,
+| | | |     RelPack, RelEnv), and the stdlib ctors (Some, None, nil, cons, True,
+| | | |     False, existT, ex_intro) -- move to a new listings keyword class
+| | | |     [2] and pick up the dark red.  Type names, namespaces, definitions,
+| | | |     and tactics stay navy.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 26 +++++++++++++++++---------
+| | | |  1 file changed, 17 insertions(+), 9 deletions(-)
+| | | | 
+| | | * commit 86f4d022f94bf45512ad319725b5715c57814dc2
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Wed May 6 07:08:07 2026 -0700
+| | | | 
+| | | |     chore: refresh git.log
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  git.log | 45 +++++++++++++++++++++++++++++++++++++++++++--
+| | | |  1 file changed, 43 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit 734aa204c0af533a2bed3bbaeda4ae4f4c9ef1e0
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Wed May 6 07:07:56 2026 -0700
+| | | | 
+| | | |     docs: shrink listings & darken keyword color; install Monaspace family
+| | | |     
+| | | |     Listings now use \fontsize{10.5pt}{12.6pt}\selectfont so they sit
+| | | |     between the previous \normalsize (which overflowed margins on long
+| | | |     lines) and \small (which felt cramped relative to the Pagella body).
+| | | |     Visually, code blocks read at ~9.2 pt mono after Scale=0.875, leaving
+| | | |     inline \texttt{} runs in surrounding prose at the slightly larger
+| | | |     ~9.6 pt for emphasis.
+| | | |     
+| | | |     Keyword color moves from #2850A0 to a darker #15336E navy.  At regular
+| | | |     weight the brighter blue read as washy; the darker hue holds up at
+| | | |     weight 400 and is also lightness-matched to the planned ~#700000
+| | | |     constructor color, so the two will pair as peers.
+| | | |     
+| | | |     AGENTS.md records the now-installed Monaspace fonts -- all five
+| | | |     families (Argon, Krypton, Neon, Radon, Xenon) as static OTFs *and*
+| | | |     variable TTFs (axes wght 200-800, wdth 100-125, slnt -11..0).  Future
+| | | |     sessions can swap in any width/weight slider via fontspec's Variable=
+| | | |     or RawFeature=axis= without re-installing.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  AGENTS.md            | 12 ++++++++++++
+| | | |  docs/contender_6.tex |  7 +++++--
+| | | |  2 files changed, 17 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit 1c4fcfce20602a6d3a74389a134539400d0aab9a
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 22:37:39 2026 -0700
+| | | | 
+| | | |     chore: refresh git.log
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  git.log | 40 ++++++++++++++++++++++++++++++++++++++--
+| | | |  1 file changed, 38 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit 588b68610bd5bed852e3ff896cd56bcfba8eebcb
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 22:37:33 2026 -0700
+| | | | 
+| | | |     docs: typeset math operators in Monaspace Argon
+| | | |     
+| | | |     Math operators \eval, \depth, \embed, \largest used to render in
+| | | |     Pagella roman via \DeclareMathOperator, which made them visually
+| | | |     indistinguishable from prose and slightly small.  scaled=1.1 on
+| | | |     newpxmath did not help because that scaling only affects math symbol
+| | | |     fonts, not the upright operator-name font.
+| | | |     
+| | | |     Switch to Monaspace Argon (sans-serif Monaspace variant) wired up via
+| | | |     a small \opname helper.  Argon's monospaced metrics line up with the
+| | | |     Xenon listings while the sans terminals visually flag these names as
+| | | |     functions, not identifiers -- useful because they are *not* always
+| | | |     literal Coq names (e.g. \depth corresponds to term_depth).
+| | | |     
+| | | |     Also drop Monaspace Xenon's Scale from 0.92 to 0.875.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 20 ++++++++++++++------
+| | | |  1 file changed, 14 insertions(+), 6 deletions(-)
+| | | | 
+| | | * commit 6aaf0f4310d854ae8277a40575d77edada9a9287
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 22:05:20 2026 -0700
+| | | | 
+| | | |     chore: refresh git.log
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  git.log | 992 +++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+| | | |  1 file changed, 991 insertions(+), 1 deletion(-)
+| | | | 
+| | | * commit 4a684c7e19ef54005861895f056af7f39eee72cf
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 22:05:13 2026 -0700
+| | | | 
+| | | |     docs: bump math scale to 1.1 and listing size to \normalsize
+| | | |     
+| | | |     Math operators (eval, depth, embed) declared with \DeclareMathOperator
+| | | |     were rendering noticeably shorter than surrounding Pagella body text.
+| | | |     Increasing newpxmath's scaled parameter to 1.1 closes the gap.
+| | | |     
+| | | |     Listings were set in \small, which made them visibly smaller than
+| | | |     inline \texttt{} runs in the surrounding prose.  Dropping \small lets
+| | | |     listings inherit \normalsize so a code block reads at the same size
+| | | |     as the same identifier inline.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 4 ++--
+| | | |  1 file changed, 2 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit b131132f14d8e7382cd9a48379e22a47f35b311f
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 20:55:49 2026 -0700
+| | | | 
+| | | |     docs: render listing keywords in Regular weight (color only)
+| | | |     
+| | | |     Drop [\bfseries] from [keywordstyle] again, this time as a
+| | | |     deliberate aesthetic choice rather than a workaround for missing
+| | | |     SemiBold:
+| | | |     
+| | | |           keywordstyle=\color{coqkw},   % was: \color{coqkw}\bfseries
+| | | |     
+| | | |     With Monaspace Xenon's slab serifs already giving the monospace a
+| | | |     touch of visual character, weight emphasis on keywords becomes less
+| | | |     necessary -- the [coqkw] navy color provides plenty of distinction
+| | | |     on its own.  The page now reads as a more uniform code texture with
+| | | |     keywords as gentle accent points rather than as visually-loud
+| | | |     anchors.  This works well for a tutorial document where the prose
+| | | |     around the listing carries most of the explanatory weight.
+| | | |     
+| | | |     If we ever want bold-weight keywords back, the [BoldFont={Monaspace
+| | | |     Xenon SemiBold}] mapping is already in [\setmonofont] -- just
+| | | |     restore [\bfseries] in [keywordstyle] and the SemiBold weight will
+| | | |     be picked up.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 2 +-
+| | | |  1 file changed, 1 insertion(+), 1 deletion(-)
+| | | | 
+| | | * commit 91d64790abd96de831a8e2ae6c1d52a138910137
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 20:51:20 2026 -0700
+| | | | 
+| | | |     docs: switch monospace to Monaspace Xenon (slab-serif)
+| | | |     
+| | | |     Replaces Source Code Pro with GitHub Next's Monaspace Xenon -- the
+| | | |     slab-serif member of the Monaspace family.  Xenon's slight slab
+| | | |     serifs (subtle but visible at body size) harmonize with Pagella's
+| | | |     serif body letters, producing a more cohesive pairing than any of
+| | | |     the sans-serif monospaces we've tried (Inconsolata, TGC Cursor,
+| | | |     Source Code Pro).
+| | | |     
+| | | |     Configuration:
+| | | |     
+| | | |           \setmonofont{Monaspace Xenon}[
+| | | |             Scale=0.92,
+| | | |             Ligatures=NoCommon,
+| | | |             BoldFont={Monaspace Xenon SemiBold},
+| | | |             ItalicFont={Monaspace Xenon Italic},
+| | | |             BoldItalicFont={Monaspace Xenon SemiBold Italic},
+| | | |           ]
+| | | |     
+| | | |     Monaspace ships with seven weights (ExtraLight through ExtraBold)
+| | | |     plus three width axes (Regular, SemiWide, Wide) for a total of
+| | | |     ~42 instances.  We use SemiBold as the [\bfseries] target -- the
+| | | |     same logic as Source Code Pro Semibold: noticeable emphasis without
+| | | |     the slab Bold's heaviness.
+| | | |     
+| | | |     Installation: downloaded the static-OTF release
+| | | |     [monaspace-static-v1.400.zip] from
+| | | |     [github.com/githubnext/monaspace/releases/latest], unpacked into
+| | | |     [MiKTeX/fonts/opentype/public/monaspace-xenon/], refreshed the
+| | | |     font database with [initexmf --update-fndb].  Not currently
+| | | |     packaged in MiKTeX itself, but the downloaded OTFs are picked up
+| | | |     by [fontspec] without further configuration once they are on the
+| | | |     font search path.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 7 ++++---
+| | | |  1 file changed, 4 insertions(+), 3 deletions(-)
+| | | | 
+| | | * commit cc84827314e314c5ebf8dc65a0bfca29c0397850
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 20:30:43 2026 -0700
+| | | | 
+| | | |     docs: switch monospace to Source Code Pro with Semibold for keywords
+| | | |     
+| | | |     Replaces TeX Gyre Cursor with Adobe's Source Code Pro for the code
+| | | |     listings.  Source Code Pro has eight weights (ExtraLight, Light,
+| | | |     Regular, Medium, Semibold, Bold, Black, plus italic variants), which
+| | | |     finally gives us the in-between weight TeX Gyre Cursor was missing:
+| | | |     
+| | | |           \setmonofont{Source Code Pro}[
+| | | |             Scale=0.92,
+| | | |             Ligatures=NoCommon,
+| | | |             BoldFont={Source Code Pro Semibold},
+| | | |             BoldItalicFont={Source Code Pro Semibold Italic},
+| | | |           ]
+| | | |     
+| | | |     The [BoldFont={... Semibold}] override remaps fontspec's "bold" slot
+| | | |     to the Semibold weight rather than the full Bold, so [\bfseries]
+| | | |     inside listings produces a moderately-weighted glyph instead of the
+| | | |     heavy slab Bold of TGC.  Combined with restoring [\bfseries] in
+| | | |     [keywordstyle], keywords now have the right level of emphasis --
+| | | |     visibly weighted but no longer dominating.
+| | | |     
+| | | |     Width-wise, Source Code Pro is between Inconsolata (too narrow) and
+| | | |     TGC (Courier-wide).  Reads cleanly at 0.92 scale alongside Pagella's
+| | | |     body letters.
+| | | |     
+| | | |     The MiKTeX [sourcecodepro] package was installed to pick up the OTFs.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 9 +++++++--
+| | | |  1 file changed, 7 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit a7dae3020bafc2c3e9bc7b2b2bee43dbae61fa2b
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 20:24:12 2026 -0700
+| | | | 
+| | | |     docs: disable mono ligatures, drop bold from keyword styling
+| | | |     
+| | | |     Two adjustments to the listings appearance:
+| | | |     
+| | | |     1. Disable common ligatures ([fi], [fl], [ff], [ffi], [ffl]) in the
+| | | |        monospace font.  Code listings benefit from a strict
+| | | |        character-for-character rendering: the [fi] in [Definition] read
+| | | |        as the single ligature glyph [fi] under default font shaping,
+| | | |        making the source text look slightly different from how a
+| | | |        programmer would type it in their editor.
+| | | |     
+| | | |           \setmonofont{TeX Gyre Cursor}
+| | | |             [Scale=0.92, Ligatures=NoCommon]
+| | | |     
+| | | |     2. Drop [\bfseries] from [keywordstyle].  TeX Gyre Cursor only ships
+| | | |        at Regular and Bold weights -- no Medium or SemiBold in between
+| | | |        -- and Cursor's Bold is a heavy slab-serif Courier-style weight
+| | | |        that overpowered the surrounding code.  Colour ([coqkw], a
+| | | |        navy-blue at 28-50-160 RGB) provides plenty of visual distinction
+| | | |        on its own without the additional weight.
+| | | |     
+| | | |           keywordstyle=\color{coqkw},   % was: \color{coqkw}\bfseries
+| | | |     
+| | | |     The keywords ([Definition], [Fixpoint], [match], [forall], [Type],
+| | | |     [term], [interp_type], etc.) now all render in regular-weight blue,
+| | | |     distinguishable but not dominant.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 4 ++--
+| | | |  1 file changed, 2 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit 1cf5321b5255759d3de579f7ca5b2ce4dc367971
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 20:14:55 2026 -0700
+| | | | 
+| | | |     docs: switch monospace to TeX Gyre Cursor for better Pagella balance
+| | | |     
+| | | |     Inconsolata at 0.85 scale was reading too small and too narrow next
+| | | |     to Pagella's wider serif body letters -- the listings looked like a
+| | | |     condensed afterthought rather than a parallel text element.
+| | | |     
+| | | |     Switched to TeX Gyre Cursor (Courier clone, same TeX Gyre family
+| | | |     as Pagella) at 0.92 scale.  TeX Gyre Cursor's classical-typewriter
+| | | |     proportions are noticeably wider than Inconsolata, with character
+| | | |     weights that match Pagella's body weight, so the code listings now
+| | | |     read at the same visual scale as the prose around them.
+| | | |     
+| | | |     Both fonts are already installed (we picked up [tex-gyre] from
+| | | |     MiKTeX when installing Pagella earlier), so no new package install
+| | | |     is needed.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 2 +-
+| | | |  1 file changed, 1 insertion(+), 1 deletion(-)
+| | | | 
+| | | * commit 551acb8b93f50352140bbdf54a5bedf24d8163dc
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 19:59:14 2026 -0700
+| | | | 
+| | | |     docs: switch to TeX Gyre Pagella + Inconsolata fonts
+| | | |     
+| | | |     Replaces the default Latin Modern Roman / Latin Modern Mono pair
+| | | |     with TeX Gyre Pagella (Palatino clone) for the body, Inconsolata
+| | | |     for the monospace code listings, and Pagella-flavoured math via
+| | | |     [newpxmath].
+| | | |     
+| | | |     Configuration:
+| | | |     
+| | | |       \usepackage{fontspec}
+| | | |       \setmainfont{TeX Gyre Pagella}
+| | | |       \setmonofont{Inconsolatazi4}[Scale=0.85]
+| | | |       \usepackage[scaled=1]{newpxmath}
+| | | |       \linespread{1.05}                  % a touch more leading
+| | | |     
+| | | |     Pagella has a warmer, wider feel than CM Roman and is the
+| | | |     conventional body font for modern type-theory / proof-assistant
+| | | |     papers (e.g. Coq Reference Manual, recent Coq/Agda submissions);
+| | | |     Inconsolata is condensed and clean at small sizes, fitting more
+| | | |     code per line than the rather thin LM Mono.  The font handle is
+| | | |     [Inconsolatazi4] rather than the more obvious [Inconsolata]
+| | | |     because that's how the [inconsolata] package's MiKTeX OTF ships.
+| | | |     
+| | | |     Tried first with [\usepackage{mathpazo}] (Type 1, doesn't work
+| | | |     under [lualatex]), then with [unicode-math] + [TeX Gyre Pagella
+| | | |     Math] (caused a stray "Improper alphabetic constant" error at
+| | | |     the [The omega-tower and varepsilon_0] subsection title, an
+| | | |     interaction between [unicode-math]'s subscript handling and
+| | | |     [fontspec]); finally settled on the [newpxmath] companion which
+| | | |     provides Palatino-flavoured math symbols without disturbing the
+| | | |     existing [amsmath] / [mathtools] machinery.
+| | | |     
+| | | |     The previous Latin Modern PDF is preserved as
+| | | |     [docs/contender_6-LM.pdf] for side-by-side comparison.
+| | | |     
+| | | |     The new rendering goes from 25 pages to 26 pages -- the slightly
+| | | |     wider Pagella body and the [linespread{1.05}] each take up a bit
+| | | |     of vertical space.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6-LM.pdf | Bin 0 -> 430961 bytes
+| | | |  docs/contender_6.tex    |  10 ++++++++++
+| | | |  2 files changed, 10 insertions(+)
+| | | | 
+| | | * commit 34f36d99a7fca2de00227eea4aef4774820b8940
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 15:27:49 2026 -0700
+| | | | 
+| | | |     docs: alsoletter={'} + add eexists / ex_intro / all to keywords
+| | | |     
+| | | |     Three related listing fixes triggered by review of section 2.5.4:
+| | | |     
+| | | |     1. The keyword [iter] was being highlighted *inside* the identifiers
+| | | |        [iter'] and [iter'_equiv] -- listings' default letter set is
+| | | |        [A-Za-z], so [iter'] tokenizes as the three pieces [iter] + ['] +
+| | | |        [_equiv], and the [iter] keyword matched the prefix.  This is
+| | | |        the same kind of word-boundary failure we hit earlier with [exists]
+| | | |        inside [exists_maximizer_42], but with [']-as-separator instead
+| | | |        of [_]-as-separator.
+| | | |     
+| | | |        Fix: add [alsoletter={'}] to the [\lstdefinelanguage{Coq}{...}]
+| | | |        block.  This tells listings to treat ['] as a letter for the
+| | | |        purposes of identifier tokenization, which matches Coq's actual
+| | | |        identifier grammar (Coq identifiers are
+| | | |        [[A-Za-z_][A-Za-z0-9_']*]).  After the fix, [iter'] is one
+| | | |        token and [iter] no longer matches its prefix.
+| | | |     
+| | | |     2. Added [eexists] to [morekeywords].  [eexists] is the existential-
+| | | |        introduction tactic ([e]-variant of [exists] -- same convention
+| | | |        as [eapply], [eauto]) that postpones witness instantiation by
+| | | |        creating a fresh existential variable.  Used in
+| | | |        [ack'_reification_helper]'s proof.
+| | | |     
+| | | |     3. Added [ex_intro] to [morekeywords].  [ex_intro] is the
+| | | |        constructor of Coq's [ex] (existential proposition); used here
+| | | |        in pattern-matching on a previously-built [exists] proof to
+| | | |        extract the witness.  Same family as [Some] / [None] / [cons] /
+| | | |        [nil] / [existT] which were already keywords.
+| | | |     
+| | | |     4. Added [all] to [morekeywords].  [all] is the all-subgoals
+| | | |        selector in Coq's proof-script syntax: [all: tac.] applies
+| | | |        [tac] to every currently-open subgoal.  It is part of the
+| | | |        selector family ([1: tac.], [2: tac.], [1-3: tac.],
+| | | |        [[name]: tac.]) and is unmistakably syntactic.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 8 +++++---
+| | | |  1 file changed, 5 insertions(+), 3 deletions(-)
+| | | | 
+| | | * commit 408f1b4f50cf1f1aa54a6b3120bf5fe12654d902
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 15:16:30 2026 -0700
+| | | | 
+| | | |     docs: rephrase reification motivation; highlight [list] and [max]
+| | | |     
+| | | |     Two unrelated improvements:
+| | | |     
+| | | |     1. The §2.5.4 motivation for reifying [ack] used the magnitude
+| | | |        estimate "tens of thousands of nodes" for the would-be unrolled
+| | | |        numeral [tS (tS (... tO))] of [ack 5 42 10002].  This is
+| | | |        spectacularly wrong in the *understatement* direction: the unrolled
+| | | |        tower has ack(5,42,10002) successor nodes, which is pentational,
+| | | |        far above tetration, far above any number expressible in any
+| | | |        physical unit.  Replaced the specific estimate with a qualitative
+| | | |        description -- "one node per unit in the value, and ack 5 42 10002
+| | | |        is astronomically larger than any quantity that could fit in a
+| | | |        finite depth budget -- or, for that matter, in the observable
+| | | |        universe" -- and added a closing clause noting the contrast: nested
+| | | |        [Nat.recursion]s let a *shallow* tree denote a very large number.
+| | | |     
+| | | |     2. Added [list] and [max] to [morekeywords].  Both are stdlib
+| | | |        names that recur in our listings:
+| | | |     
+| | | |           list -- in Fixpoint signatures like
+| | | |                   [Fixpoint termsUpTo (n : nat) : list term :=]
+| | | |                   and the [maxBy] parameter [(l : list T) : T :=].
+| | | |     
+| | | |           max  -- in [type_depth] and [term_depth] which both call
+| | | |                   [max] from [Coq.Init.Nat] (or its [Nat.max] variant)
+| | | |                   for the binary maximum.
+| | | |     
+| | | |        Both now render bold-blue, consistent with [nat], [Nat],
+| | | |        [iter], [recursion], [List], etc.  Visual consequence: the
+| | | |        recursive [max] nesting in the [tLam] case of [term_depth]
+| | | |        ([S (max (max (type_depth A) (type_depth B)) (term_depth body))])
+| | | |        reads as a uniform tactic-style chain of operators rather than
+| | | |        an alternating mix of black [max]es and blue [type_depth]s.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 17 +++++++++++------
+| | | |  1 file changed, 11 insertions(+), 6 deletions(-)
+| | | | 
+| | | * commit 74399d5ecead04939fe3d908bf6a0d7eb15f7c0c
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Tue May 5 13:20:11 2026 -0700
+| | | | 
+| | | |     docs: fix [<->] rendering, add [In] to listings keyword list
+| | | |     
+| | | |     Two fixes:
+| | | |     
+| | | |     1. [<->] was rendering as [←>] -- arrow followed by literal [>] --
+| | | |        instead of the intended bidirectional arrow [↔].  An empirical
+| | | |        minimal test confirmed that [listings] tries literate patterns in
+| | | |        *reverse declaration order* (last-declared, first-tried), opposite
+| | | |        to what one would naively assume:
+| | | |     
+| | | |           literate=
+| | | |             {<->}{...}3   {<-}{...}2  =>  matches [<-] first  =>  [←>]
+| | | |             {<-}{...}2    {<->}{...}3  =>  matches [<->] first =>  [↔]
+| | | |     
+| | | |        Reordered the literate spec so [<->] now appears AFTER [<-] and
+| | | |        [->].  All three of [<-], [->], [<->] now render correctly:
+| | | |     
+| | | |           <-  -> ←
+| | | |           ->  -> →
+| | | |           <-> -> ↔
+| | | |     
+| | | |        The same rule of thumb -- "longer overlapping pattern declared
+| | | |        later" -- applies to any future overlapping literate rules.
+| | | |     
+| | | |     2. Added [In] to [morekeywords].  [In] is [List.In], the standard
+| | | |        library's "element membership" predicate ([forall A a l, In a l :
+| | | |        Prop]).  It appears repeatedly in our [maxBy_In] /
+| | | |        [lowerbound_maxBy] / [natsUpTo_correct] / [typesUpTo_correct] /
+| | | |        [termsUpTo_correct] lemma statements, and is now keyword-blue
+| | | |        for visual consistency with other stdlib names already in the
+| | | |        list ([Forall2], [nth_error], [Some], [None], [nil], [cons],
+| | | |        [iter], [recursion], [Nat]).
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 4 ++--
+| | | |  1 file changed, 2 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit 26d8f876de50ed426746f8444bb6092ee2484126
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 20:23:53 2026 -0700
+| | | | 
+| | | |     docs: highlight Ltac primitives, render |- as turnstile, fix <- spacing
+| | | |     
+| | | |     Three independent fixes to the listings setup, all triggered by a
+| | | |     review of the [contender_1_lt_contender_2] proof script on page 3:
+| | | |     
+| | | |     1. Add the Ltac/tactic primitives that were missing from the
+| | | |        keyword list:
+| | | |     
+| | | |           delta, beta, iota, zeta, eta -- the five reduction strategies
+| | | |                                           for [cbv] / [cbn]
+| | | |           goal                         -- the [match goal with] primitive
+| | | |           progress                     -- the "tac fails if it does not
+| | | |                                           change the goal" tactical
+| | | |           context                      -- the [context [P]] subterm
+| | | |                                           pattern in [match goal with]
+| | | |           erewrite                     -- the existential-friendly [rewrite]
+| | | |           at                           -- the occurrence selector in
+| | | |                                           [rewrite L at 1] / [erewrite ...
+| | | |                                           at 2 3] etc.
+| | | |     
+| | | |        All eight now render bold-blue, matching the surrounding
+| | | |        [Time], [Theorem], [Proof], [match], [with], [end], [solve],
+| | | |        [lia] keywords.
+| | | |     
+| | | |     2. Add a literate rule
+| | | |     
+| | | |           {|-}{{$\vdash$}}2
+| | | |     
+| | | |        so [|-] in [match goal with | H : ?T |- ?G => ...] -- the Coq
+| | | |        "turnstile" separating hypotheses from the conclusion -- now
+| | | |        types up as the proper [\vdash] glyph.
+| | | |     
+| | | |     3. Tighten the [<-] literate rule's output to include a trailing
+| | | |        thin space:
+| | | |     
+| | | |           {<-}{{$\leftarrow\,$}}2
+| | | |     
+| | | |        The source had [<-Nat.pow_1_r] (no space, valid Coq), so the
+| | | |        previous rule rendered as [\leftarrow]Nat.pow_1_r with no
+| | | |        visible separation between the arrow and the lemma name; the
+| | | |        [\,] thin space makes the lemma name read as a separate token.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 7 +++++--
+| | | |  1 file changed, 5 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit d6d2b4fd474c0936f81217ea67b93f175a871e37
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 20:14:47 2026 -0700
+| | | | 
+| | | |     docs: add [Time] to listings keyword list
+| | | |     
+| | | |     [Time] is a Coq vernacular control prefix that measures and prints
+| | | |     how long the following command takes (e.g.
+| | | |     
+| | | |         Time Definition contender_2 : nat := ...
+| | | |     
+| | | |     prints "Definition executed in 1.94s" while compiling, and
+| | | |     
+| | | |         Time Qed.
+| | | |     
+| | | |     reports the time spent on proof-checking).  It belongs to the same
+| | | |     family as [Print], [Eval], [Compute] (already in [morekeywords])
+| | | |     and is essential for making sense of the upstream author's own
+| | | |     performance comments quoted in section 2.2 ("the [Definition] took
+| | | |     ~2 seconds and the proof script roughly 50 seconds").
+| | | |     
+| | | |     The listings on page 3 of the article use [Time] in three places --
+| | | |     [Time Definition contender_2], [Time cbv delta [...]], and
+| | | |     [Time Qed.] -- all of which now render bold-blue, matching the
+| | | |     other vernacular keywords on the same page.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 2 +-
+| | | |  1 file changed, 1 insertion(+), 1 deletion(-)
+| | | | 
+| | | * commit 3afe2dcaf39816342ef33bdd291b88086028e412
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 20:06:39 2026 -0700
+| | | | 
+| | | |     docs: dive into Contender.v internals; cover all previous contenders
+| | | |     
+| | | |     Replaces the previous one-paragraph summary of [contender_5] with a
+| | | |     new top-level section [The chain of previous contenders] that walks
+| | | |     through all five previous contenders and their proofs of strict
+| | | |     inequality:
+| | | |     
+| | | |       2.1  contender_1 = 42                 (Graveyard.v: trivial proof)
+| | | |       2.2  contender_2: a literal tower of 42^...^42, with the
+| | | |            Coq one-liner proof script that took the upstream author
+| | | |            ~50 s to typecheck
+| | | |       2.3  contender_3 = tower_of_power 10000 with [reify_tower] +
+| | | |            [fund_lemma]
+| | | |       2.4  contender_4 = ack 5 42 10002, with the [iter] / [ack]
+| | | |            definitions, [ack_3], [ack_4], and the proof structure
+| | | |       2.5  contender_5 = largest_STLCNatRec_nat_of_depth 42, broken
+| | | |            into five sub-subsections:
+| | | |              - the System T object language (Inductive [type] / [term])
+| | | |              - the depth-bounded enumerator (natsUpTo / typesUpTo /
+| | | |                termsUpTo) and the three correctness lemmas
+| | | |              - the [maxBy] argmax combinator and its three core lemmas
+| | | |                (maxBy_In, maxBy_at_least_currentMax, lowerbound_maxBy)
+| | | |              - the reification trick (iter' / add' / mul' / pow' /
+| | | |                ack' / contender_4''_reified)
+| | | |              - the [contender_4 < contender_5] proof script, narrated
+| | | |                line by line
+| | | |     
+| | | |     Also fixes the chain table on the title page (contender_1 is 42,
+| | | |     not 1; contender_2 is a tower of 42^...^42, not just "a literal
+| | | |     numeral"; contender_3 is tower_of_power 10000) and adds two
+| | | |     [\label] anchors so the new sections cross-reference cleanly.
+| | | |     
+| | | |     The pre-existing one-paragraph summary -- four bullet points on
+| | | |     [termsUpTo_correct] / [maxBy_In] / [lowerbound_maxBy] /
+| | | |     [largest_of_depth_monotone] -- is folded into the new
+| | | |     [Recapping the four lemmas of the previous chain.] paragraph at the
+| | | |     end of section 2.5, so a reader who skipped the diving sections still
+| | | |     sees the four facts we will actually use later.
+| | | |     
+| | | |     Article goes from 17 pages to 26 pages.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 599 +++++++++++++++++++++++++++++++++++++++++--
+| | | |  1 file changed, 571 insertions(+), 28 deletions(-)
+| | | | 
+| | | * commit f7fbf6157d4e68fa9187eb5162fb4df0fcc5b844
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 18:47:15 2026 -0700
+| | | | 
+| | | |     docs: add [by] and [eapply] to listings keyword list
+| | | |     
+| | | |     Both are real Coq tactics that appear in our listings:
+| | | |     
+| | | |       [by]      -- the inline-proof tactic argument used in
+| | | |                    [assert (...) by (rewrite ...; exact Heq).]
+| | | |     
+| | | |       [eapply]  -- the existential-friendly variant of [apply], used in
+| | | |                    [eapply Contender.lowerbound_maxBy with (x := ...)]
+| | | |                    and [eapply Nat.lt_le_trans with (m := ...)].
+| | | |     
+| | | |     Both were missing from [morekeywords] and therefore rendered as
+| | | |     default-black identifiers, in contrast to neighbouring tactics like
+| | | |     [apply], [assert], [rewrite], [unfold], etc., which were styled
+| | | |     bold-blue.  A scan of the listings confirmed that no other tactic
+| | | |     [constructor], [enough], [econstructor], [exfalso], etc.] is used
+| | | |     in the article, so these are the only two that needed to be added.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 4 ++--
+| | | |  1 file changed, 2 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit e8b4383429589ae600d438a5524c650a209947b0
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 16:15:53 2026 -0700
+| | | | 
+| | | |     docs: render [<-], [/\], [\/] as math glyphs in code listings
+| | | |     
+| | | |     Three more literate rules joining the existing arrow / inequality
+| | | |     substitutions:
+| | | |     
+| | | |       [<-]  -> [\leftarrow]   (Coq's reverse-rewrite tactic argument,
+| | | |                                e.g. [rewrite <- (witness_grow_eval ...)])
+| | | |       [/\]  -> [\land]        (logical AND in Coq propositions)
+| | | |       [\/] -> [\lor]         (logical OR in Coq propositions)
+| | | |     
+| | | |     None of these tokens can appear inside a Coq identifier ([_] is the
+| | | |     only non-alphanumeric identifier character), so the literate
+| | | |     substitution is unambiguous in a way that [exists]/[forall] were
+| | | |     not.
+| | | |     
+| | | |     The [\] in the patterns is the [listings]/[TeX] escape for a single
+| | | |     backslash, so [{/\}] matches the two-character source token [/\]
+| | | |     (slash + backslash) and [{\/}] matches [\/] (backslash + slash).
+| | | |     
+| | | |     The longer [<->]-pattern is moved to the top of the [literate]
+| | | |     block so it has match priority over the new [<-] (a 3-char prefix
+| | | |     of [<->] would otherwise eat the [<-] before [<->] gets a chance).
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 5 ++++-
+| | | |  1 file changed, 4 insertions(+), 1 deletion(-)
+| | | | 
+| | | * commit 959e294e2de54f5375149e096ebff2752c2af419
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 16:07:24 2026 -0700
+| | | | 
+| | | |     docs: stop literate-substituting [forall]/[exists] inside identifiers
+| | | |     
+| | | |     Bug: the listings literate rules
+| | | |     
+| | | |         {forall}{{$\forall$}}1
+| | | |         {exists}{{$\exists$}}1
+| | | |     
+| | | |     matched anywhere -- including inside identifiers like
+| | | |     [exists_maximizer_42], rendering the lemma's name as
+| | | |     [∃_maximizer_42] in the listings even though the prose right above
+| | | |     correctly spelled it [exists_maximizer_42].
+| | | |     
+| | | |     Tried tightening the patterns to require a trailing space
+| | | |     ([{exists }{{$\exists$\ }}]) so they would only match the keyword
+| | | |     context [exists tstar : ...] and not the identifier prefix
+| | | |     [exists_], but [listings] does not honor trailing-space patterns
+| | | |     reliably.
+| | | |     
+| | | |     Simpler fix: drop the literate rules altogether.  Both [forall] and
+| | | |     [exists] are already in [morekeywords], so they are typeset bold-blue
+| | | |     like any other keyword ([Lemma], [match], [Proof], ...).  Bold
+| | | |     [exists] in code listings is the same convention as bold [Lemma],
+| | | |     and matches the visual treatment a reader sees in any Coq IDE.
+| | | |     The math symbols [∀] and [∃] still render correctly in LaTeX prose
+| | | |     math (e.g., [$\forall t \in \texttt{Contender.term}, \ldots$]),
+| | | |     because those go through LaTeX's math mode, not the listings styler.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 2 --
+| | | |  1 file changed, 2 deletions(-)
+| | | | 
+| | | * commit 48aa1e94138ae01b53893987268d5024a5ef0466
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 15:55:24 2026 -0700
+| | | | 
+| | | |     docs: catch [parameterised] and [diagonalises], finish US sweep
+| | | |     
+| | | |     Two UK spellings escaped the previous pass:
+| | | |     
+| | | |       - "parameterised" (line 1211, in section 9.4 Generic vs.
+| | | |         instantiated) -> "parameterized"
+| | | |     
+| | | |       - "diagonalises" (line 477, in section 4.2 Sanity checks at small
+| | | |         ordinals) -> "diagonalizes"
+| | | |     
+| | | |     A final comprehensive grep for [-ise / -iser / -isation] verb forms,
+| | | |     filtering out the noun-style words [precise, exercise, otherwise,
+| | | |     expertise, premise, ...] and the same-in-both-dialects [rising,
+| | | |     pointwise, exercise], now returns zero matches.  The article is fully
+| | | |     consistent US English.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 4 ++--
+| | | |  1 file changed, 2 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit c61b8caabf0e6f3480f3f87bb26f551ccb4aa8a4
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 15:43:50 2026 -0700
+| | | | 
+| | | |     docs: switch all UK -ise/-iser/-isation spellings to US
+| | | |     
+| | | |     Sweep of every prose -ise / -iser / -isation form in
+| | | |     [docs/contender_6.tex] -> their US -ize / -izer / -ization variants:
+| | | |     
+| | | |       formalised   -> formalized      (4 occurrences)
+| | | |       formalises   -> formalizes
+| | | |       formalisation-> formalization
+| | | |       maximiser    -> maximizer       (7 occurrences)
+| | | |       realising    -> realizing
+| | | |       normalisation-> normalization   (2 occurrences)
+| | | |       specialised  -> specialized
+| | | |       specialisation-> specialization
+| | | |     
+| | | |     Coq identifiers ([exists_maximizer_42], [specialize], [generalize])
+| | | |     were already US-spelled and are unchanged -- they are quoted from the
+| | | |     source verbatim.  The article now matches the surrounding source
+| | | |     file's spelling convention.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 30 +++++++++++++++---------------
+| | | |  1 file changed, 15 insertions(+), 15 deletions(-)
+| | | | 
+| | | * commit faa7de403b2c0f612b5c908d0bd251b9f77e9b29
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 15:32:19 2026 -0700
+| | | | 
+| | | |     docs: render [Contender.] qualifier in subdued gray
+| | | |     
+| | | |     Inside [Module GrowEmbed] (which is where most of the listings live),
+| | | |     the unqualified name [term] denotes the new L_Grow inductive type and
+| | | |     the qualifier [Contender.term] denotes the outer System T inductive
+| | | |     from [Contender.v].  The qualifier is therefore semantically essential
+| | | |     -- without it, signatures like
+| | | |     
+| | | |         Fixpoint embed_term (t : Contender.term) : term
+| | | |     
+| | | |     collapse to the meaningless [term -> term].  But the qualifier appears
+| | | |     ~14 times per page in the proof sections and visually drowns out the
+| | | |     unqualified names that name new constructions.
+| | | |     
+| | | |     Fix: add a single [listings] literate rule
+| | | |     
+| | | |         {Contender.}{{\textcolor{gray!55}{Contender.}}}{10}
+| | | |     
+| | | |     which keeps the qualifier on the page (and therefore in copy-pasted
+| | | |     code) but typesets it at ~55% gray, so the eye can skim past it.  The
+| | | |     identifier *after* the dot ([term], [tVar], [interp_term], ...) keeps
+| | | |     its normal styling -- keyword-blue when it is in [morekeywords],
+| | | |     default-black otherwise -- so qualifier-vs-name now reads at a glance
+| | | |     as gray-vs-coloured.
+| | | |     
+| | | |     The width [10] in the literate spec matches [Contender.] (10 chars),
+| | | |     so column tracking remains correct.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 1 +
+| | | |  1 file changed, 1 insertion(+)
+| | | | 
+| | | * commit 485b4b4308eee3d28f261da78432399a599156f3
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 15:18:15 2026 -0700
+| | | | 
+| | | |     docs: switch (A)/(B)/(C) sub-claims from enumerate to \paragraph
+| | | |     
+| | | |     The [enumerate]-with-[leftmargin=2em] formatting of the three
+| | | |     sub-claims indented every body line by 2em, which forced ugly mid-
+| | | |     expression line breaks like
+| | | |     
+| | | |         BigGrow(contender_5+
+| | | |         1) <= contender_6
+| | | |     
+| | | |     and
+| | | |     
+| | | |         depth(w(t*))
+| | | |         <= 44
+| | | |     
+| | | |     on the high-level-map page.
+| | | |     
+| | | |     Switching to [\paragraph]-style headings keeps the bold inline
+| | | |     [(A) Existential maximiser.] etc. labels but lets each body
+| | | |     paragraph use the full 6.5in text width, eliminating the wraps and
+| | | |     making the page read much more linearly.
+| | | |     
+| | | |     The cross-references "(A), (B), (C)" in the surrounding prose
+| | | |     remain valid -- the sub-claim labels are still rendered as part of
+| | | |     the bold paragraph headings.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 52 ++++++++++++++++++++++++--------------------
+| | | |  1 file changed, 28 insertions(+), 24 deletions(-)
+| | | | 
+| | | * commit a25ca5611e488b1321de3dc5c18cd0c243af50d2
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 15:10:10 2026 -0700
+| | | | 
+| | | |     docs: rework (C) Witness construction for readability
+| | | |     
+| | | |     The previous rendering crammed three different uses of [(...)] into
+| | | |     one inline math/text mix:
+| | | |     
+| | | |       - Coq function-application parens around [tApp tS (embed t*)]
+| | | |         inside the witness term;
+| | | |     
+| | | |       - math parens around [w(t*)], [depth(w(t*))], [eval(w(t*))],
+| | | |         [BigGrow(contender_5+1)];
+| | | |     
+| | | |       - linguistic parenthetical citations [(witness_grow_depth)] and
+| | | |         [(witness_grow_eval)] tagging the relevant lemmas.
+| | | |     
+| | | |     The result was a wall of parentheses with no visual cue as to which
+| | | |     were Coq syntax, which were math, and which were citations.
+| | | |     
+| | | |     The fix:
+| | | |     
+| | | |       - Move the witness definition into a display equation
+| | | |         [w(t*) := tApp tGrow (tApp tS (embed t*))], with [\bigl(...\bigr)]
+| | | |         on the outer Coq parens to visually distinguish them from the
+| | | |         inline-math [w(t*)] parens.
+| | | |     
+| | | |       - Drop the parenthetical "(lemma_name)" citation pattern.  The
+| | | |         lemma names now lead the clauses: "witness_grow_depth
+| | | |         establishes depth(w(t*)) <= 44, and witness_grow_eval
+| | | |         establishes eval(w(t*)) = BigGrow(contender_5+1)".
+| | | |     
+| | | |     The page is shorter and reads much more linearly.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 19 +++++++++++--------
+| | | |  1 file changed, 11 insertions(+), 8 deletions(-)
+| | | | 
+| | | * commit b10cc60def5a127d3da678cc35d4948be2645467
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 14:57:12 2026 -0700
+| | | | 
+| | | |     docs: tune \llbracket / \rrbracket overlap to -3.25mu
+| | | |     
+| | | |     Iterating on the manual-fallback double-bracket rendering:
+| | | |     
+| | | |       - [\!\![] (= -6mu): too tight, reads as bold-single-bracket.
+| | | |       - [\mkern-2.5mu]: too loose, reads as two separate brackets.
+| | | |       - [\mkern-4mu]:    too tight again, still reads as bold-single.
+| | | |       - [\mkern-3.25mu]: just right -- two visible bracket strokes that
+| | | |                          register as one cohesive double-bracket symbol
+| | | |                          across all reasonable zoom levels.
+| | | |     
+| | | |     The remaining [\mathopen] / [\mathclose] wrappers are unchanged;
+| | | |     they keep math-mode spacing on either side of the symbol correct.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 4 ++--
+| | | |  1 file changed, 2 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit 4b7ded6a92eda189f47af7eb3a029d9bd46b86cd
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 14:49:50 2026 -0700
+| | | | 
+| | | |     docs: render \llbracket / \rrbracket distinctively at every zoom
+| | | |     
+| | | |     Two earlier attempts misbehaved:
+| | | |     
+| | | |       1. The original fallback [\llbracket = [\!\![] uses [\!] (negative
+| | | |          thin space, $-3$mu) twice, overlapping the two [[] glyphs by
+| | | |          enough that at small zoom they read as a single bold bracket.
+| | | |     
+| | | |       2. Adding [\usepackage{stmaryrd}] loads the package, but its
+| | | |          [stmary10] font is not bundled with [lualatex]'s default
+| | | |          [luaotfload] cache, so every [\llbracket] / [\rrbracket]
+| | | |          rendered as a missing-character box and dropped from the output
+| | | |          entirely.
+| | | |     
+| | | |     This change drops the [stmaryrd] dependency and tightens the manual
+| | | |     fallback: [\mathopen{[\mkern-2.5mu[}] (and the [\mathclose] dual).
+| | | |     The [-2.5mu] kern is just enough overlap to make the pair read as a
+| | | |     single double-bracket symbol, but loose enough that the two [[]
+| | | |     glyphs stay visibly distinct at every reasonable zoom level.  The
+| | | |     [\mathopen]/[\mathclose] wrappers also restore correct math-mode
+| | | |     spacing around the symbol (otherwise [\llbracket A \rrbracket]
+| | | |     would be typeset with relation-spacing instead of bracket-spacing).
+| | | |     
+| | | |     Now [tpNat], [tpArr A B], etc. inside [[..]] render unambiguously
+| | | |     as double-bracket interpretation brackets at every zoom level.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 10 ++++++++--
+| | | |  1 file changed, 8 insertions(+), 2 deletions(-)
+| | | | 
+| | | * commit a1338ec599580ceb0ee55cf9d735701b54e50660
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 14:24:25 2026 -0700
+| | | | 
+| | | |     docs: fix arrow spacing in Coq listings
+| | | |     
+| | | |     The [literate] specs in [docs/contender_6.tex] had a width of [1] for
+| | | |     arrows like [->] and [=>], even though [{->}] is two characters in
+| | | |     the source.  Combined with [columns=fullflexible], [listings] would
+| | | |     absorb the trailing space after the arrow, rendering [Brouwer ->
+| | | |     Brouwer] as [Brouwer ->Brouwer] (no space after the arrow).
+| | | |     
+| | | |     Two fixes:
+| | | |     
+| | | |       - Set [keepspaces=true] so [listings] does not collapse runs of
+| | | |         whitespace inside listings.
+| | | |     
+| | | |       - Update each multi-character literate spec to declare the correct
+| | | |         source character count: [2] for [->] / [=>] / [<=] / [>=] / [<>],
+| | | |         [3] for [<->].  This prevents [listings] from misaligning the
+| | | |         surrounding column tracks.
+| | | |     
+| | | |     After the fix, all rendered arrows have a space on each side and the
+| | | |     match-case arrows ([=>]) align cleanly with the surrounding code.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 13 +++++++------
+| | | |  1 file changed, 7 insertions(+), 6 deletions(-)
+| | | | 
+| | | * commit 76034afb0bd43c7295c50c6a023173208659d224
+| | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | | Date:   Mon May 4 13:47:34 2026 -0700
+| | | | 
+| | | |     docs: add contender_6.tex tutorial
+| | | |     
+| | | |     A self-contained LaTeX tutorial walk-through of [contender_6], suitable
+| | | |     both as a companion piece to the [submit-c6-prep] branch's modifications
+| | | |     to [Contender.v] and as a standalone introduction to the construction.
+| | | |     
+| | | |     Compiles to a roughly 18-page PDF with [lualatex] (or [pdflatex] +
+| | | |     [stmaryrd]).  The article covers, in tutorial form:
+| | | |     
+| | | |       - the [name-the-biggest-number] contest setting and the
+| | | |         [don't-be-lazy] rule;
+| | | |     
+| | | |       - Brouwer ordinal notations and why fundamental-sequence-as-data
+| | | |         turns ordinal recursion into ordinary structural recursion;
+| | | |     
+| | | |       - the fast-growing hierarchy and its closure properties up through
+| | | |         [BigGrow := f_{epsilon_0}];
+| | | |     
+| | | |       - the new object language [L_Grow] (System T plus a fresh
+| | | |         [tGrow] primitive) and its denotational semantics, including the
+| | | |         polymorphic [pack] type and the [eval] extractor;
+| | | |     
+| | | |       - the embedding [embed_term : Contender.term -> term] and a
+| | | |         Tait-style logical relation that proves it preserves evaluation
+| | | |         *without* function extensionality;
+| | | |     
+| | | |       - the witness term [tGrow (S (embed t_star))] at depth 44, where
+| | | |         [t_star] is the existential maximiser of [contender_5];
+| | | |     
+| | | |       - the chain of inequalities
+| | | |     
+| | | |           contender_5 < BigGrow (S contender_5) <= contender_6.
+| | | |     
+| | | |     Each step quotes the corresponding Coq fragment verbatim from the
+| | | |     inlined [Contender.v].  Bibliographical pointers to Aaronson's
+| | | |     original essay, Tait's logical-relation paper, and the
+| | | |     Schwichtenberg-Wainer textbook are included.
+| | | |     
+| | | |     The PDF artefact is *not* checked in; the [.tex] source is the
+| | | |     canonical version.
+| | | |     
+| | | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | | 
+| | | |  docs/contender_6.tex | 1354 ++++++++++++++++++++++++++++++++++++++++++
+| | | |  1 file changed, 1354 insertions(+)
+| | | | 
+| | | * commit 9e12258f9c6f57080814a9bb706961c80316463f
+| |_|/  Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+|/| |   Date:   Fri May 1 13:39:01 2026 -0700
+| | |   
+| | |       Add contender_6 to Contender.v (submission prep)
+| | |       
+| | |       Inlines the [GrowEmbed] sandbox machinery -- including the Brouwer
+| | |       ordinal infrastructure, [BigGrow := FGH epsilon_0], and the L_Grow
+| | |       fresh-engine extension of STLC+NatRec -- into [Contender.v] and
+| | |       defines
+| | |       
+| | |           contender_6 := largest_Grow_nat_of_depth 44
+| | |       
+| | |       via [Module GrowEmbed (G : GrowSig)] instantiated with [BigGrow].
+| | |       
+| | |       The contender's *definition* mentions no [contender_5] machinery
+| | |       (the unfolded [contender_6] does not contain
+| | |       [largest_STLCNatRec_nat_of_depth] / [Contender.term] / etc.).  Its
+| | |       *proof* obtains the existential maximizer of [contender_5] via
+| | |       [Contender.maxBy_In] / [Contender.lowerbound_maxBy], embeds that
+| | |       term into [L_Grow], and uses [tGrow (S (embed_term t_star))] as the
+| | |       witness term at depth 44, sidestepping function extensionality via
+| | |       a Tait-style logical relation.
+| | |       
+| | |         * [coqc Contender.v] takes ~5 s on this machine -- well within the
+| | |           upstream budget of 15 s for the definition typecheck and 60 s
+| | |           for the proof.
+| | |         * [Print Assumptions contender_5_lt_contender_6] reports a closed
+| | |           global context (no axioms).
+| | |         * The proof additions use only Coq 8.10-compatible tactic syntax
+| | |           (no [intros *], no [induction X in ... |- *]).
+| | |       
+| | |       Submission prep only -- this commit is on the [submit-c6-prep]
+| | |       branch and is NOT pushed to upstream.  The sandbox source files
+| | |       [sandbox/GrowEmbed.v] and [sandbox/Brouwer.v] are kept as research
+| | |       artifacts.
+| | |       
+| | |       Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | |   
+| | |    Contender.v | 579 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+| | |    1 file changed, 579 insertions(+)
+| | | 
+* | | commit 7e900a3a8720f316ad8f20e15c647ff9771fd870 (origin/ideas)
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 13:15:00 2026 -0700
+| | | 
+| | |     Polish GrowEmbed.v further: small tactic chain tightenings
+| | |     
+| | |     Three tiny line-saving tightenings on top of the existing GrowEmbed.v:
+| | |     
+| | |       - [lookup_related] [None] branch: chain
+| | |         [apply Nat.leb_gt in E. apply ... in E1; lia.] onto a single
+| | |         semicolon-chained line.
+| | |     
+| | |       - [embed_interp_related] [tApp] case: merge [simpl; destruct tp1] and
+| | |         [apply RelPack_intro; apply ...] using semicolons.
+| | |     
+| | |       - [embed_interp_related] [tS] case: chain
+| | |         [apply RelPack_intro. simpl. intros x y Hxy. subst. reflexivity.]
+| | |         onto a single semicolon-chained line.
+| | |     
+| | |     File goes from 522 -> 518 lines (-4).  [coqc -Q . ""
+| | |     sandbox/GrowEmbed.v] still emits [Closed under the global context]
+| | |     for [contender_grow_6], [BigGrow_lower_bound], and
+| | |     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
+| | |     no regressions.
+| | |     
+| | |     Tried and reverted:
+| | |       - Replacing [pose proof + 2x replace] in [embed_eval] with
+| | |         [destruct ... as (... & -> & -> & ...)]: the [->] intro pattern
+| | |         rewrites left-to-right, so it tries to find
+| | |         [Contender.interp_term [] t] in the goal, but the goal (after
+| | |         [unfold eval]) has [Contender.interp_term nil t] -- a syntactic
+| | |         mismatch [rewrite] cannot bridge but [replace]'s unification can.
+| | |     
+| | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | 
+| | |  sandbox/GrowEmbed.v | 10 ++++------
+| | |  1 file changed, 4 insertions(+), 6 deletions(-)
+| | | 
+* | | commit c6deb52c049048e0efd24666e91370f8bd2946ff
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 13:04:49 2026 -0700
+| | | 
+| | |     GrowEmbed: drop reverse enumerator lemma, shorten embed proofs
+| | | 
+| | |  git.log             | 60 ++++++++++++++++++++++++++++++++++++++++++++++-
+| | |  sandbox/GrowEmbed.v | 54 +++++++++---------------------------------
+| | |  2 files changed, 70 insertions(+), 44 deletions(-)
+| | | 
+* | | commit a835138357630a91620e75ac08e61d448546ad75
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 12:31:58 2026 -0700
+| | | 
+| | |     Polish GrowEmbed.v further: term_depth_embed, cast_impl, lookup, witness_grow
+| | |     
+| | |     Another small round of polish on top of the existing GrowEmbed.v:
+| | |     
+| | |       - [term_depth_embed]: collapse the 6-line case-split proof into
+| | |         [induction t; simpl; congruence] - all six constructor cases now
+| | |         discharge uniformly.
+| | |     
+| | |       - [cast_impl_related]: merge the two identical error branches
+| | |         ([tpNat]/[tpArr] and [tpArr]/[tpNat]) into a single [try (split;
+| | |         intros _ _ _; simpl; (reflexivity || (intros; apply error_related)))]
+| | |         fall-through after the [tpNat]/[tpNat] identity case, leaving only
+| | |         the genuinely-distinct [tpArr]/[tpArr] case to handle by hand.
+| | |     
+| | |       - [lookup_related]: collapse the [unfold ...; cbv zeta; rewrite Hlen]
+| | |         setup onto one line, and merge the [apply nth_error_None] +
+| | |         [assert] + [lia] tail of the [None] branch into [apply ... in E1;
+| | |         lia] using two underscores for the implicit length arguments.
+| | |     
+| | |       - [witness_grow_eval] [tpNat] case: compress
+| | |         [subst res. cbn [...]. rewrite E. cbn [...]. reflexivity.] into a
+| | |         single semicolon-chained line.
+| | |     
+| | |     File goes from 562 -> 552 lines (-10).  [coqc -Q . ""
+| | |     sandbox/GrowEmbed.v] still emits [Closed under the global context]
+| | |     for [contender_grow_6], [BigGrow_lower_bound], and
+| | |     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
+| | |     no regressions.
+| | |     
+| | |     Tried and reverted:
+| | |       - Replacing the [change] block in [embed_interp_related]'s [tLam]
+| | |         case with [cbn [Contender.interp_term interp_term embed_term]]:
+| | |         the local [interp_term] Fixpoint's tLam branch uses [cast B] whose
+| | |         type-inference picks up the local [interp_type] alias for the
+| | |         binder, while [Contender.interp_term] uses [Contender.interp_type]
+| | |         directly.  The asymmetry breaks the later [rewrite Eold, Enew]
+| | |         even when [interp_type] is rebound as a [Notation] for the
+| | |         qualified name.
+| | |     
+| | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | 
+| | |  sandbox/GrowEmbed.v | 54 +++++++++++++++++++----------------------------
+| | |  1 file changed, 22 insertions(+), 32 deletions(-)
+| | | 
+* | | commit b68a072297c3540a108c62f171bcb35b2caa6337
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 12:19:56 2026 -0700
+| | | 
+| | |     GrowEmbed: shave wrappers, inline witness reductions
+| | | 
+| | |  git.log             | 60 ++++++++++++++++++++++++++++++++++++++++++++++-
+| | |  sandbox/GrowEmbed.v | 59 +++++++++++++---------------------------------
+| | |  2 files changed, 75 insertions(+), 44 deletions(-)
+| | | 
+* | | commit a7263023d98fc986505a3603297580290935ff43
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 11:32:10 2026 -0700
+| | | 
+| | |     Polish GrowEmbed.v further: tighter proofs, chained rewrite, tNatRec
+| | |     
+| | |     Another round of polishing on top of the existing GrowEmbed.v:
+| | |     
+| | |       - Compress trivial proofs to single-line [Proof. ... Qed.] form:
+| | |         [interp_tApp_nat], [error_related], [RelPack_intro],
+| | |         [RelPack_error].
+| | |     
+| | |       - Collapse repeated [Opaque ...] / [Local Transparent ...] blocks
+| | |         into single multi-argument invocations.
+| | |     
+| | |       - Simplify [witness_grow_eval]'s [tpNat] case from a two-step
+| | |         [assert ES; assert EG; rewrite EG] chain into a single nested
+| | |         [rewrite (interp_tApp_nat _ _ _ _ _ _ (interp_tGrow _)
+| | |                                   (interp_tApp_nat _ _ _ _ _ _
+| | |                                                    (interp_tS _) E))].
+| | |         Also fold the [destruct ... ; destruct tp] into a single nested
+| | |         intro pattern [as [[|A B] res] eqn:E].
+| | |     
+| | |       - Tighten [witness_grow_depth] to a single [intros ... destruct ...]
+| | |         chain with no intermediate line breaks.
+| | |     
+| | |       - Simplify [exists_maximizer_42] by hoisting the [unfold
+| | |         Contender.contender_5, ...] and [pose proof contender_5_ge_1]
+| | |         out so both the [Some] and [None] branches share them.
+| | |     
+| | |       - Tighten [tNatRec] case in [embed_interp_related] using
+| | |         [induction n1 in base1, ..., Hstep |- *] to avoid the
+| | |         [revert; ...; intros] dance.
+| | |     
+| | |       - Tighten [Forall2_nth_error] using [intros *].
+| | |     
+| | |     File goes from 623 -> 589 lines (-34, -5.5%).  [coqc -Q . ""
+| | |     sandbox/GrowEmbed.v] still emits [Closed under the global context]
+| | |     for [contender_grow_6], [BigGrow_lower_bound], and
+| | |     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
+| | |     no regressions.
+| | |     
+| | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | 
+| | |  sandbox/GrowEmbed.v | 90 +++++++++++++++--------------------------------
+| | |  1 file changed, 28 insertions(+), 62 deletions(-)
+| | | 
+* | | commit 5ea3c65f70aef32480cbd301d919970b7d1a43d0
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 11:19:27 2026 -0700
+| | | 
+| | |     Polish GrowEmbed with change-based simplification
+| | | 
+| | |  IDEAS.md            | 10 ++++++++
+| | |  git.log             | 57 ++++++++++++++++++++++++++++++++++++++++-
+| | |  sandbox/GrowEmbed.v | 64 ++++++++++++++++++-----------------------------
+| | |  3 files changed, 90 insertions(+), 41 deletions(-)
+| | | 
+* | | commit 9045ca001ef0fe8d6361e2a3fcef51d4dcae856a
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 09:58:07 2026 -0700
+| | | 
+| | |     Polish GrowEmbed.v further: factor backward Ltac, tighten reductions
+| | |     
+| | |     Incremental polish on top of the existing GrowEmbed.v:
+| | |     
+| | |       - Factor the [pose proof (proj2 (...UpTo_correct _ _)) ...] +
+| | |         [pose proof (proj2 (IHn _)) ...] + [simpl; lia] tail of every
+| | |         [termsUpTo_correct] backward case as a single Ltac
+| | |         [termsUpTo_depth_lia], symmetric to the existing
+| | |         [termsUpTo_solve_in] for the forward direction.  Each backward
+| | |         case shrinks to 1-2 lines.
+| | |     
+| | |       - Use [apply in_map_iff in H as (...)] (intro pattern) instead of
+| | |         the equivalent [apply in_map_iff in H. destruct H as [...]]
+| | |         two-step form.
+| | |     
+| | |       - Tighten [Forall2_nth_error] from a 7-line case-split into a
+| | |         single [induction ... intros [|n] ...; simpl; (discriminate ||
+| | |         eauto)] chain.
+| | |     
+| | |       - Compress trivial reduction lemmas
+| | |         ([Contender_interp_term_tVar_None], [interp_term_tVar_*]) to
+| | |         one-line [Proof. ... Qed.] form.
+| | |     
+| | |       - Drop a redundant [simpl] from [embed_eval]; the [destruct tp]
+| | |         already reduces both [match] expressions.
+| | |     
+| | |       - Tighten the tVar / tLam comments to match the simpler proof
+| | |         text.
+| | |     
+| | |     File goes from 647 -> 639 lines (-8).  [coqc -Q . ""
+| | |     sandbox/GrowEmbed.v] still emits [Closed under the global context]
+| | |     for [contender_grow_6], [BigGrow_lower_bound], and
+| | |     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
+| | |     no regressions.
+| | |     
+| | |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| | | 
+| | |  sandbox/GrowEmbed.v | 98 ++++++++++++++++++++++-------------------------
+| | |  1 file changed, 45 insertions(+), 53 deletions(-)
+| | | 
+* | | commit 02adebd28f725d9b3bd1e16c43716fad3fc29dc7
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 09:42:30 2026 -0700
+| | | 
+| | |     Polish GrowEmbed lookup relation proof
+| | | 
+| | |  IDEAS.md            |   8 ++++
+| | |  git.log             |  13 +++++-
+| | |  sandbox/GrowEmbed.v | 100 ++++++++++++++++++----------------------------
+| | |  3 files changed, 59 insertions(+), 62 deletions(-)
+| | | 
+* | | commit a4ca22fffe2849f11d7cd0dac5f097fdeef00b6c
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Fri May 1 09:32:24 2026 -0700
+| | | 
+| | |     Polish GrowEmbed.v: less boilerplate, no warnings
+| | | 
+| | |  IDEAS.md            |   7 +
+| | |  git.log             | 435 ++++++++++++++++++++++++++++++++--------------
+| | |  sandbox/GrowEmbed.v |  45 ++---
+| | |  3 files changed, 330 insertions(+), 157 deletions(-)
+| | | 
+* | | commit f13c69101280b0b8a012a23efa38f7620e48d1e5
+| |/  Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+|/|   Date:   Fri May 1 08:05:46 2026 -0700
+| |   
+| |       Polish GrowEmbed.v: tighter proofs, no logic changes
+| |       
+| |       Five passes over sandbox/GrowEmbed.v compress the proof script while
+| |       preserving the witness chain (axiom-free, term_depth = 44):
+| |       
+| |         - Pass 1: replace [refine]-based [interp_term] with a direct
+| |           [Fixpoint]; reuse [Contender.maxBy] / [lowerbound_maxBy] instead of
+| |           a local copy.
+| |         - Pass 2: compress [cast_impl_related] to use a single fall-through
+| |           branch for the error cases.
+| |         - Pass 3-5: tighten tApp / tNatRec / tLam case scripts in the
+| |           [embed_interp_related] induction.
+| |         - Pass 6: rewrite [contender_5_ge_1] in 3 tactic steps using
+| |           [Contender.lowerbound_maxBy] with the witness [tApp tS tO];
+| |           inline [exists_maximizer_42] using [Contender.maxBy_In] dichotomy.
+| |         - Pass 7: chain the two [interp_tApp_nat] calls in
+| |           [witness_grow_eval] via [assert ... by]; the arrow case is closed
+| |           by direct contradiction with [contender_5_ge_1].
+| |         - Pass 8: drop "(WIP)" header marker; collapse trivial RelPack
+| |           obligations to [repeat split]; tighten [lookup_related_some] /
+| |           [lookup_related_none] using [cbv zeta]; factor the repeated
+| |           [repeat first [...]] block of [termsUpTo_correct] as
+| |           [Ltac termsUpTo_solve_in].
+| |       
+| |       File goes from 869 -> 668 lines (-201, -23%).  [coqc -Q . ""
+| |       sandbox/GrowEmbed.v] still produces a closed global context for
+| |       [contender_grow_6], [BigGrow_lower_bound], and
+| |       [contender_5_lt_contender_grow_6]; cleanliness and audit scripts
+| |       report no regressions elsewhere.
+| |       
+| |       Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+| |   
+| |    sandbox/GrowEmbed.v | 565 +++++++++++++++-------------------------------
+| |    1 file changed, 182 insertions(+), 383 deletions(-)
+| | 
+* | commit 38494f29693b8f853e6e075475f336522da7474e
 | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | Date:   Thu Apr 30 22:14:15 2026 -0700
 | | 
@@ -123,14 +1560,14 @@
 | |  scripts/check_cleanliness.py |  16 ++-
 | |  5 files changed, 251 insertions(+), 121 deletions(-)
 | |   
-| *   commit ce1ba729e0d55327afd44cf6c504559566cc5a8c
-| |\  Merge: 8cbedfe 260097b
+* |   commit ce1ba729e0d55327afd44cf6c504559566cc5a8c
+|\ \  Merge: 8cbedfe 260097b
 | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | Date:   Thu Apr 30 21:36:14 2026 -0700
 | | | 
 | | |     Merge branch 'tooling' into ideas
 | | | 
-| | * commit 260097b2469918346363bb1c587e1a061c8de8b8 (origin/tooling, tooling)
+| * | commit 260097b2469918346363bb1c587e1a061c8de8b8 (tooling)
 | | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | | | Date:   Thu Apr 30 21:05:18 2026 -0700
 | | | 
@@ -196,9 +1633,9 @@
 | | |  scripts/status.py            | 272 +++++++++++++++++++++++++
 | | |  4 files changed, 780 insertions(+), 9 deletions(-)
 | | | 
-| | * commit 00b01c20cbb75a0661b00135e34814e32227647e
+| * | commit 00b01c20cbb75a0661b00135e34814e32227647e
 | |/  Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-|/|   Date:   Thu Apr 30 20:32:35 2026 -0700
+| |   Date:   Thu Apr 30 20:32:35 2026 -0700
 | |   
 | |       Add minimal Coq build / audit scripts (tooling branch)
 | |       
@@ -266,7 +1703,7 @@
 | |    scripts/build.py             | 269 ++++++++++++++++++++++++++++++
 | |    4 files changed, 705 insertions(+)
 | | 
-| * commit 8cbedfef00f0ff255fe51dae208733ccf537bde8
+* | commit 8cbedfef00f0ff255fe51dae208733ccf537bde8
 |/  Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 |   Date:   Thu Apr 30 21:34:49 2026 -0700
 |   
@@ -278,7 +1715,7 @@
 |    sandbox/GrowEmbed.v | 825 ++++++++++++++++++++++++++++++++++++++++++++++++
 |    4 files changed, 1196 insertions(+), 105 deletions(-)
 | 
-* commit 28aa95e856f56f4141c334a7ede34b68fc830591 (ideas)
+* commit 28aa95e856f56f4141c334a7ede34b68fc830591
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Thu Apr 30 19:39:54 2026 -0700
 | 
@@ -975,8 +2412,186 @@
 | 
 |  IDEAS.md | 103 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |  1 file changed, 103 insertions(+)
+|   
+| * commit 6d4a74c6dc9408e4bf805bf09a8c392500871005 (upstream/oracle-lang)
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Sun Sep 11 13:34:11 2022 -0400
+| | 
+| |     Fix up enum, finally!
+| | 
+| |  ha2_enum.v | 1679 +++++++++++++++++++-------------------------------------
+| |  1 file changed, 566 insertions(+), 1113 deletions(-)
+| | 
+| * commit 06f30c9f079408b78d0779d088fe3be2063b0c8c
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Tue Aug 23 17:19:49 2022 -0400
+| | 
+| |     Big dump of enumerations and proofs
+| | 
+| |  ha2_enum.v     | 1252 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  ha2_syn.sig    |   20 +
+| |  ha2_system_t.v |   84 ++++
+| |  3 files changed, 1356 insertions(+)
+| | 
+| * commit f8f4cdedb4600f5fe852721a28cb6588ea04f6db
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Mon May 30 23:21:22 2022 -0400
+| | 
+| |     Changed derives back to type, now we need a bunch of decidability hyps for some completeness proofs...
+| | 
+| |  ha2.v      |  29 ++++----
+| |  ha2_refl.v | 219 ++++++++++++++++++++++++++++++++++++---------------------
+| |  2 files changed, 154 insertions(+), 94 deletions(-)
+| | 
+| * commit bd7870ab4c14a2b4b7ec53b167265ea42f43735a
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Wed May 11 17:37:13 2022 -0400
+| | 
+| |     Tinker with system t normalization
+| | 
+| |  system_t.v | 36 ++++++++++++++++++++++++++++++++++++
+| |  1 file changed, 36 insertions(+)
+| | 
+| * commit a10a80a84e0a740bc9447acd1f07923998ac3e6a
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Tue May 3 19:29:54 2022 -0400
+| | 
+| |     Prove some equivalences between internal connectives and external ones.
+| | 
+| |  ha2_refl.v | 129 +++++++++++++++++++++++++++++++++++++++++++++++++++++----
+| |  1 file changed, 122 insertions(+), 7 deletions(-)
+| | 
+| * commit 5d34f148d4b451b596c443cc9b39e606b175e49e
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Tue May 3 19:28:51 2022 -0400
+| | 
+| |     Add a proof of normalization for system t, for reference.
+| | 
+| |  system_t.v | 328 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  1 file changed, 328 insertions(+)
+| | 
+| * commit 389fab04aba4a69e48c74c07c5c6f486408640af
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Thu Apr 28 22:33:19 2022 -0400
+| | 
+| |     Finish reflection for sigma 1
+| | 
+| |  ha2_refl.v | 103 ++++++++++++++++++++++++++++++++++++++++++++++++---------
+| |  1 file changed, 88 insertions(+), 15 deletions(-)
+| | 
+| * commit 69e4d9665f201b964ee583a99f89ef444c2bc2cf
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Thu Apr 28 14:39:31 2022 -0400
+| | 
+| |     Some more helper functions for substitutions, and some more reflection proofs...
+| | 
+| |  ha2.v      | 601 +++++++++++++++++++++++++++++++--------------------------
+| |  ha2_refl.v | 316 ++++++++++++++++++++++++++----
+| |  2 files changed, 615 insertions(+), 302 deletions(-)
+| | 
+| * commit 191a7094cbed7c3eebbcfe205e7451b254782bda
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Sun Apr 24 17:42:52 2022 -0400
+| | 
+| |     Finish first order pattern matching.
+| | 
+| |  ha2.v      | 485 ++++++++++++++++++++++++++++++++++++++++++++++++++++-----
+| |  ha2_refl.v |  18 +++
+| |  2 files changed, 464 insertions(+), 39 deletions(-)
+| | 
+| * commit 9149d1caa501eccacd8d7fcd16ab8d6b40cdc578
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Sun Apr 17 18:38:37 2022 -0400
+| | 
+| |     Finish Delta_0 completeness for equalities, start generalizing, define and and or, and prove a soundness lemma about existentials
+| | 
+| |  ha2.v      | 251 +++++++++++++++++++++++++++++++++++++++++-
+| |  ha2_refl.v | 337 ++++++++++++++++++++++++++++++++++++++++++++++++---------
+| |  2 files changed, 535 insertions(+), 53 deletions(-)
+| | 
+| * commit ad1f2f6bb0d1279b85142868cd398ec91e612a75
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Sat Apr 9 13:36:25 2022 -0400
+| | 
+| |     Add some stuff on reflection, start proving Delta_0 completeness
+| | 
+| |  System_F.v      | 729 +++-------------------------------------------------
+| |  System_F_syn.v  | 228 +++++++++++++++-
+| |  ha2.v           |  52 +++-
+| |  ha2_refl.v      | 149 +++++++++++
+| |  realizability.v |   2 +
+| |  5 files changed, 445 insertions(+), 715 deletions(-)
+| | 
+| * commit 168d1ded4b81a47094a3b6ac477b0dc7ee2ad0dd
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Mon Mar 14 21:26:47 2022 -0400
+| | 
+| |     Some facts about the relationship between HA2 and system F. Still has axioms :_(
+| | 
+| |  OracleLang.v    |   2 +-
+| |  ha2.v           |  34 ++++----
+| |  realizability.v | 237 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  3 files changed, 256 insertions(+), 17 deletions(-)
+| | 
+| * commit 7e5fea95218950035d0ca6743f2249bf684313c3
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Sun Feb 20 17:56:37 2022 -0500
+| | 
+| |     Rewrite ha2 using autosubst-2.
+| | 
+| |  ha2.v     | 870 +++++++++++++++++++++++-----------------------------------
+| |  ha2_syn.v | 661 ++++++++++++++++++++++++++++++++++++++++++++
+| |  2 files changed, 1007 insertions(+), 524 deletions(-)
+| | 
+| * commit 8d580c21085d94644c3406d60ecfa203c5dcf38e
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Sat Feb 19 00:41:55 2022 -0500
+| | 
+| |     Rewrite System f yet again, this time with autosubst 2... Now uses axioms...
+| | 
+| |  System_F.v     | 176 ++++++++++++++++++++++------------------
+| |  System_F_syn.v | 229 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  axioms.v       | 113 ++++++++++++++++++++++++++
+| |  unscoped.v     | 214 +++++++++++++++++++++++++++++++++++++++++++++++++
+| |  4 files changed, 654 insertions(+), 78 deletions(-)
+| | 
+| * commit 7be9bfc29e6f2f7cc352eb33a15a31587c8b3543
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Sat Feb 12 01:33:23 2022 -0500
+| | 
+| |     Refactor to use autosubst db vars.
+| | 
+| |  System_F.v | 553 ++++++++++++++++++++++-----------------------------------
+| |  1 file changed, 208 insertions(+), 345 deletions(-)
+| | 
+| * commit b8df39df9a2169c4c74266d45fefadf2850be1f5
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Sat Feb 5 22:53:30 2022 -0500
+| | 
+| |     Finish soundness proof
+| | 
+| |  ha2.v | 183 ++++++++++++++++++++++++++++++++++++++++++++++++--------------
+| |  1 file changed, 142 insertions(+), 41 deletions(-)
+| | 
+| * commit bb4a80310766cae0c0406101fe9ad8ff07c2e8f9
+| | Author: Cody Roux <cody.roux@gmail.com>
+| | Date:   Tue Feb 1 23:47:19 2022 -0500
+| | 
+| |     Start formalizing 2nd order arithmetic. Still some variable shennanigans to prove...
+| | 
+| |  ha2.v | 563 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+| |  1 file changed, 563 insertions(+)
+| | 
+| * commit 28afb68719c83c0f3c517d0284aa40dd0819a651
+|/  Author: Cody Roux <cody.roux@gmail.com>
+|   Date:   Mon Jan 17 13:49:03 2022 -0500
+|   
+|       Tentative try to define a language with an oracle eval
+|   
+|    OracleLang.v | 141 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|    1 file changed, 141 insertions(+)
 | 
-* commit d56dce013e6264292533efdc5e1de71863c6fb86 (origin/master)
+* commit d56dce013e6264292533efdc5e1de71863c6fb86 (upstream/master, upstream/HEAD, origin/master, origin/HEAD, master, claude/dazzling-heyrovsky-ecf14a)
 | Author: Cody Roux <cody.roux@gmail.com>
 | Date:   Sun Jan 9 16:25:52 2022 -0500
 | 
