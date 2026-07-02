@@ -1,4 +1,73 @@
-* commit 478e2c2abac245dcbfeaa320304463876dcee934 (HEAD -> submit-c6-prep)
+* commit 328db64c69f824db0c7307c46372508063e51f73 (HEAD -> submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Jul 2 15:20:35 2026 -0700
+| 
+|     Simplify contender_6 further: ordinal diet, proof-carrying environments
+|     
+|     Second simplification pass over the contender-6 section of Contender.v
+|     (551 -> 519 lines; contender_6's value is unchanged -- the epsilon_0
+|     tree it builds is pointwise the same):
+|     
+|     - Ordinal arithmetic diet: drop nat_to_B, omega, and general Bmul.
+|       A limit ordinal IS its fundamental sequence, so omega^(a+1) is
+|       written directly as Blim (BmulN (omega_pow a')) where
+|       BmulN a n = a*n is iterated addition -- three Fixpoints instead of
+|       five, and the resulting epsilon_0 is definitionally identical
+|       (Bmul x (nat_to_B n) and BmulN x n compute to the same tree).
+|     
+|     - One inflationarity lemma: FGH_ge subsumes the former
+|       Nat_iter_ge / FGH_ge / BigGrow_ge chain via an inline enough;
+|       BigGrow_gt_S is unchanged in statement.
+|     
+|     - Enumerator atoms first: tO :: tS :: tGrow :: ... lets auto discharge
+|       the three atom cases of termsUpTo_complete, deleting the
+|       termsUpTo_solve_in Ltac helper; each remaining constructor is one
+|       in_map/in_prod chain.
+|     
+|     - Proof-carrying environments: the logical relation no longer uses two
+|       environments related pointwise by Forall2.  A single list of
+|       Record REntry {rtp; rv1; rv2; rrel} bundles each entry's type tag,
+|       both values, and their RelVal proof; the two interpreter
+|       environments are map rfst e / map rsnd e.  Equal lengths hold by
+|       construction and entry-relatedness is a field projection, so
+|       RelEnv, Forall2_nth_error, and RelPack_error are deleted and
+|       lookup_related shrinks to length_map + nth_error_map rewrites plus
+|       a case split.  The tLam case of the fundamental lemma consumes the
+|       IH via a single assert ... by exact (conversion does the
+|       environment-projection reasoning for free).
+|     
+|     Verified: fresh coqc 1.9s, coqchk ~15s, Print Assumptions closed for
+|     BigGrow_lower_bound, contender_5_lt_contender_6, and
+|     contender_4_lt_contender_5; scripts/check_cleanliness.py reports
+|     Contender.contender_6 clean; scripts/build.py compiles all 16 modules;
+|     scripts/audit_assumptions.py: 24 OK, 3 known-FunExt sandboxes.
+|     
+|     docs/contender_6.tex updated to match (20 pages): three-Fixpoint
+|     ordinal section with the fundamental-sequence-first omega_pow, the
+|     reordered enumerator, a new subsubsection "Environments that carry
+|     their own proofs" replacing the Forall2 story, updated
+|     embed_interp_related statement and prose, timing note, and the
+|     appendix line range (830-1348).
+|     
+|     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+| 
+|  AGENTS.md            |  30 ++++---
+|  Contender.v          | 212 +++++++++++++++++++++----------------------------
+|  docs/contender_6.tex | 162 ++++++++++++++++++++++---------------
+|  3 files changed, 208 insertions(+), 196 deletions(-)
+| 
+* commit d0f6ccc8fd91fb368100cb1ccabffba3d43174bf (origin/submit-c6-prep)
+| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| Date:   Thu Jul 2 14:27:33 2026 -0700
+| 
+|     chore: refresh git.log
+|     
+|     Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+| 
+|  git.log | 57 +++++++++++++++++++++++++++++++++++++++++++++++++++++++--
+|  1 file changed, 55 insertions(+), 2 deletions(-)
+| 
+* commit 478e2c2abac245dcbfeaa320304463876dcee934
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Thu Jul 2 14:27:28 2026 -0700
 | 
@@ -40,7 +109,7 @@
 |  docs/contender_6.tex | 1750 ++++++++++++++++--------------------------------
 |  3 files changed, 793 insertions(+), 1373 deletions(-)
 | 
-* commit 30e6ba053737c33621e9a56b03da4547e0f76282 (origin/submit-c6-prep)
+* commit 30e6ba053737c33621e9a56b03da4547e0f76282
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Thu Jul 2 13:14:21 2026 -0700
 | 
