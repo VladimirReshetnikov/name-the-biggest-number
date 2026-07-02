@@ -1,475 +1,272 @@
-* commit a835138357630a91620e75ac08e61d448546ad75 (HEAD -> ideas, origin/ideas)
+* commit 05816d10ee1f34380051c9b9b975220f9d347fa2 (HEAD -> manual)
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 12:31:58 2026 -0700
+| Date:   Fri May 1 08:03:40 2026 -0700
 | 
-|     Polish GrowEmbed.v further: term_depth_embed, cast_impl, lookup, witness_grow
-|     
-|     Another small round of polish on top of the existing GrowEmbed.v:
-|     
-|       - [term_depth_embed]: collapse the 6-line case-split proof into
-|         [induction t; simpl; congruence] - all six constructor cases now
-|         discharge uniformly.
-|     
-|       - [cast_impl_related]: merge the two identical error branches
-|         ([tpNat]/[tpArr] and [tpArr]/[tpNat]) into a single [try (split;
-|         intros _ _ _; simpl; (reflexivity || (intros; apply error_related)))]
-|         fall-through after the [tpNat]/[tpNat] identity case, leaving only
-|         the genuinely-distinct [tpArr]/[tpArr] case to handle by hand.
-|     
-|       - [lookup_related]: collapse the [unfold ...; cbv zeta; rewrite Hlen]
-|         setup onto one line, and merge the [apply nth_error_None] +
-|         [assert] + [lia] tail of the [None] branch into [apply ... in E1;
-|         lia] using two underscores for the implicit length arguments.
-|     
-|       - [witness_grow_eval] [tpNat] case: compress
-|         [subst res. cbn [...]. rewrite E. cbn [...]. reflexivity.] into a
-|         single semicolon-chained line.
-|     
-|     File goes from 562 -> 552 lines (-10).  [coqc -Q . ""
-|     sandbox/GrowEmbed.v] still emits [Closed under the global context]
-|     for [contender_grow_6], [BigGrow_lower_bound], and
-|     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
-|     no regressions.
-|     
-|     Tried and reverted:
-|       - Replacing the [change] block in [embed_interp_related]'s [tLam]
-|         case with [cbn [Contender.interp_term interp_term embed_term]]:
-|         the local [interp_term] Fixpoint's tLam branch uses [cast B] whose
-|         type-inference picks up the local [interp_type] alias for the
-|         binder, while [Contender.interp_term] uses [Contender.interp_type]
-|         directly.  The asymmetry breaks the later [rewrite Eold, Enew]
-|         even when [interp_type] is rebound as a [Notation] for the
-|         qualified name.
-|     
-|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+|     Convert Coq 8.19 reference manual to Markdown
 | 
-|  sandbox/GrowEmbed.v | 54 +++++++++++++++++++++------------------------------
-|  1 file changed, 22 insertions(+), 32 deletions(-)
-| 
-* commit b68a072297c3540a108c62f171bcb35b2caa6337
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 12:19:56 2026 -0700
-| 
-|     GrowEmbed: shave wrappers, inline witness reductions
-| 
-|  git.log             | 60 ++++++++++++++++++++++++++++++++++++++++++++++++++-
-|  sandbox/GrowEmbed.v | 59 ++++++++++++++------------------------------------
-|  2 files changed, 75 insertions(+), 44 deletions(-)
-| 
-* commit a7263023d98fc986505a3603297580290935ff43
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 11:32:10 2026 -0700
-| 
-|     Polish GrowEmbed.v further: tighter proofs, chained rewrite, tNatRec
-|     
-|     Another round of polishing on top of the existing GrowEmbed.v:
-|     
-|       - Compress trivial proofs to single-line [Proof. ... Qed.] form:
-|         [interp_tApp_nat], [error_related], [RelPack_intro],
-|         [RelPack_error].
-|     
-|       - Collapse repeated [Opaque ...] / [Local Transparent ...] blocks
-|         into single multi-argument invocations.
-|     
-|       - Simplify [witness_grow_eval]'s [tpNat] case from a two-step
-|         [assert ES; assert EG; rewrite EG] chain into a single nested
-|         [rewrite (interp_tApp_nat _ _ _ _ _ _ (interp_tGrow _)
-|                                   (interp_tApp_nat _ _ _ _ _ _
-|                                                    (interp_tS _) E))].
-|         Also fold the [destruct ... ; destruct tp] into a single nested
-|         intro pattern [as [[|A B] res] eqn:E].
-|     
-|       - Tighten [witness_grow_depth] to a single [intros ... destruct ...]
-|         chain with no intermediate line breaks.
-|     
-|       - Simplify [exists_maximizer_42] by hoisting the [unfold
-|         Contender.contender_5, ...] and [pose proof contender_5_ge_1]
-|         out so both the [Some] and [None] branches share them.
-|     
-|       - Tighten [tNatRec] case in [embed_interp_related] using
-|         [induction n1 in base1, ..., Hstep |- *] to avoid the
-|         [revert; ...; intros] dance.
-|     
-|       - Tighten [Forall2_nth_error] using [intros *].
-|     
-|     File goes from 623 -> 589 lines (-34, -5.5%).  [coqc -Q . ""
-|     sandbox/GrowEmbed.v] still emits [Closed under the global context]
-|     for [contender_grow_6], [BigGrow_lower_bound], and
-|     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
-|     no regressions.
-|     
-|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
-| 
-|  sandbox/GrowEmbed.v | 90 ++++++++++++++++-----------------------------------
-|  1 file changed, 28 insertions(+), 62 deletions(-)
-| 
-* commit 5ea3c65f70aef32480cbd301d919970b7d1a43d0
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 11:19:27 2026 -0700
-| 
-|     Polish GrowEmbed with change-based simplification
-| 
-|  IDEAS.md            | 10 ++++++++
-|  git.log             | 57 ++++++++++++++++++++++++++++++++++++++++++++-
-|  sandbox/GrowEmbed.v | 64 +++++++++++++++++++--------------------------------
-|  3 files changed, 90 insertions(+), 41 deletions(-)
-| 
-* commit 9045ca001ef0fe8d6361e2a3fcef51d4dcae856a
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 09:58:07 2026 -0700
-| 
-|     Polish GrowEmbed.v further: factor backward Ltac, tighten reductions
-|     
-|     Incremental polish on top of the existing GrowEmbed.v:
-|     
-|       - Factor the [pose proof (proj2 (...UpTo_correct _ _)) ...] +
-|         [pose proof (proj2 (IHn _)) ...] + [simpl; lia] tail of every
-|         [termsUpTo_correct] backward case as a single Ltac
-|         [termsUpTo_depth_lia], symmetric to the existing
-|         [termsUpTo_solve_in] for the forward direction.  Each backward
-|         case shrinks to 1-2 lines.
-|     
-|       - Use [apply in_map_iff in H as (...)] (intro pattern) instead of
-|         the equivalent [apply in_map_iff in H. destruct H as [...]]
-|         two-step form.
-|     
-|       - Tighten [Forall2_nth_error] from a 7-line case-split into a
-|         single [induction ... intros [|n] ...; simpl; (discriminate ||
-|         eauto)] chain.
-|     
-|       - Compress trivial reduction lemmas
-|         ([Contender_interp_term_tVar_None], [interp_term_tVar_*]) to
-|         one-line [Proof. ... Qed.] form.
-|     
-|       - Drop a redundant [simpl] from [embed_eval]; the [destruct tp]
-|         already reduces both [match] expressions.
-|     
-|       - Tighten the tVar / tLam comments to match the simpler proof
-|         text.
-|     
-|     File goes from 647 -> 639 lines (-8).  [coqc -Q . ""
-|     sandbox/GrowEmbed.v] still emits [Closed under the global context]
-|     for [contender_grow_6], [BigGrow_lower_bound], and
-|     [contender_5_lt_contender_grow_6]; [audit_assumptions.py] confirms
-|     no regressions.
-|     
-|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
-| 
-|  sandbox/GrowEmbed.v | 98 +++++++++++++++++++++++----------------------------
-|  1 file changed, 45 insertions(+), 53 deletions(-)
-| 
-* commit 02adebd28f725d9b3bd1e16c43716fad3fc29dc7
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 09:42:30 2026 -0700
-| 
-|     Polish GrowEmbed lookup relation proof
-| 
-|  IDEAS.md            |   8 ++++
-|  git.log             |  13 ++++++-
-|  sandbox/GrowEmbed.v | 100 ++++++++++++++++++++------------------------------
-|  3 files changed, 59 insertions(+), 62 deletions(-)
-| 
-* commit a4ca22fffe2849f11d7cd0dac5f097fdeef00b6c
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 09:32:24 2026 -0700
-| 
-|     Polish GrowEmbed.v: less boilerplate, no warnings
-| 
-|  IDEAS.md            |   7 +
-|  git.log             | 435 ++++++++++++++++++++++++++++++++++----------------
-|  sandbox/GrowEmbed.v |  45 +++---
-|  3 files changed, 330 insertions(+), 157 deletions(-)
-| 
-* commit f13c69101280b0b8a012a23efa38f7620e48d1e5
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Fri May 1 08:05:46 2026 -0700
-| 
-|     Polish GrowEmbed.v: tighter proofs, no logic changes
-|     
-|     Five passes over sandbox/GrowEmbed.v compress the proof script while
-|     preserving the witness chain (axiom-free, term_depth = 44):
-|     
-|       - Pass 1: replace [refine]-based [interp_term] with a direct
-|         [Fixpoint]; reuse [Contender.maxBy] / [lowerbound_maxBy] instead of
-|         a local copy.
-|       - Pass 2: compress [cast_impl_related] to use a single fall-through
-|         branch for the error cases.
-|       - Pass 3-5: tighten tApp / tNatRec / tLam case scripts in the
-|         [embed_interp_related] induction.
-|       - Pass 6: rewrite [contender_5_ge_1] in 3 tactic steps using
-|         [Contender.lowerbound_maxBy] with the witness [tApp tS tO];
-|         inline [exists_maximizer_42] using [Contender.maxBy_In] dichotomy.
-|       - Pass 7: chain the two [interp_tApp_nat] calls in
-|         [witness_grow_eval] via [assert ... by]; the arrow case is closed
-|         by direct contradiction with [contender_5_ge_1].
-|       - Pass 8: drop "(WIP)" header marker; collapse trivial RelPack
-|         obligations to [repeat split]; tighten [lookup_related_some] /
-|         [lookup_related_none] using [cbv zeta]; factor the repeated
-|         [repeat first [...]] block of [termsUpTo_correct] as
-|         [Ltac termsUpTo_solve_in].
-|     
-|     File goes from 869 -> 668 lines (-201, -23%).  [coqc -Q . ""
-|     sandbox/GrowEmbed.v] still produces a closed global context for
-|     [contender_grow_6], [BigGrow_lower_bound], and
-|     [contender_5_lt_contender_grow_6]; cleanliness and audit scripts
-|     report no regressions elsewhere.
-|     
-|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
-| 
-|  sandbox/GrowEmbed.v | 565 ++++++++++++++++----------------------------------
-|  1 file changed, 182 insertions(+), 383 deletions(-)
-| 
-* commit 38494f29693b8f853e6e075475f336522da7474e
-| Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| Date:   Thu Apr 30 22:14:15 2026 -0700
-| 
-|     Approach M: complete the GrowEmbed sandbox (axiom-free, clean defn)
-|     
-|     Picks up where commit 8cbedfe left off (WIP: start Approach M GrowEmbed
-|     sandbox, blocked in [embed_interp_related] tVar case).
-|     
-|     ** What landed **
-|     
-|     * sandbox/GrowEmbed.v now compiles in ~1.5 s, [coqchk] accepts the
-|       module, and Print Assumptions reports closed global contexts for the
-|       two end-state theorems exposed at file top level:
-|     
-|         Definition contender_grow_6 : nat := BigGrowEmbed.contender_grow_6.
-|         Theorem  BigGrow_lower_bound :
-|           Brouwer.BigGrow (S Contender.contender_5) <= contender_grow_6.
-|         Theorem  contender_5_lt_contender_grow_6 :
-|           Contender.contender_5 < contender_grow_6.
-|     
-|     * contender_grow_6 = largest_Grow_nat_of_depth 44 -- definitionally
-|       clean.  scripts/check_cleanliness.py confirms both
-|       [sandbox.GrowEmbed.contender_grow_6] and the inner
-|       [sandbox.GrowEmbed.BigGrowEmbed.contender_grow_6] PASS the
-|       don't-be-lazy check (no banned-engine identifiers in the body).
-|     
-|     * The proof uses a Tait-style logical relation
-|       [RelVal : type -> interp_type tp -> interp_type tp -> Prop] that
-|       collapses to plain equality at [tpNat], so [embed_eval] goes through
-|       with no functional-extensionality dependency.
-|     
-|     ** Engineering issues fixed **
-|     
-|     The previous agent got stuck (per the WIP commit message and reviews/
-|     analysis) on five specific issues; each is now resolved and documented
-|     inline in IDEAS.md "Approach M -- Status (2026-05-01): COMPLETE".
-|     
-|     1. [destruct EXPR eqn:E1] does not substitute the scrutinee inside a
-|        surrounding [match] in this Coq version.  Subsequent [rewrite E1]
-|        then fails.  Worked around by proving self-contained reduction
-|        lemmas (Contender_interp_term_tVar_Some, etc.) outside the main
-|        induction and rewriting via those.
-|     
-|     2. Contender.eval / Contender.largest_STLCNatRec_nat_of_depth are
-|        kept Opaque at file scope (so the kernel never tries to enumerate
-|        the depth-42 search).  embed_eval and contender_5_ge_1 need to
-|        peek inside; wrapped them in [Local Transparent ... Local Opaque]
-|        bracket.
-|     
-|     3. Coq's [existT (fun tp => ...)] vs. [existT name] eta forms don't
-|        auto-convert under [rewrite].  Sidestepped by [replace]-ing at the
-|        pack level rather than the existT level.
-|     
-|     4. [have ... { ... }] is an SSReflect tactic, not standard Coq.
-|        Replaced with [assert ... by ...].
-|     
-|     5. [Theorem name : type := body.] is a syntax error in this Coq.
-|        The end-of-file alias theorems are now [Definition]s.
-|     
-|     ** Other changes **
-|     
-|     * scripts/check_cleanliness.py: drop the generic [largest_of_depth]
-|       from BANNED -- fresh-engine sandboxes (like L_Grow) define their
-|       own [largest_of_depth] and a substring match would falsely flag
-|       them.  The more specific [largest_STLCNatRec_nat_of_depth] is
-|       retained.  Also added the new GrowEmbed contenders to the default
-|       CANDIDATES list.
-|     
-|     * scripts/audit_assumptions.py: added [contender_grow_6] and
-|       [BigGrow_lower_bound] to EXTRAS so they appear in the default
-|       audit table.
-|     
-|     * AGENTS.md / IDEAS.md: removed all WIP markers around Approach M,
-|       added the COMPLETE status block recording the five engineering
-|       issues for future relay agents.
-|     
-|     ** Status of the audit table **
-|     
-|     23 theorems closed under the global context (now including
-|     [sandbox.GrowEmbed.contender_5_lt_contender_grow_6]); 3 still depend
-|     on functional_extensionality_dep (the ReflectTower / ReflectRTower
-|     variants kept as historical reference).
-|     
-|     ** Cleanliness summary **
-|     
-|     5 candidates clean, 8 LAZY.  The 5 clean ones:
-|     - sandbox.Brouwer.BigGrow
-|     - sandbox.BrouwerHigh.BigGrow_e_omega
-|     - sandbox.BrouwerHigh.BigGrow_pseudo_Gamma_0
-|     - sandbox.GrowEmbed.contender_grow_6  <-- new
-|     - sandbox.GrowEmbed.BigGrowEmbed.contender_grow_6  <-- new
-|     
-|     This is the first sandbox candidate that combines (a) a fresh-engine
-|     clean definition and (b) a strict-inequality proof against
-|     contender_5, without using contender_5's machinery in the definition
-|     or any axioms beyond Coq's logic.
-|     
-|     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
-| 
-|  AGENTS.md                    |  49 +++++++--
-|  IDEAS.md                     |  79 ++++++++++----
-|  sandbox/GrowEmbed.v          | 226 ++++++++++++++++++++++++-----------------
-|  scripts/audit_assumptions.py |   2 +
-|  scripts/check_cleanliness.py |  16 ++-
-|  5 files changed, 251 insertions(+), 121 deletions(-)
+|  docs/coq-8.19.0-reference-manual.md | 41833 ++++++++++++++++++++++++++++++++
+|  git.log                             |   596 +-
+|  scripts/convert_coq_refman_to_md.py |   409 +
+|  3 files changed, 42522 insertions(+), 316 deletions(-)
 |   
-*   commit ce1ba729e0d55327afd44cf6c504559566cc5a8c
-|\  Merge: 8cbedfe 260097b
+*   commit 45e4b20c621aabdcd6321b50820e1a9eb7ba2e8b
+|\  Merge: 28aa95e 38494f2
 | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| | Date:   Thu Apr 30 21:36:14 2026 -0700
+| | Date:   Fri May 1 07:42:53 2026 -0700
 | | 
-| |     Merge branch 'tooling' into ideas
+| |     Merge remote-tracking branch 'origin/ideas' into manual
 | | 
-| * commit 260097b2469918346363bb1c587e1a061c8de8b8 (tooling)
+| * commit 38494f29693b8f853e6e075475f336522da7474e (origin/ideas, origin/HEAD)
 | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| | Date:   Thu Apr 30 21:05:18 2026 -0700
+| | Date:   Thu Apr 30 22:14:15 2026 -0700
 | | 
-| |     Add cleanliness check + status dashboard (tooling)
+| |     Approach M: complete the GrowEmbed sandbox (axiom-free, clean defn)
 | |     
-| |     Two more high-leverage scripts on top of build.py + audit_assumptions.py:
+| |     Picks up where commit 8cbedfe left off (WIP: start Approach M GrowEmbed
+| |     sandbox, blocked in [embed_interp_related] tVar case).
 | |     
-| |     * `scripts/check_cleanliness.py` (~310 lines).  Operationalises the
-| |       upstream README "don't be lazy" rule.  For each contender candidate
-| |       (configurable list, or supplied as CLI arguments), asks Coq for
-| |       `Print T` with `Set Printing All`, recursively up to a configurable
-| |       depth, and scans every reachable body for a banned identifier
-| |       (`largest_STLCNatRec_nat_of_depth`, `R_tower`, `tPrevMax`, `RT1`,
-| |       ...).  Reports each candidate as `clean`, `LAZY`, or `ERROR`.
-| |       Heuristic, not a sound transitive analysis -- the depth-2 default
-| |       catches every aliasing chain currently in the sandbox; bump
-| |       `--depth` if a deeper chain shows up.
+| |     ** What landed **
 | |     
-| |       Verified against the current state: `Contender.contender_5` and
-| |       every oracle-based sandbox candidate flag LAZY (correctly), the
-| |       pure Brouwer-FGH engines (`BigGrow`, `BigGrow_e_omega`,
-| |       `BigGrow_pseudo_Gamma_0`) flag clean.  Exit code 1 when any
-| |       candidate is lazy, 0 otherwise.
+| |     * sandbox/GrowEmbed.v now compiles in ~1.5 s, [coqchk] accepts the
+| |       module, and Print Assumptions reports closed global contexts for the
+| |       two end-state theorems exposed at file top level:
 | |     
-| |     * `scripts/status.py` (~200 lines).  Thin orchestrator that runs the
-| |       three other scripts and stitches their outputs into a single
-| |       Markdown dashboard at the repo root (default STATUS.md).  Sections:
-| |       build times, Print Assumptions, definition cleanliness, file
-| |       metrics (lines, logical name), summary line.  Useful as a relay
-| |       snapshot.  STATUS.md added to .gitignore -- it's a derivable
-| |       cache, not a tracked artefact.
+| |         Definition contender_grow_6 : nat := BigGrowEmbed.contender_grow_6.
+| |         Theorem  BigGrow_lower_bound :
+| |           Brouwer.BigGrow (S Contender.contender_5) <= contender_grow_6.
+| |         Theorem  contender_5_lt_contender_grow_6 :
+| |           Contender.contender_5 < contender_grow_6.
 | |     
-| |     Other changes:
+| |     * contender_grow_6 = largest_Grow_nat_of_depth 44 -- definitionally
+| |       clean.  scripts/check_cleanliness.py confirms both
+| |       [sandbox.GrowEmbed.contender_grow_6] and the inner
+| |       [sandbox.GrowEmbed.BigGrowEmbed.contender_grow_6] PASS the
+| |       don't-be-lazy check (no banned-engine identifiers in the body).
 | |     
-| |     * `.gitignore`: add `/STATUS.md` (anchored to repo root).
+| |     * The proof uses a Tait-style logical relation
+| |       [RelVal : type -> interp_type tp -> interp_type tp -> Prop] that
+| |       collapses to plain equality at [tpNat], so [embed_eval] goes through
+| |       with no functional-extensionality dependency.
 | |     
-| |     * `scripts/README.md`: describe the new scripts, their flags, exit
-| |       codes, extension points, and caveats.  Adjusts the "Why these and
-| |       not more" section to acknowledge the four scripts now cover the
-| |       high-leverage workflow needs identified in the brainstorming
-| |       discussion.
+| |     ** Engineering issues fixed **
 | |     
-| |     Engineering details worth recording:
+| |     The previous agent got stuck (per the WIP commit message and reviews/
+| |     analysis) on five specific issues; each is now resolved and documented
+| |     inline in IDEAS.md "Approach M -- Status (2026-05-01): COMPLETE".
 | |     
-| |     * Cleanliness check generates one temp `Print T.` script per audited
-| |       identifier rather than batching, so a per-Print Coq error (e.g.
-| |       identifier not in scope) doesn't poison the whole run.  Fall-back:
-| |       silently skip an identifier whose Print fails.
+| |     1. [destruct EXPR eqn:E1] does not substitute the scrutinee inside a
+| |        surrounding [match] in this Coq version.  Subsequent [rewrite E1]
+| |        then fails.  Worked around by proving self-contained reduction
+| |        lemmas (Contender_interp_term_tVar_Some, etc.) outside the main
+| |        induction and rewriting via those.
 | |     
-| |     * The recursion uses Coq's qualified spelling from `Set Printing All`
-| |       output, so mid-chain aliases are resolved correctly when fed back
-| |       to the next `Print` call.  Without `Set Printing All`, Coq prints
-| |       short names that fail to resolve outside the printing module.
+| |     2. Contender.eval / Contender.largest_STLCNatRec_nat_of_depth are
+| |        kept Opaque at file scope (so the kernel never tries to enumerate
+| |        the depth-42 search).  embed_eval and contender_5_ge_1 need to
+| |        peek inside; wrapped them in [Local Transparent ... Local Opaque]
+| |        bracket.
 | |     
-| |     * `status.py` reads `audit_assumptions.py --json` rather than
-| |       re-parsing the human-readable Markdown, to keep the join precise.
-| |       `check_cleanliness.py`'s output is parsed from Markdown (no JSON
-| |       exporter yet); a future change could add `--json` there too.
+| |     3. Coq's [existT (fun tp => ...)] vs. [existT name] eta forms don't
+| |        auto-convert under [rewrite].  Sidestepped by [replace]-ing at the
+| |        pack level rather than the existT level.
+| |     
+| |     4. [have ... { ... }] is an SSReflect tactic, not standard Coq.
+| |        Replaced with [assert ... by ...].
+| |     
+| |     5. [Theorem name : type := body.] is a syntax error in this Coq.
+| |        The end-of-file alias theorems are now [Definition]s.
+| |     
+| |     ** Other changes **
+| |     
+| |     * scripts/check_cleanliness.py: drop the generic [largest_of_depth]
+| |       from BANNED -- fresh-engine sandboxes (like L_Grow) define their
+| |       own [largest_of_depth] and a substring match would falsely flag
+| |       them.  The more specific [largest_STLCNatRec_nat_of_depth] is
+| |       retained.  Also added the new GrowEmbed contenders to the default
+| |       CANDIDATES list.
+| |     
+| |     * scripts/audit_assumptions.py: added [contender_grow_6] and
+| |       [BigGrow_lower_bound] to EXTRAS so they appear in the default
+| |       audit table.
+| |     
+| |     * AGENTS.md / IDEAS.md: removed all WIP markers around Approach M,
+| |       added the COMPLETE status block recording the five engineering
+| |       issues for future relay agents.
+| |     
+| |     ** Status of the audit table **
+| |     
+| |     23 theorems closed under the global context (now including
+| |     [sandbox.GrowEmbed.contender_5_lt_contender_grow_6]); 3 still depend
+| |     on functional_extensionality_dep (the ReflectTower / ReflectRTower
+| |     variants kept as historical reference).
+| |     
+| |     ** Cleanliness summary **
+| |     
+| |     5 candidates clean, 8 LAZY.  The 5 clean ones:
+| |     - sandbox.Brouwer.BigGrow
+| |     - sandbox.BrouwerHigh.BigGrow_e_omega
+| |     - sandbox.BrouwerHigh.BigGrow_pseudo_Gamma_0
+| |     - sandbox.GrowEmbed.contender_grow_6  <-- new
+| |     - sandbox.GrowEmbed.BigGrowEmbed.contender_grow_6  <-- new
+| |     
+| |     This is the first sandbox candidate that combines (a) a fresh-engine
+| |     clean definition and (b) a strict-inequality proof against
+| |     contender_5, without using contender_5's machinery in the definition
+| |     or any axioms beyond Coq's logic.
+| |     
+| |     Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 | | 
-| |  .gitignore                   |   4 +
-| |  scripts/README.md            | 117 +++++++++++-
-| |  scripts/check_cleanliness.py | 396 +++++++++++++++++++++++++++++++++++++++
-| |  scripts/status.py            | 272 +++++++++++++++++++++++++++
-| |  4 files changed, 780 insertions(+), 9 deletions(-)
+| |  AGENTS.md                    |  49 +++++++--
+| |  IDEAS.md                     |  79 ++++++++++----
+| |  sandbox/GrowEmbed.v          | 226 +++++++++++++++++++++++----------------
+| |  scripts/audit_assumptions.py |   2 +
+| |  scripts/check_cleanliness.py |  16 ++-
+| |  5 files changed, 251 insertions(+), 121 deletions(-)
+| |   
+| *   commit ce1ba729e0d55327afd44cf6c504559566cc5a8c
+| |\  Merge: 8cbedfe 260097b
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Thu Apr 30 21:36:14 2026 -0700
+| | | 
+| | |     Merge branch 'tooling' into ideas
+| | | 
+| | * commit 260097b2469918346363bb1c587e1a061c8de8b8 (origin/tooling, tooling)
+| | | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+| | | Date:   Thu Apr 30 21:05:18 2026 -0700
+| | | 
+| | |     Add cleanliness check + status dashboard (tooling)
+| | |     
+| | |     Two more high-leverage scripts on top of build.py + audit_assumptions.py:
+| | |     
+| | |     * `scripts/check_cleanliness.py` (~310 lines).  Operationalises the
+| | |       upstream README "don't be lazy" rule.  For each contender candidate
+| | |       (configurable list, or supplied as CLI arguments), asks Coq for
+| | |       `Print T` with `Set Printing All`, recursively up to a configurable
+| | |       depth, and scans every reachable body for a banned identifier
+| | |       (`largest_STLCNatRec_nat_of_depth`, `R_tower`, `tPrevMax`, `RT1`,
+| | |       ...).  Reports each candidate as `clean`, `LAZY`, or `ERROR`.
+| | |       Heuristic, not a sound transitive analysis -- the depth-2 default
+| | |       catches every aliasing chain currently in the sandbox; bump
+| | |       `--depth` if a deeper chain shows up.
+| | |     
+| | |       Verified against the current state: `Contender.contender_5` and
+| | |       every oracle-based sandbox candidate flag LAZY (correctly), the
+| | |       pure Brouwer-FGH engines (`BigGrow`, `BigGrow_e_omega`,
+| | |       `BigGrow_pseudo_Gamma_0`) flag clean.  Exit code 1 when any
+| | |       candidate is lazy, 0 otherwise.
+| | |     
+| | |     * `scripts/status.py` (~200 lines).  Thin orchestrator that runs the
+| | |       three other scripts and stitches their outputs into a single
+| | |       Markdown dashboard at the repo root (default STATUS.md).  Sections:
+| | |       build times, Print Assumptions, definition cleanliness, file
+| | |       metrics (lines, logical name), summary line.  Useful as a relay
+| | |       snapshot.  STATUS.md added to .gitignore -- it's a derivable
+| | |       cache, not a tracked artefact.
+| | |     
+| | |     Other changes:
+| | |     
+| | |     * `.gitignore`: add `/STATUS.md` (anchored to repo root).
+| | |     
+| | |     * `scripts/README.md`: describe the new scripts, their flags, exit
+| | |       codes, extension points, and caveats.  Adjusts the "Why these and
+| | |       not more" section to acknowledge the four scripts now cover the
+| | |       high-leverage workflow needs identified in the brainstorming
+| | |       discussion.
+| | |     
+| | |     Engineering details worth recording:
+| | |     
+| | |     * Cleanliness check generates one temp `Print T.` script per audited
+| | |       identifier rather than batching, so a per-Print Coq error (e.g.
+| | |       identifier not in scope) doesn't poison the whole run.  Fall-back:
+| | |       silently skip an identifier whose Print fails.
+| | |     
+| | |     * The recursion uses Coq's qualified spelling from `Set Printing All`
+| | |       output, so mid-chain aliases are resolved correctly when fed back
+| | |       to the next `Print` call.  Without `Set Printing All`, Coq prints
+| | |       short names that fail to resolve outside the printing module.
+| | |     
+| | |     * `status.py` reads `audit_assumptions.py --json` rather than
+| | |       re-parsing the human-readable Markdown, to keep the join precise.
+| | |       `check_cleanliness.py`'s output is parsed from Markdown (no JSON
+| | |       exporter yet); a future change could add `--json` there too.
+| | | 
+| | |  .gitignore                   |   4 +
+| | |  scripts/README.md            | 117 ++++++++++-
+| | |  scripts/check_cleanliness.py | 396 +++++++++++++++++++++++++++++++++++++
+| | |  scripts/status.py            | 272 +++++++++++++++++++++++++
+| | |  4 files changed, 780 insertions(+), 9 deletions(-)
+| | | 
+| | * commit 00b01c20cbb75a0661b00135e34814e32227647e
+| |/  Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
+|/|   Date:   Thu Apr 30 20:32:35 2026 -0700
+| |   
+| |       Add minimal Coq build / audit scripts (tooling branch)
+| |       
+| |       A small set of Python helpers for working with the Coq sandbox, as
+| |       discussed in the preceding brainstorming exchange.  Scope is
+| |       deliberately narrow: orchestrate coqc / coqchk, parse their output,
+| |       and report.  No replacement of CoqIDE / coq-lsp.  No clever proof
+| |       exploration.  No CI dashboards.
+| |       
+| |       Files added:
+| |       
+| |       * `_CoqProject`: standard Coq project marker, just `-Q . ""`.
+| |         Lets coq-lsp and coqdep work without per-invocation flags.
+| |       
+| |       * `scripts/build.py` (~190 lines).  Discovers .v files at the repo
+| |         root and in sandbox/, parses Require lines to derive a dependency
+| |         graph, topologically sorts, rebuilds anything whose .vo is older
+| |         than its .v or any dependency's .vo, and reports per-file compile
+| |         times.  Flags: --clean, --force, --check (coqchk after each
+| |         build), --all (include archival files), --timeout, plus a single
+| |         positional argument to build one file and its prerequisites.
+| |         Skips Graveyard.v / Shenannigans.v / System_F.v by default
+| |         because they are archival, paradox-using, or don't compile on
+| |         Rocq 9.0.1.
+| |       
+| |       * `scripts/audit_assumptions.py` (~230 lines).  Auto-discovers
+| |         theorems whose names match `contender_*_lt_*` across the active
+| |         sandbox, plus a small fixed EXTRAS list (Contender.contender_5,
+| |         Brouwer.BigGrow, BrouwerHigh.pseudo_Gamma_0, etc.), generates a
+| |         temporary .v file at the repo root running `Print Assumptions T`
+| |         on each, parses coqc output, and writes a Markdown table reporting
+| |         status (OK / AXIOMS / UNKNOWN) and any axiom dependencies.
+| |         --md / --json options for persisting the report.  Exit code is 1
+| |         when any theorem still depends on axioms.
+| |       
+| |       * `scripts/README.md`: usage notes, including the explicit non-goals
+| |         (no replacement of in-editor proof tooling; no cleanliness lint;
+| |         no CI; no cross-version testing) and where to extend each script.
+| |       
+| |       Tested end-to-end on the current ideas-branch state.  build.py
+| |       rebuilds the 15 active .v files in ~13 s on this machine and
+| |       correctly skips up-to-date files in 0 s.  audit_assumptions.py
+| |       discovers 17 strict-inequality theorems plus 6 extras, correctly
+| |       flags the three FunExt-tainted reflection-tower theorems, and
+| |       reports the rest as closed under the global context.
+| |       
+| |       Engineering details:
+| |       
+| |       * Module discovery in audit_assumptions.py strips Coq comments via
+| |         a small balanced-paren walker before applying its regex; nested
+| |         (* (* *) *) comments are handled.  Section / Module Type / Module
+| |         Import are deliberately not tracked as module openers (they
+| |         don't add to qualified names in our codebase).
+| |       
+| |       * All output is ASCII-only -- Windows cp1252 consoles can't print
+| |         ✅ / ⚠️ / ❓ so the reports use **OK** / **AXIOMS** / **UNKNOWN**
+| |         bold-text instead.
+| |       
+| |       * Both scripts anchor on their own location via Path(__file__).resolve(),
+| |         so they can be invoked from any working directory.
+| |   
+| |    _CoqProject                  |   1 +
+| |    scripts/README.md            | 104 ++++++++++++
+| |    scripts/audit_assumptions.py | 331 +++++++++++++++++++++++++++++++++++++
+| |    scripts/build.py             | 269 ++++++++++++++++++++++++++++++
+| |    4 files changed, 705 insertions(+)
 | | 
-| * commit 00b01c20cbb75a0661b00135e34814e32227647e
-| | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
-| | Date:   Thu Apr 30 20:32:35 2026 -0700
-| | 
-| |     Add minimal Coq build / audit scripts (tooling branch)
-| |     
-| |     A small set of Python helpers for working with the Coq sandbox, as
-| |     discussed in the preceding brainstorming exchange.  Scope is
-| |     deliberately narrow: orchestrate coqc / coqchk, parse their output,
-| |     and report.  No replacement of CoqIDE / coq-lsp.  No clever proof
-| |     exploration.  No CI dashboards.
-| |     
-| |     Files added:
-| |     
-| |     * `_CoqProject`: standard Coq project marker, just `-Q . ""`.
-| |       Lets coq-lsp and coqdep work without per-invocation flags.
-| |     
-| |     * `scripts/build.py` (~190 lines).  Discovers .v files at the repo
-| |       root and in sandbox/, parses Require lines to derive a dependency
-| |       graph, topologically sorts, rebuilds anything whose .vo is older
-| |       than its .v or any dependency's .vo, and reports per-file compile
-| |       times.  Flags: --clean, --force, --check (coqchk after each
-| |       build), --all (include archival files), --timeout, plus a single
-| |       positional argument to build one file and its prerequisites.
-| |       Skips Graveyard.v / Shenannigans.v / System_F.v by default
-| |       because they are archival, paradox-using, or don't compile on
-| |       Rocq 9.0.1.
-| |     
-| |     * `scripts/audit_assumptions.py` (~230 lines).  Auto-discovers
-| |       theorems whose names match `contender_*_lt_*` across the active
-| |       sandbox, plus a small fixed EXTRAS list (Contender.contender_5,
-| |       Brouwer.BigGrow, BrouwerHigh.pseudo_Gamma_0, etc.), generates a
-| |       temporary .v file at the repo root running `Print Assumptions T`
-| |       on each, parses coqc output, and writes a Markdown table reporting
-| |       status (OK / AXIOMS / UNKNOWN) and any axiom dependencies.
-| |       --md / --json options for persisting the report.  Exit code is 1
-| |       when any theorem still depends on axioms.
-| |     
-| |     * `scripts/README.md`: usage notes, including the explicit non-goals
-| |       (no replacement of in-editor proof tooling; no cleanliness lint;
-| |       no CI; no cross-version testing) and where to extend each script.
-| |     
-| |     Tested end-to-end on the current ideas-branch state.  build.py
-| |     rebuilds the 15 active .v files in ~13 s on this machine and
-| |     correctly skips up-to-date files in 0 s.  audit_assumptions.py
-| |     discovers 17 strict-inequality theorems plus 6 extras, correctly
-| |     flags the three FunExt-tainted reflection-tower theorems, and
-| |     reports the rest as closed under the global context.
-| |     
-| |     Engineering details:
-| |     
-| |     * Module discovery in audit_assumptions.py strips Coq comments via
-| |       a small balanced-paren walker before applying its regex; nested
-| |       (* (* *) *) comments are handled.  Section / Module Type / Module
-| |       Import are deliberately not tracked as module openers (they
-| |       don't add to qualified names in our codebase).
-| |     
-| |     * All output is ASCII-only -- Windows cp1252 consoles can't print
-| |       ✅ / ⚠️ / ❓ so the reports use **OK** / **AXIOMS** / **UNKNOWN**
-| |       bold-text instead.
-| |     
-| |     * Both scripts anchor on their own location via Path(__file__).resolve(),
-| |       so they can be invoked from any working directory.
-| | 
-| |  _CoqProject                  |   1 +
-| |  scripts/README.md            | 104 ++++++++++++
-| |  scripts/audit_assumptions.py | 331 +++++++++++++++++++++++++++++++++++++++
-| |  scripts/build.py             | 269 +++++++++++++++++++++++++++++++
-| |  4 files changed, 705 insertions(+)
-| | 
-* | commit 8cbedfef00f0ff255fe51dae208733ccf537bde8
+| * commit 8cbedfef00f0ff255fe51dae208733ccf537bde8
 |/  Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 |   Date:   Thu Apr 30 21:34:49 2026 -0700
 |   
@@ -481,7 +278,7 @@
 |    sandbox/GrowEmbed.v | 825 ++++++++++++++++++++++++++++++++++++++++++++++++
 |    4 files changed, 1196 insertions(+), 105 deletions(-)
 | 
-* commit 28aa95e856f56f4141c334a7ede34b68fc830591
+* commit 28aa95e856f56f4141c334a7ede34b68fc830591 (ideas)
 | Author: Vladimir Reshetnikov <v.reshetnikov@gmail.com>
 | Date:   Thu Apr 30 19:39:54 2026 -0700
 | 
@@ -1178,186 +975,8 @@
 | 
 |  IDEAS.md | 103 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 |  1 file changed, 103 insertions(+)
-|   
-| * commit 6d4a74c6dc9408e4bf805bf09a8c392500871005 (upstream/oracle-lang)
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Sun Sep 11 13:34:11 2022 -0400
-| | 
-| |     Fix up enum, finally!
-| | 
-| |  ha2_enum.v | 1679 +++++++++++++++++++-------------------------------------
-| |  1 file changed, 566 insertions(+), 1113 deletions(-)
-| | 
-| * commit 06f30c9f079408b78d0779d088fe3be2063b0c8c
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Tue Aug 23 17:19:49 2022 -0400
-| | 
-| |     Big dump of enumerations and proofs
-| | 
-| |  ha2_enum.v     | 1252 ++++++++++++++++++++++++++++++++++++++++++++++++++++
-| |  ha2_syn.sig    |   20 +
-| |  ha2_system_t.v |   84 ++++
-| |  3 files changed, 1356 insertions(+)
-| | 
-| * commit f8f4cdedb4600f5fe852721a28cb6588ea04f6db
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Mon May 30 23:21:22 2022 -0400
-| | 
-| |     Changed derives back to type, now we need a bunch of decidability hyps for some completeness proofs...
-| | 
-| |  ha2.v      |  29 ++++----
-| |  ha2_refl.v | 219 ++++++++++++++++++++++++++++++++++++---------------------
-| |  2 files changed, 154 insertions(+), 94 deletions(-)
-| | 
-| * commit bd7870ab4c14a2b4b7ec53b167265ea42f43735a
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Wed May 11 17:37:13 2022 -0400
-| | 
-| |     Tinker with system t normalization
-| | 
-| |  system_t.v | 36 ++++++++++++++++++++++++++++++++++++
-| |  1 file changed, 36 insertions(+)
-| | 
-| * commit a10a80a84e0a740bc9447acd1f07923998ac3e6a
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Tue May 3 19:29:54 2022 -0400
-| | 
-| |     Prove some equivalences between internal connectives and external ones.
-| | 
-| |  ha2_refl.v | 129 +++++++++++++++++++++++++++++++++++++++++++++++++++++----
-| |  1 file changed, 122 insertions(+), 7 deletions(-)
-| | 
-| * commit 5d34f148d4b451b596c443cc9b39e606b175e49e
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Tue May 3 19:28:51 2022 -0400
-| | 
-| |     Add a proof of normalization for system t, for reference.
-| | 
-| |  system_t.v | 328 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| |  1 file changed, 328 insertions(+)
-| | 
-| * commit 389fab04aba4a69e48c74c07c5c6f486408640af
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Thu Apr 28 22:33:19 2022 -0400
-| | 
-| |     Finish reflection for sigma 1
-| | 
-| |  ha2_refl.v | 103 ++++++++++++++++++++++++++++++++++++++++++++++++---------
-| |  1 file changed, 88 insertions(+), 15 deletions(-)
-| | 
-| * commit 69e4d9665f201b964ee583a99f89ef444c2bc2cf
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Thu Apr 28 14:39:31 2022 -0400
-| | 
-| |     Some more helper functions for substitutions, and some more reflection proofs...
-| | 
-| |  ha2.v      | 601 +++++++++++++++++++++++++++++++--------------------------
-| |  ha2_refl.v | 316 ++++++++++++++++++++++++++----
-| |  2 files changed, 615 insertions(+), 302 deletions(-)
-| | 
-| * commit 191a7094cbed7c3eebbcfe205e7451b254782bda
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Sun Apr 24 17:42:52 2022 -0400
-| | 
-| |     Finish first order pattern matching.
-| | 
-| |  ha2.v      | 485 ++++++++++++++++++++++++++++++++++++++++++++++++++++-----
-| |  ha2_refl.v |  18 +++
-| |  2 files changed, 464 insertions(+), 39 deletions(-)
-| | 
-| * commit 9149d1caa501eccacd8d7fcd16ab8d6b40cdc578
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Sun Apr 17 18:38:37 2022 -0400
-| | 
-| |     Finish Delta_0 completeness for equalities, start generalizing, define and and or, and prove a soundness lemma about existentials
-| | 
-| |  ha2.v      | 251 +++++++++++++++++++++++++++++++++++++++++-
-| |  ha2_refl.v | 337 ++++++++++++++++++++++++++++++++++++++++++++++++---------
-| |  2 files changed, 535 insertions(+), 53 deletions(-)
-| | 
-| * commit ad1f2f6bb0d1279b85142868cd398ec91e612a75
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Sat Apr 9 13:36:25 2022 -0400
-| | 
-| |     Add some stuff on reflection, start proving Delta_0 completeness
-| | 
-| |  System_F.v      | 729 +++-------------------------------------------------
-| |  System_F_syn.v  | 228 +++++++++++++++-
-| |  ha2.v           |  52 +++-
-| |  ha2_refl.v      | 149 +++++++++++
-| |  realizability.v |   2 +
-| |  5 files changed, 445 insertions(+), 715 deletions(-)
-| | 
-| * commit 168d1ded4b81a47094a3b6ac477b0dc7ee2ad0dd
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Mon Mar 14 21:26:47 2022 -0400
-| | 
-| |     Some facts about the relationship between HA2 and system F. Still has axioms :_(
-| | 
-| |  OracleLang.v    |   2 +-
-| |  ha2.v           |  34 ++++----
-| |  realizability.v | 237 ++++++++++++++++++++++++++++++++++++++++++++++++++++
-| |  3 files changed, 256 insertions(+), 17 deletions(-)
-| | 
-| * commit 7e5fea95218950035d0ca6743f2249bf684313c3
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Sun Feb 20 17:56:37 2022 -0500
-| | 
-| |     Rewrite ha2 using autosubst-2.
-| | 
-| |  ha2.v     | 870 +++++++++++++++++++++++-----------------------------------
-| |  ha2_syn.v | 661 ++++++++++++++++++++++++++++++++++++++++++++
-| |  2 files changed, 1007 insertions(+), 524 deletions(-)
-| | 
-| * commit 8d580c21085d94644c3406d60ecfa203c5dcf38e
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Sat Feb 19 00:41:55 2022 -0500
-| | 
-| |     Rewrite System f yet again, this time with autosubst 2... Now uses axioms...
-| | 
-| |  System_F.v     | 176 ++++++++++++++++++++++------------------
-| |  System_F_syn.v | 229 +++++++++++++++++++++++++++++++++++++++++++++++++++++
-| |  axioms.v       | 113 ++++++++++++++++++++++++++
-| |  unscoped.v     | 214 +++++++++++++++++++++++++++++++++++++++++++++++++
-| |  4 files changed, 654 insertions(+), 78 deletions(-)
-| | 
-| * commit 7be9bfc29e6f2f7cc352eb33a15a31587c8b3543
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Sat Feb 12 01:33:23 2022 -0500
-| | 
-| |     Refactor to use autosubst db vars.
-| | 
-| |  System_F.v | 553 ++++++++++++++++++++++-----------------------------------
-| |  1 file changed, 208 insertions(+), 345 deletions(-)
-| | 
-| * commit b8df39df9a2169c4c74266d45fefadf2850be1f5
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Sat Feb 5 22:53:30 2022 -0500
-| | 
-| |     Finish soundness proof
-| | 
-| |  ha2.v | 183 ++++++++++++++++++++++++++++++++++++++++++++++++--------------
-| |  1 file changed, 142 insertions(+), 41 deletions(-)
-| | 
-| * commit bb4a80310766cae0c0406101fe9ad8ff07c2e8f9
-| | Author: Cody Roux <cody.roux@gmail.com>
-| | Date:   Tue Feb 1 23:47:19 2022 -0500
-| | 
-| |     Start formalizing 2nd order arithmetic. Still some variable shennanigans to prove...
-| | 
-| |  ha2.v | 563 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-| |  1 file changed, 563 insertions(+)
-| | 
-| * commit 28afb68719c83c0f3c517d0284aa40dd0819a651
-|/  Author: Cody Roux <cody.roux@gmail.com>
-|   Date:   Mon Jan 17 13:49:03 2022 -0500
-|   
-|       Tentative try to define a language with an oracle eval
-|   
-|    OracleLang.v | 141 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-|    1 file changed, 141 insertions(+)
 | 
-* commit d56dce013e6264292533efdc5e1de71863c6fb86 (upstream/master, upstream/HEAD, origin/master, origin/HEAD, master)
+* commit d56dce013e6264292533efdc5e1de71863c6fb86 (origin/master)
 | Author: Cody Roux <cody.roux@gmail.com>
 | Date:   Sun Jan 9 16:25:52 2022 -0500
 | 
